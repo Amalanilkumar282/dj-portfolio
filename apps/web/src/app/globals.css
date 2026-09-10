@@ -1,0 +1,2 @@
+/* The only import here. All tokens live in the design system. */
+@import '@dj/ui/styles/theme.css';

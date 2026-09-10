@@ -1,0 +1,270 @@
+/* ==========================================================================
+   DJ Felicitous — design tokens
+   THE single source of truth for colour, type, spacing, radii and motion.
+
+   The legacy site had three competing colour systems across three CSS files,
+   plus components referencing tokens that resolved to nothing. Raw colour
+   literals in app code are now a lint error (dj/no-raw-color-literals).
+
+   Architecture, in three layers. Components touch ONLY the third:
+     1. neutral ramp        --color-ink-*
+     2. accent source ramps --color-{flame,rose,violet,cyan,lime}-*
+     3. semantic aliases    --color-{bg,surface,fg,accent,...}
+
+   Persona theming works by remapping layer 3, never by adding tokens.
+
+   See docs/03-design-system/tokens.md
+   ========================================================================== */
+
+@import 'tailwindcss';
+
+@custom-variant hover-hover (@media (hover: hover) and (pointer: fine));
+@custom-variant motion-ok (@media (prefers-reduced-motion: no-preference));
+
+@theme {
+  /* ── 1. Neutrals ─────────────────────────────────────────────────────────
+     Blue-cooled charcoal, not pure grey — pure grey reads cheap next to
+     saturated accents. OKLCH so lightness is perceptually uniform, which is
+     what makes the contrast maths in accessibility.md hold. */
+  --color-ink-950: oklch(0.13 0.012 265); /* page background */
+  --color-ink-900: oklch(0.17 0.014 265); /* surface */
+  --color-ink-850: oklch(0.21 0.015 265); /* surface raised */
+  --color-ink-800: oklch(0.26 0.016 265); /* strong border */
+  --color-ink-700: oklch(0.34 0.014 265);
+  --color-ink-500: oklch(0.56 0.012 265); /* muted text — 4.6:1 on ink-950 */
+  --color-ink-300: oklch(0.76 0.01 265); /* secondary text */
+  --color-ink-100: oklch(0.93 0.006 265); /* body text */
+  --color-ink-050: oklch(0.98 0.004 265); /* headings */
+
+  /* ── 2. Accent source ramps ──────────────────────────────────────────────
+     Never referenced directly by a component. */
+  --color-flame-400: oklch(0.78 0.16 45);
+  --color-flame-500: oklch(0.7 0.19 38);
+  --color-rose-400: oklch(0.75 0.19 5);
+  --color-rose-500: oklch(0.66 0.23 0);
+  --color-violet-400: oklch(0.72 0.2 295);
+  --color-violet-500: oklch(0.6 0.25 300);
+  --color-cyan-400: oklch(0.85 0.15 200);
+  --color-cyan-500: oklch(0.76 0.16 205);
+  --color-lime-400: oklch(0.87 0.2 130);
+
+  /* ── 3. Semantic aliases — the only layer components use ─────────────── */
+  --color-bg: var(--color-ink-950);
+  --color-surface: var(--color-ink-900);
+  --color-surface-raised: var(--color-ink-850);
+  --color-border: var(--color-ink-800);
+  --color-border-subtle: var(--color-ink-900);
+
+  --color-fg: var(--color-ink-100);
+  --color-fg-strong: var(--color-ink-050);
+  --color-fg-muted: var(--color-ink-500);
+  --color-fg-secondary: var(--color-ink-300);
+
+  /* Overridden per persona. See persona-theming.md */
+  --color-accent: var(--color-cyan-400);
+  --color-accent-strong: var(--color-cyan-500);
+  --color-accent-soft: oklch(from var(--color-accent) l c h / 0.14);
+  /* Text ON an accent fill is always dark — accent-on-accent is never legible. */
+  --color-on-accent: var(--color-ink-950);
+
+  --color-focus: oklch(0.92 0.14 200);
+  --color-success: oklch(0.78 0.16 150);
+  --color-warning: oklch(0.82 0.16 85);
+  --color-danger: oklch(0.68 0.2 25);
+
+  --gradient-persona: linear-gradient(120deg, var(--color-accent), var(--color-accent-strong));
+
+  /* ── Typography ──────────────────────────────────────────────────────────
+     Three self-hosted variable fonts, ≤140KB total. The legacy site
+     referenced Orbitron in class names but never loaded it. */
+  --font-display: var(--font-monument), 'Arial Black', sans-serif;
+  --font-sans: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1;
+  --text-eyebrow--letter-spacing: 0.18em;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.65;
+  --text-lead: 1.25rem;
+  --text-lead--line-height: 1.55;
+  --text-h4: clamp(1.25rem, 1rem + 1vw, 1.5rem);
+  --text-h3: clamp(1.5rem, 1.1rem + 1.6vw, 2rem);
+  --text-h2: clamp(2rem, 1.4rem + 2.8vw, 3.25rem);
+  --text-h1: clamp(2.75rem, 1.6rem + 5vw, 5rem);
+  /* The cinematic aesthetic depends on genuinely large, tight display type. */
+  --text-display: clamp(3.5rem, 1rem + 11vw, 11rem);
+  --text-display--line-height: 0.85;
+  --text-display--letter-spacing: -0.03em;
+
+  /* ── Spacing ─────────────────────────────────────────────────────────── */
+  --spacing: 0.25rem;
+  --spacing-section: clamp(4rem, 8vw, 9rem);
+  --spacing-gutter: clamp(1rem, 4vw, 3rem);
+
+  /* ── Radii ───────────────────────────────────────────────────────────── */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 22px;
+  --radius-full: 9999px;
+
+  /* ── Elevation ───────────────────────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.5);
+  --shadow-md: 0 8px 24px -8px oklch(0 0 0 / 0.6);
+  --shadow-lg: 0 24px 64px -16px oklch(0 0 0 / 0.7);
+  /* Built from accent-soft, so it themes itself per persona. */
+  --shadow-glow: 0 0 0 1px var(--color-accent-soft), 0 0 32px -8px var(--color-accent-soft);
+  --blur-glass: 14px;
+
+  /* ── Motion ──────────────────────────────────────────────────────────────
+     Durations and easings live here, never as magic numbers in components. */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-instant: 90ms;
+  --duration-fast: 160ms;
+  --duration-base: 280ms;
+  --duration-slow: 520ms;
+  --duration-scene: 900ms;
+}
+
+/* ==========================================================================
+   Persona theming — remap semantic aliases only.
+   Also set server-side from the CMS via inline custom properties, so the
+   artist can retune an accent without a deploy. These are the fallbacks.
+   ========================================================================== */
+
+[data-theme='felicitous'] {
+  --color-accent: var(--color-rose-400);
+  --color-accent-strong: var(--color-flame-500);
+  --gradient-persona: linear-gradient(120deg, var(--color-rose-500), var(--color-flame-400));
+}
+
+[data-theme='trinitrocosmic'] {
+  --color-accent: var(--color-violet-400);
+  --color-accent-strong: var(--color-violet-500);
+  --gradient-persona: conic-gradient(
+    from 210deg,
+    var(--color-violet-500),
+    oklch(0.7 0.22 330),
+    var(--color-violet-400)
+  );
+}
+
+[data-theme='tnt'] {
+  --color-accent: var(--color-cyan-400);
+  --color-accent-strong: var(--color-cyan-500);
+  --gradient-persona: linear-gradient(180deg, var(--color-cyan-400), oklch(0.55 0.09 210));
+  /* Theming is not only colour: TNT is industrial. */
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --font-display: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+[data-theme='duo'] {
+  --color-accent: var(--color-rose-400);
+  --color-accent-strong: var(--color-violet-400);
+  --gradient-persona: linear-gradient(100deg, var(--color-rose-400), var(--color-violet-400));
+}
+
+/* Registered so the home-page channel switcher can CROSSFADE the accent
+   rather than snapping. Custom properties do not animate without this. */
+@property --color-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6ee7ff;
+}
+
+:root {
+  transition: --color-accent var(--duration-slow) var(--ease-out-quart);
+}
+
+/* ==========================================================================
+   Reduced motion — a token-level kill switch.
+   Driving the duration tokens to zero handles every component at once rather
+   than each one having to remember. The blanket rule is the backstop for
+   third-party CSS.
+
+   `[data-motion='reduced']` is set server-side from a cookie, so the in-UI
+   toggle applies before first paint (WCAG 2.2 SC 2.3.3).
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 1ms;
+    --duration-fast: 1ms;
+    --duration-base: 1ms;
+    --duration-slow: 1ms;
+    --duration-scene: 1ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+[data-motion='reduced'] {
+  --duration-instant: 1ms;
+  --duration-fast: 1ms;
+  --duration-base: 1ms;
+  --duration-slow: 1ms;
+  --duration-scene: 1ms;
+}
+
+/* High contrast and forced colours: strip decoration, keep meaning. */
+@media (forced-colors: active) {
+  :root {
+    --shadow-glow: none;
+    --gradient-persona: none;
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    /* Stops layout shifting when a modal locks scroll — a permanent CLS win. */
+    scrollbar-gutter: stable;
+  }
+
+  /* The legacy site set `maximum-scale: 1`, disabling pinch-zoom — a WCAG
+     1.4.4 failure. Nothing here may reintroduce that. */
+  body {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Dark outer ring so the focus indicator stays visible over photography. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 3px;
+    border-radius: var(--radius-xs);
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  /* Sticky header + persistent mini player must never obscure a focused
+     element (WCAG 2.2 SC 2.4.11). */
+  :target,
+  [id] {
+    scroll-margin-top: 6rem;
+  }
+
+  @view-transition {
+    navigation: auto;
+  }
+}

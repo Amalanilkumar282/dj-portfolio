@@ -1,0 +1,38 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# ── Install-script policy ───────────────────────────────────────────────────
+#
+# A postinstall script is arbitrary code execution at install time, so this is
+# a supply-chain control rather than bookkeeping. Only the packages below may
+# run one; everything else is blocked.
+onlyBuiltDependencies:
+  # Prisma downloads and positions its query engine binaries.
+  - '@prisma/client'
+  - '@prisma/engines'
+  - prisma
+  # Native binaries for the bundler and the ESLint resolver.
+  - esbuild
+  - unrs-resolver
+
+ignoredBuiltDependencies:
+  # Telemetry, pulled in transitively by swagger-ui-dist.
+  - '@scarf/scarf'
+  # Optional native speed-ups. The pure-JS fallbacks are fine here.
+  - protobufjs
+  # Pulled in by Testcontainers for its Docker connection, used only by the
+  # CI integration tests.
+  - ssh2
+  - cpu-features
+
+# pnpm 11 turns "an install script was not run" into a hard error, even for a
+# package explicitly listed above as ignored. That makes a deliberate policy
+# decision fail the command and block every downstream script.
+#
+# Build control still comes entirely from `onlyBuiltDependencies`. This only
+# stops the *reporting* of a skipped script from failing the install.
+strictDepBuilds: false
+
+allowBuilds:
+  '@scarf/scarf': set this to true or false

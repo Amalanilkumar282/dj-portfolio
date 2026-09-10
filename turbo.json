@@ -1,0 +1,60 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env", "packages/db/prisma/schema.prisma"],
+  "globalEnv": ["NODE_ENV", "CI"],
+  "tasks": {
+    "db:generate": {
+      "cache": false,
+      "outputs": ["../../node_modules/.prisma/**"],
+      "env": ["DATABASE_URL", "DIRECT_URL"]
+    },
+    "build": {
+      "dependsOn": ["^build", "db:generate"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "storybook-static/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build", "db:generate", "build"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build", "db:generate"],
+      "env": [
+        "DATABASE_URL",
+        "DIRECT_URL",
+        "SHADOW_DATABASE_URL",
+        "ADMIN_SEED_EMAIL",
+        "ADMIN_SEED_PASSWORD",
+        "CLOUDINARY_ROOT_FOLDER"
+      ]
+    },
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "env": [
+        "DATABASE_URL",
+        "DIRECT_URL",
+        "SHADOW_DATABASE_URL",
+        "ADMIN_SEED_EMAIL",
+        "ADMIN_SEED_PASSWORD",
+        "CLOUDINARY_ROOT_FOLDER"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "env": [
+        "DATABASE_URL",
+        "DIRECT_URL",
+        "SHADOW_DATABASE_URL",
+        "ADMIN_SEED_EMAIL",
+        "ADMIN_SEED_PASSWORD",
+        "CLOUDINARY_ROOT_FOLDER"
+      ]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

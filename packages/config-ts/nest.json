@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "NestJS",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "verbatimModuleSyntax": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "ES2023",
+    "outDir": "./dist",
+    "types": ["node"],
+    "strictPropertyInitialization": false,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "incremental": false
+  }
+}

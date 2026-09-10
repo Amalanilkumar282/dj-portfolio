@@ -1,0 +1,49 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+.next/
+out/
+build/
+storybook-static/
+*.tsbuildinfo
+
+# turbo
+.turbo/
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# test artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.nyc_output/
+
+# editors / os
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# deploy
+.vercel/
+.railway/
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# prisma
+packages/db/prisma/*.db
+packages/db/prisma/*.db-journal
+
+# generated
+packages/db/src/generated/

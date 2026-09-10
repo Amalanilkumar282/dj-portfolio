@@ -1,0 +1,50 @@
+# Local development infrastructure only. Production uses Neon (Postgres),
+# Cloudinary (media) and Resend (email). See docs/05-operations/local-setup.md
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: djf-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: djf
+      POSTGRES_PASSWORD: djf
+      POSTGRES_DB: djf
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    command:
+      - postgres
+      - -c
+      - log_statement=none
+      - -c
+      - max_connections=100
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U djf -d djf']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Catches outbound mail locally instead of hitting Resend.
+  # UI: http://localhost:8025   SMTP: localhost:1025
+  mailpit:
+    image: axllent/mailpit
+    container_name: djf-mailpit
+    restart: unless-stopped
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+    profiles: ['mail']
+
+  # Not needed at launch (see docs/01-decisions/0006-no-redis-at-launch.md).
+  # Start with: docker compose --profile redis up -d
+  redis:
+    image: redis:7-alpine
+    container_name: djf-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    profiles: ['redis']
+
+volumes:
+  pgdata:

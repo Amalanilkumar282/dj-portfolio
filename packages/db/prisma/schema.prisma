@@ -1,0 +1,1740 @@
+// ============================================================================
+//  DJ Felicitous - data model
+//  See docs/02-architecture/data-model.md for the rationale behind each field.
+//
+//  Conventions applied to every content model:
+//    - cuid(2) ids, snake_case table names via @@map
+//    - soft delete via deletedAt, enforced by a Prisma client extension
+//      (packages/db/src/extensions/soft-delete.ts) so `delete` never issues
+//      a real SQL DELETE
+//    - audit fields createdAt/updatedAt/createdBy/updatedBy, populated from
+//      the request context (packages/db/src/extensions/audit.ts)
+//    - publish workflow: status + publishedAt + scheduledAt
+//    - slug unique, sortIndex for manual ordering
+//    - optional 1:1 SeoMeta relation (Postgres has no embeddables; a shared
+//      table beats duplicating 8 columns across 12 models and lets the admin
+//      SEO editor be one reusable component)
+// ============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins", "nativeDistinct", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL") // pooled (pgbouncer) - runtime
+  directUrl  = env("DIRECT_URL") // unpooled - migrations, DDL, advisory locks
+  // pg_trgm backs the trigram GIN indexes declared on title/name columns.
+  // Declaring it here keeps CREATE EXTENSION inside a Prisma migration, so
+  // `migrate:check` can verify it rather than treating it as drift.
+  extensions = [pg_trgm]
+}
+
+// ============================================================================
+//  ENUMS
+// ============================================================================
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Stable programmatic handles for the four acts. Slugs may change for SEO;
+/// these never do, so code and seeds can reference a persona safely.
+enum PersonaKey {
+  FELICITOUS
+  TRINITROCOSMIC
+  TNT
+  COUPLE_DUO
+}
+
+enum TrackType {
+  ORIGINAL
+  REMIX
+  LIVE_SET
+  MIX
+  PODCAST
+  COLLABORATION
+}
+
+enum ReleaseType {
+  ALBUM
+  EP
+  SINGLE
+  COMPILATION
+}
+
+enum EventKind {
+  CLUB
+  FESTIVAL
+  WEDDING
+  CORPORATE
+  PRIVATE
+  RADIO
+  LIVESTREAM
+}
+
+enum EventStatus {
+  ANNOUNCED
+  CONFIRMED
+  SOLD_OUT
+  CANCELLED
+  POSTPONED
+  COMPLETED
+}
+
+enum MediaResourceType {
+  IMAGE
+  VIDEO
+  AUDIO
+  RAW
+}
+
+enum MediaPurpose {
+  HERO
+  GALLERY
+  AVATAR
+  FLYER
+  COVER_ART
+  LOGO
+  PRESS_PHOTO
+  DOCUMENT
+  BACKGROUND_VIDEO
+  OG_IMAGE
+  GEAR
+}
+
+enum ServiceCategory {
+  WEDDING
+  CORPORATE
+  CLUB
+  FESTIVAL
+  PRIVATE_PARTY
+  PRODUCTION
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  QUOTED
+  NEGOTIATING
+  BOOKED
+  LOST
+  SPAM
+  ARCHIVED
+}
+
+enum InquirySource {
+  WEBSITE_FORM
+  INSTAGRAM
+  WHATSAPP
+  REFERRAL
+  EMAIL
+  PHONE
+  OTHER
+}
+
+enum SubscriberStatus {
+  PENDING
+  CONFIRMED
+  UNSUBSCRIBED
+  BOUNCED
+  COMPLAINED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  PUBLISH
+  UNPUBLISH
+  ARCHIVE
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  LOGOUT_ALL
+  PASSWORD_CHANGE
+  TOKEN_REFRESH
+  TOKEN_REUSE_DETECTED
+  ROLE_CHANGE
+  TWO_FA_ENABLE
+  TWO_FA_DISABLE
+  MEDIA_UPLOAD
+  MEDIA_DELETE
+  SETTINGS_UPDATE
+  MAIL_FAILED
+}
+
+enum RedirectKind {
+  PERMANENT
+  TEMPORARY
+}
+
+enum Currency {
+  INR
+  USD
+  EUR
+  AED
+  GBP
+}
+
+enum StreamPlatform {
+  SPOTIFY
+  SOUNDCLOUD
+  YOUTUBE
+  APPLE_MUSIC
+  BEATPORT
+  BANDCAMP
+  MIXCLOUD
+  DEEZER
+  AMAZON_MUSIC
+}
+
+enum PressAssetKind {
+  LOGO_PACK
+  LOGO_SVG
+  HI_RES_PHOTO
+  TECH_RIDER
+  STAGE_PLOT
+  BIO_PDF
+  EPK_PDF
+  RIDER_HOSPITALITY
+}
+
+enum GearCategory {
+  MIXER
+  CDJ
+  CONTROLLER
+  TURNTABLE
+  DAW
+  MONITOR
+  SOFTWARE
+  OUTBOARD
+  MICROPHONE
+  LIGHTING
+}
+
+enum ProficiencyLevel {
+  FAMILIAR
+  PROFICIENT
+  ADVANCED
+  EXPERT
+}
+
+enum VideoProvider {
+  YOUTUBE
+  VIMEO
+  CLOUDINARY
+}
+
+enum GalleryLayout {
+  MASONRY
+  GRID
+  CAROUSEL
+  FILMSTRIP
+}
+
+// ============================================================================
+//  IDENTITY / RBAC / AUDIT
+// ============================================================================
+
+model User {
+  id              String    @id @default(cuid(2))
+  email           String    @unique
+  emailVerifiedAt DateTime?
+  passwordHash    String // argon2id
+  name            String
+  avatarUrl       String?
+  isActive        Boolean   @default(true)
+
+  // Two-factor
+  totpSecret        String? // AES-256-GCM encrypted at rest
+  totpEnabledAt     DateTime?
+  totpRecoveryCodes String[]  @default([]) // argon2 hashes of one-time codes
+
+  // Brute-force lockout
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  lastLoginIp      String?
+  /// Bumping this invalidates every refresh token issued before it, which is
+  /// how "log out everywhere on password change" works without a token scan.
+  passwordChangedAt DateTime @default(now())
+
+  roles             UserRole[]
+  refreshTokens     RefreshToken[]
+  auditLogs         AuditLog[]       @relation("AuditActor")
+  uploadedMedia     MediaAsset[]     @relation("MediaUploader")
+  assignedInquiries BookingInquiry[] @relation("InquiryOwner")
+  inquiryNotes      InquiryNote[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model Role {
+  id          String  @id @default(cuid(2))
+  key         String  @unique // SUPER_ADMIN | EDITOR | VIEWER
+  name        String
+  description String?
+  /// System roles are seeded and non-deletable.
+  isSystem    Boolean @default(false)
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("roles")
+}
+
+model Permission {
+  id       String @id @default(cuid(2))
+  key      String @unique // "event:publish"
+  resource String // "event"
+  action   String // "publish"
+
+  roles RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model UserRole {
+  userId     String
+  roleId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+/// Opaque rotating refresh tokens. Only the sha256 hash is stored, so a DB
+/// leak does not yield usable tokens. Reuse of an already-rotated token
+/// revokes the entire family - the standard detection for a stolen token.
+model RefreshToken {
+  id            String    @id @default(cuid(2))
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyId      String // rotation lineage
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  /// ROTATED | REUSE_DETECTED | LOGOUT | LOGOUT_ALL | PASSWORD_CHANGE | ADMIN_REVOKE
+  revokedReason String?
+  replacedById  String?   @unique
+  userAgent     String?
+  ip            String?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id         String      @id @default(cuid(2))
+  action     AuditAction
+  entityType String? // "Event"
+  entityId   String?
+  actorId    String?
+  actor      User?       @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  /// Denormalized so the trail survives actor deletion.
+  actorEmail String?
+  /// { before: {...}, after: {...} } - scalars only, secrets stripped.
+  diff       Json?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  requestId  String?
+  createdAt  DateTime    @default(now())
+
+  @@index([entityType, entityId, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+/// Backs the Idempotency-Key header. Pruned nightly.
+model IdempotencyKey {
+  id           String   @id @default(cuid(2))
+  key          String   @unique
+  /// Hash of the request body: the same key with a different body is a 409.
+  requestHash  String
+  statusCode   Int
+  responseBody Json
+  userId       String?
+  path         String
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+// ============================================================================
+//  SEO (shared 1:1) + MEDIA
+// ============================================================================
+
+model SeoMeta {
+  id             String  @id @default(cuid(2))
+  title          String? // <= 60 chars, enforced by the Zod contract
+  description    String? // <= 160
+  keywords       String[] @default([])
+  canonicalUrl   String?
+  ogTitle        String?
+  ogDescription  String?
+  ogImageId      String?
+  ogImage        MediaAsset? @relation(fields: [ogImageId], references: [id], onDelete: SetNull)
+  twitterCard    String? @default("summary_large_image")
+  noIndex        Boolean @default(false)
+  noFollow       Boolean @default(false)
+  /// JSON-LD override. Normally the graph is generated per entity type;
+  /// this is the escape hatch.
+  structuredData Json?
+
+  persona     Persona?
+  event       Event?
+  release     Release?
+  post        Post?
+  track       Track?
+  playlist    Playlist?
+  service     Service?
+  page        StaticPage?
+  program     Program?
+  venue       Venue?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ogImageId])
+  @@map("seo_meta")
+}
+
+/// One row per Cloudinary asset. The API re-reads authoritative metadata from
+/// the Cloudinary Admin API after a signed browser upload rather than trusting
+/// what the client reports.
+model MediaAsset {
+  id           String            @id @default(cuid(2))
+  publicId     String            @unique // includes the folder path
+  resourceType MediaResourceType
+  deliveryType String            @default("upload") // upload | private | authenticated
+  format       String // jpg | mp4 | mp3 | pdf
+  version      Int?
+  bytes        Int
+  width        Int?
+  height       Int?
+  aspectRatio  Float?
+  durationSec  Float? // video / audio
+  pages        Int? // PDF
+  secureUrl    String
+  folder       String // djf/prod/personas/trinitrocosmic/gallery
+  purpose      MediaPurpose      @default(GALLERY)
+
+  originalFilename String?
+  etag             String?
+  colors           Json? // Cloudinary predominant colours
+  dominantColor    String? // skeleton background that matches the image
+  /// base64 8-16px webp, so next/image placeholder="blur" costs nothing at
+  /// runtime and needs no plaiceholder pass.
+  blurDataUrl      String?
+  blurhash         String?
+  /// Required for IMAGE by the Zod contract: the admin blocks publish without
+  /// it. The legacy site had no alt text anywhere.
+  altText          String?
+  caption          String?
+  credit           String? // photographer
+  tags             String[]          @default([])
+  /// Normalised focal point (0..1) driving object-position, so cropped hero
+  /// portraits never decapitate the subject.
+  focalX           Float?
+  focalY           Float?
+  /// Precomputed peak array for audio, so the waveform renders without
+  /// downloading the file.
+  waveformPeaks    Json?
+  isSensitive      Boolean           @default(false)
+
+  uploadedById String?
+  uploadedBy   User?   @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  // Reverse relations - the reference counter for two-phase deletion walks
+  // these to refuse deleting an asset that is still in use.
+  personaHeroes      Persona[]     @relation("PersonaHero")
+  personaAvatars     Persona[]     @relation("PersonaAvatar")
+  personaBgVideos    Persona[]     @relation("PersonaBgVideo")
+  galleryItems       GalleryItem[]
+  eventFlyers        Event[]       @relation("EventFlyer")
+  trackArtworks      Track[]       @relation("TrackArtwork")
+  trackAudios        Track[]       @relation("TrackAudio")
+  playlistCovers     Playlist[]    @relation("PlaylistCover")
+  releaseCovers      Release[]     @relation("ReleaseCover")
+  postCovers         Post[]        @relation("PostCover")
+  testimonialAvatars Testimonial[]
+  brandLogos         Brand[]       @relation("BrandLogo")
+  brandMonoLogos     Brand[]       @relation("BrandMonoLogo")
+  serviceImages      Service[]
+  pressAssets        PressAsset[]
+  videoThumbnails    Video[]       @relation("VideoThumbnail")
+  videoHosted        Video[]       @relation("VideoHosted")
+  gearImages         GearItem[]
+  experienceLogos    ExperienceEntry[]
+  venueLogos         Venue[]
+  programHeroes      Program[]     @relation("ProgramHero")
+  seoOgImages        SeoMeta[]
+  settingsLogos      SiteSettings[] @relation("SettingsLogo")
+  settingsOgImages   SiteSettings[] @relation("SettingsOgImage")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  /// Soft delete first; the Cloudinary purge happens in the nightly sweeper
+  /// 30 days later, so an accidental delete is recoverable.
+  deletedAt DateTime?
+
+  @@index([resourceType, purpose])
+  @@index([folder])
+  @@index([tags])
+  @@index([deletedAt, createdAt(sort: Desc)])
+  @@map("media_assets")
+}
+
+// ============================================================================
+//  PERSONAS
+//  Four acts, one artist. Personas are rows, not routes: the public site
+//  renders them all through app/(marketing)/[persona]/page.tsx with
+//  generateStaticParams, so a fifth act ships with zero code.
+// ============================================================================
+
+model Persona {
+  id               String     @id @default(cuid(2))
+  key              PersonaKey @unique
+  slug             String     @unique // felicitous | trinitrocosmic | tnt | felicitous-x-geetz
+  stageName        String // "Trinitrocosmic"
+  subtitle         String? // "Psychedelic Journey Guide"
+  tagline          String?
+  shortDescription String?    @db.VarChar(280)
+  bio              String     @db.Text // markdown
+  bioShort         String?    @db.Text
+  primaryGenreLabel String? // "Psytrance"
+
+  /// Persona theming is CMS-driven: these feed CSS custom properties on the
+  /// server-rendered wrapper, so the DJ can retune an act without a deploy.
+  /// theme.css holds the fallbacks. See docs/03-design-system/persona-theming.md
+  accentColor          String  @default("#2DD4BF")
+  accentColorSecondary String?
+  gradientCss          String?
+
+  isFeatured      Boolean  @default(false)
+  isDuo           Boolean  @default(false)
+  memberNames     String[] @default([]) // ["DJ Felicitous", "DJ Geetz"]
+  homeCity        String?  @default("Bangalore")
+  country         String?  @default("India")
+  bpmRangeLow     Int?
+  bpmRangeHigh    Int?
+  yearsActiveFrom Int?
+
+  heroMediaId    String?
+  heroMedia      MediaAsset? @relation("PersonaHero", fields: [heroMediaId], references: [id], onDelete: SetNull)
+  avatarMediaId  String?
+  avatarMedia    MediaAsset? @relation("PersonaAvatar", fields: [avatarMediaId], references: [id], onDelete: SetNull)
+  bgVideoMediaId String?
+  bgVideoMedia   MediaAsset? @relation("PersonaBgVideo", fields: [bgVideoMediaId], references: [id], onDelete: SetNull)
+
+  /// Ordered section descriptors for the page builder, so each act can have a
+  /// different narrative order without a schema change.
+  sections Json?
+
+  genres       PersonaGenre[]
+  socialLinks  SocialLink[]
+  galleries    Gallery[]
+  tracks       Track[]
+  playlists    Playlist[]
+  releases     Release[]
+  events       Event[]
+  programs     Program[]
+  testimonials Testimonial[]
+  videos       Video[]
+  stats        Stat[]
+  services     Service[]
+  posts        Post[]
+  inquiries    BookingInquiry[]
+  brands       PersonaBrand[]
+  pressAssets  PressAsset[]
+  faqs         Faq[]
+  lineupSlots  EventLineupSlot[]
+
+  seoMetaId String?  @unique
+  seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([status, sortIndex])
+  @@index([deletedAt])
+  @@map("personas")
+}
+
+model Genre {
+  id          String  @id @default(cuid(2))
+  slug        String  @unique
+  name        String  @unique
+  description String?
+  colorHex    String?
+
+  personas  PersonaGenre[]
+  tracks    TrackGenre[]
+  sortIndex Int            @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("genres")
+}
+
+model PersonaGenre {
+  personaId String
+  genreId   String
+  persona   Persona @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  genre     Genre   @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  isPrimary Boolean @default(false)
+  sortIndex Int     @default(0)
+
+  @@id([personaId, genreId])
+  @@index([genreId])
+  @@map("persona_genres")
+}
+
+/// A null personaId means a site-wide link (footer, contact page).
+model SocialLink {
+  id            String   @id @default(cuid(2))
+  personaId     String?
+  persona       Persona? @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  platform      String // instagram | soundcloud | spotify | youtube | mixcloud | whatsapp
+  handle        String?
+  url           String
+  label         String?
+  /// Manually curated social proof; we do not scrape follower counts.
+  followerCount Int?
+  isPrimary     Boolean  @default(false)
+  isVisible     Boolean  @default(true)
+  sortIndex     Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([personaId, platform])
+  @@index([personaId, sortIndex])
+  @@map("social_links")
+}
+
+// ============================================================================
+//  MUSIC: tracks, playlists, releases, streaming links
+// ============================================================================
+
+model Track {
+  id          String    @id @default(cuid(2))
+  slug        String    @unique
+  title       String
+  /// Display credit, which may differ from the owning persona
+  /// (e.g. "Trinitrocosmic / DJ Felicitous" for a collaboration).
+  artistLabel String
+  personaId   String?
+  persona     Persona?  @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  releaseId   String?
+  release     Release?  @relation(fields: [releaseId], references: [id], onDelete: SetNull)
+  trackNumber Int?
+  type        TrackType @default(MIX)
+  description String?   @db.Text
+  bpm         Int?
+  musicalKey  String?
+  durationSec Int?
+  releaseDate DateTime?
+  isFeatured  Boolean   @default(false)
+  isDownloadable Boolean @default(false)
+
+  // Third-party embeds. These are NOT MediaAssets - nothing is hosted by us.
+  soundcloudTrackId String?
+  embedUrl          String?
+  /// oEmbed HTML, sanitised on write against a strict iframe allowlist and
+  /// refreshed on a 30-day TTL.
+  embedHtml         String? @db.Text
+
+  artworkId String?
+  artwork   MediaAsset? @relation("TrackArtwork", fields: [artworkId], references: [id], onDelete: SetNull)
+  /// Self-hosted audio on Cloudinary, for tracks not on a streaming platform.
+  audioId   String?
+  audio     MediaAsset? @relation("TrackAudio", fields: [audioId], references: [id], onDelete: SetNull)
+
+  streamLinks    StreamLink[]
+  genres         TrackGenre[]
+  playlistTracks PlaylistTrack[]
+  tags           String[]        @default([])
+
+  /// Hand-curated counts. Live figures come from the platform APIs in a
+  /// later phase; these must not be presented as real-time.
+  playCount Int @default(0)
+  likeCount Int @default(0)
+
+  seoMetaId String?  @unique
+  seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([personaId, status, releaseDate(sort: Desc)])
+  @@index([status, isFeatured, sortIndex])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("tracks")
+}
+
+model TrackGenre {
+  trackId String
+  genreId String
+  track   Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([trackId, genreId])
+  @@index([genreId])
+  @@map("track_genres")
+}
+
+/// Curated, orderable, shareable collections of the DJ's own productions and
+/// mixes - the "listen to my work as a playlist" showcase.
+model Playlist {
+  id          String  @id @default(cuid(2))
+  slug        String  @unique
+  title       String
+  description String? @db.Text
+  personaId   String?
+  persona     Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  coverId     String?
+  cover       MediaAsset? @relation("PlaylistCover", fields: [coverId], references: [id], onDelete: SetNull)
+  isFeatured  Boolean @default(false)
+  /// Total runtime, denormalised on write so list views need no aggregation.
+  totalDurationSec Int? @default(0)
+
+  tracks      PlaylistTrack[]
+  streamLinks PlaylistStreamLink[]
+
+  seoMetaId String?  @unique
+  seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([personaId, status, sortIndex])
+  @@index([status, isFeatured])
+  @@index([deletedAt])
+  @@map("playlists")
+}
+
+model PlaylistTrack {
+  playlistId String
+  trackId    String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  /// Fractional index, so drag-to-reorder rewrites one row rather than all.
+  sortIndex  Float    @default(0)
+  note       String?
+
+  @@id([playlistId, trackId])
+  @@index([trackId])
+  @@index([playlistId, sortIndex])
+  @@map("playlist_tracks")
+}
+
+model PlaylistStreamLink {
+  id         String         @id @default(cuid(2))
+  playlistId String
+  playlist   Playlist       @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  platform   StreamPlatform
+  url        String
+  sortIndex  Int            @default(0)
+
+  @@unique([playlistId, platform])
+  @@map("playlist_stream_links")
+}
+
+model StreamLink {
+  id        String         @id @default(cuid(2))
+  platform  StreamPlatform
+  url       String
+  trackId   String?
+  releaseId String?
+  track     Track?         @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  release   Release?       @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  sortIndex Int            @default(0)
+
+  @@unique([trackId, platform])
+  @@unique([releaseId, platform])
+  @@index([releaseId])
+  @@map("stream_links")
+}
+
+model Release {
+  id            String      @id @default(cuid(2))
+  slug          String      @unique
+  title         String
+  type          ReleaseType @default(SINGLE)
+  personaId     String?
+  persona       Persona?    @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  artistLabel   String
+  label         String? // record label
+  catalogNumber String?
+  upc           String?
+  description   String?     @db.Text
+  releaseDate   DateTime?
+  coverId       String?
+  cover         MediaAsset? @relation("ReleaseCover", fields: [coverId], references: [id], onDelete: SetNull)
+  isFeatured    Boolean     @default(false)
+
+  tracks      Track[]
+  streamLinks StreamLink[]
+
+  seoMetaId String?  @unique
+  seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([personaId, status, releaseDate(sort: Desc)])
+  @@index([deletedAt])
+  @@map("releases")
+}
+
+// ============================================================================
+//  EVENTS / VENUES / PROGRAMS
+//  The legacy site stored gigs as bare strings (gigs: string[]). Promoting
+//  them to Venue + Event + Program rows turns them into a linkable,
+//  crawlable graph with real dates, tickets and local-SEO Place schema.
+// ============================================================================
+
+model Venue {
+  id           String  @id @default(cuid(2))
+  slug         String  @unique
+  name         String // "Big Pitcher Sarjapur"
+  city         String // "Bangalore"
+  state        String?
+  country      String  @default("India")
+  addressLine  String?
+  postalCode   String?
+  latitude     Float?
+  longitude    Float?
+  websiteUrl   String?
+  instagramUrl String?
+  capacity     Int?
+  notes        String? @db.Text
+  logoId       String?
+  logo         MediaAsset? @relation(fields: [logoId], references: [id], onDelete: SetNull)
+
+  events   Event[]
+  programs Program[]
+
+  seoMetaId String?  @unique
+  seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(PUBLISHED)
+  publishedAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@unique([name, city])
+  @@index([city])
+  @@index([deletedAt])
+  @@map("venues")
+}
+
+model Event {
+  id          String      @id @default(cuid(2))
+  slug        String      @unique
+  title       String // "Bolly-Tech"
+  subtitle    String?
+  kind        EventKind   @default(CLUB)
+  eventStatus EventStatus @default(ANNOUNCED)
+  description String?     @db.Text
+
+  personaId String?
+  persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  venueId   String?
+  venue     Venue?   @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  /// One-off venues that do not warrant a Venue row.
+  venueNameOverride String?
+  cityOverride      String?
+  countryOverride   String?
+  programId String?
+  program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  /// Always stored UTC; `timezone` carries the display zone so the
+  /// MusicEvent JSON-LD can emit a correct IST offset.
+  startsAt    DateTime
+  endsAt      DateTime?
+  timezone    String    @default("Asia/Kolkata")
+  isAllDay    Boolean   @default(false)
+  doorsOpenAt DateTime?
+
+  ticketUrl      String?
+  ticketPriceMin Decimal?  @db.Decimal(10, 2)
+  ticketPriceMax Decimal?  @db.Decimal(10, 2)
+  currency       Currency  @default(INR)
+  isFree         Boolean   @default(false)
+  ageRestriction String? // "21+"
+
+  lineup      EventLineupSlot[]
+  flyerId     String?
+  flyer       MediaAsset?       @relation("EventFlyer", fields: [flyerId], references: [id], onDelete: SetNull)
+  galleryId   String?           @unique
+  gallery     Gallery?          @relation(fields: [galleryId], references: [id], onDelete: SetNull)
+  recapVideos Video[]
+
+  isFeatured Boolean @default(false)
+  /// Maintained by the hourly cron so the "upcoming" partial index stays
+  /// cheap - a WHERE on a boolean beats a WHERE on now().
+  isPast     Boolean @default(false)
+  attendanceEstimate Int?
+
+  seoMetaId String?  @unique
+  seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([status, startsAt(sort: Desc)])
+  @@index([personaId, status, startsAt(sort: Desc)])
+  @@index([isPast, status, startsAt])
+  @@index([venueId])
+  @@index([programId])
+  @@index([deletedAt])
+  @@map("events")
+}
+
+model EventLineupSlot {
+  id          String    @id @default(cuid(2))
+  eventId     String
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  /// Free text, because guest artists have no Persona row.
+  artistName  String
+  personaId   String?
+  persona     Persona?  @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  role        String? // Headliner | Support | Opening
+  setStartsAt DateTime?
+  setEndsAt   DateTime?
+  isHeadliner Boolean   @default(false)
+  sortIndex   Int       @default(0)
+
+  @@index([eventId, sortIndex])
+  @@index([personaId])
+  @@map("event_lineup_slots")
+}
+
+/// Recurring or branded nights and shows performed - "Housefull Sunday",
+/// "Big Bollywood Night", "Clubbers Friday". A residency groups many Events.
+model Program {
+  id          String  @id @default(cuid(2))
+  slug        String  @unique
+  name        String
+  subtitle    String?
+  description String? @db.Text
+  /// "Weekly", "Monthly", "One-off season"
+  cadence     String?
+  personaId   String?
+  persona     Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  venueId     String?
+  venue       Venue?   @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  residencyFrom DateTime?
+  residencyTo   DateTime?
+  isOngoing     Boolean  @default(false)
+  heroId      String?
+  hero        MediaAsset? @relation("ProgramHero", fields: [heroId], references: [id], onDelete: SetNull)
+  galleryId   String?     @unique
+  gallery     Gallery?    @relation(fields: [galleryId], references: [id], onDelete: SetNull)
+
+  events Event[]
+
+  seoMetaId String?  @unique
+  seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([personaId, status, sortIndex])
+  @@index([venueId])
+  @@index([deletedAt])
+  @@map("programs")
+}
+
+// ============================================================================
+//  GALLERIES / VIDEO
+// ============================================================================
+
+model Gallery {
+  id          String        @id @default(cuid(2))
+  slug        String        @unique
+  title       String
+  description String?       @db.Text
+  personaId   String?
+  persona     Persona?      @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  event       Event?
+  program     Program?
+  layout      GalleryLayout @default(MASONRY)
+
+  items GalleryItem[]
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([personaId, status, sortIndex])
+  @@index([deletedAt])
+  @@map("galleries")
+}
+
+model GalleryItem {
+  id        String     @id @default(cuid(2))
+  galleryId String
+  gallery   Gallery    @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  caption   String?
+  /// Fractional index for cheap drag-to-reorder.
+  sortIndex Float      @default(0)
+  isCover   Boolean    @default(false)
+
+  @@unique([galleryId, mediaId])
+  @@index([galleryId, sortIndex])
+  @@index([mediaId])
+  @@map("gallery_items")
+}
+
+model Video {
+  id              String        @id @default(cuid(2))
+  slug            String        @unique
+  title           String
+  description     String?       @db.Text
+  provider        VideoProvider @default(YOUTUBE)
+  providerVideoId String?
+  embedUrl        String?
+  hostedMediaId   String?
+  hostedMedia     MediaAsset?   @relation("VideoHosted", fields: [hostedMediaId], references: [id], onDelete: SetNull)
+  thumbnailId     String?
+  thumbnail       MediaAsset?   @relation("VideoThumbnail", fields: [thumbnailId], references: [id], onDelete: SetNull)
+  durationSec     Int?
+  /// Timestamped chapters, surfaced as VideoObject hasPart Clip[] in JSON-LD.
+  chapters        Json?
+  transcript      String?       @db.Text
+  personaId       String?
+  persona         Persona?      @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  eventId         String?
+  event           Event?        @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  isFeatured      Boolean       @default(false)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([personaId, status, sortIndex])
+  @@index([eventId])
+  @@index([deletedAt])
+  @@map("videos")
+}
+
+// ============================================================================
+//  SOCIAL PROOF
+// ============================================================================
+
+/// Only real, attributable testimonials. The legacy site carried fabricated
+/// quotes attributed to Boom Festival, Ozora, Berghain, Fabric and Tresor;
+/// those are deliberately not migrated. Fake Review markup is a Google
+/// penalty risk as well as a trust problem.
+model Testimonial {
+  id           String    @id @default(cuid(2))
+  authorName   String
+  authorRole   String?
+  venueOrEvent String?
+  company      String?
+  quote        String    @db.Text
+  rating       Int? // 1..5
+  eventDate    DateTime?
+  personaId    String?
+  persona      Persona?  @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  avatarId     String?
+  avatar       MediaAsset? @relation(fields: [avatarId], references: [id], onDelete: SetNull)
+  sourceUrl    String?
+  isFeatured   Boolean   @default(false)
+  /// Gate for emitting Review / AggregateRating JSON-LD.
+  isVerified   Boolean   @default(false)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([personaId, status, sortIndex])
+  @@index([status, isFeatured])
+  @@index([deletedAt])
+  @@map("testimonials")
+}
+
+model Brand {
+  id         String  @id @default(cuid(2))
+  slug       String  @unique
+  name       String
+  websiteUrl String?
+  logoId     String?
+  logo       MediaAsset? @relation("BrandLogo", fields: [logoId], references: [id], onDelete: SetNull)
+  logoMonoId String?
+  logoMono   MediaAsset? @relation("BrandMonoLogo", fields: [logoMonoId], references: [id], onDelete: SetNull)
+  category   String? // venue | brand | festival | media
+  isFeatured Boolean @default(false)
+
+  personas PersonaBrand[]
+
+  status      ContentStatus @default(PUBLISHED)
+  publishedAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([status, sortIndex])
+  @@index([deletedAt])
+  @@map("brands")
+}
+
+model PersonaBrand {
+  personaId String
+  brandId   String
+  persona   Persona @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  brand     Brand   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  sortIndex Int     @default(0)
+
+  @@id([personaId, brandId])
+  @@index([brandId])
+  @@map("persona_brands")
+}
+
+/// Social-proof counters. `value` is a string so "10M+" and "500+" render
+/// verbatim; `numericValue` is the animation target for the counter component.
+model Stat {
+  id           String   @id @default(cuid(2))
+  key          String // gigs_played
+  label        String // "Gigs Played"
+  value        String // "500"
+  numericValue Float?
+  unit         String?
+  suffix       String? // "+"
+  icon         String? // lucide icon name
+  personaId    String?
+  persona      Persona? @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  isVisible    Boolean  @default(true)
+  sortIndex    Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([personaId, key])
+  @@map("stats")
+}
+
+// ============================================================================
+//  CAREER: work experience + console / gear experience
+// ============================================================================
+
+/// The work-experience timeline on /about: residencies, roles, labels,
+/// production credits, teaching.
+model ExperienceEntry {
+  id           String    @id @default(cuid(2))
+  role         String // "Resident DJ"
+  /// Venue, brand, label or client.
+  organisation String
+  location     String?
+  startDate    DateTime
+  endDate      DateTime?
+  isCurrent    Boolean   @default(false)
+  summary      String?   @db.Text
+  highlights   String[]  @default([])
+  logoId       String?
+  logo         MediaAsset? @relation(fields: [logoId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([status, startDate(sort: Desc)])
+  @@index([deletedAt])
+  @@map("experience_entries")
+}
+
+/// Console and gear experience for /setup. Doubles as the source of truth for
+/// the technical rider, so equipment is maintained in exactly one place.
+model GearItem {
+  id          String           @id @default(cuid(2))
+  slug        String           @unique
+  category    GearCategory
+  brand       String // "Pioneer DJ"
+  model       String // "CDJ-3000"
+  proficiency ProficiencyLevel @default(PROFICIENT)
+  yearsUsed   Int?
+  notes       String?          @db.Text
+  /// Show this item on the public technical rider.
+  isRiderItem Boolean          @default(false)
+  /// Preferred when a venue offers a choice of equipment.
+  isPreferred Boolean          @default(false)
+  imageId     String?
+  image       MediaAsset?      @relation(fields: [imageId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([category, sortIndex])
+  @@index([status, isRiderItem])
+  @@index([deletedAt])
+  @@map("gear_items")
+}
+
+// ============================================================================
+//  SERVICES / FAQ / PRESS KIT / BLOG / STATIC PAGES
+// ============================================================================
+
+model Service {
+  id            String          @id @default(cuid(2))
+  slug          String          @unique
+  name          String // "Wedding & Sangeet Package"
+  category      ServiceCategory
+  summary       String?         @db.VarChar(280)
+  description   String?         @db.Text
+  inclusions    String[]        @default([])
+  exclusions    String[]        @default([])
+  addons        String[]        @default([]) // LED wall, sax, dhol, CO2
+  durationHours Int?
+  /// Indicative pricing bands, INR by default. The legacy booking form
+  /// offered USD ranges for a Bangalore business.
+  priceFrom     Decimal?        @db.Decimal(12, 2)
+  priceTo       Decimal?        @db.Decimal(12, 2)
+  currency      Currency        @default(INR)
+  personaId     String?
+  persona       Persona?        @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  imageId       String?
+  image         MediaAsset?     @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  isFeatured    Boolean         @default(false)
+
+  faqs Faq[]
+
+  seoMetaId String?  @unique
+  seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([category, status, sortIndex])
+  @@index([deletedAt])
+  @@map("services")
+}
+
+model Faq {
+  id        String   @id @default(cuid(2))
+  question  String
+  /// Plain text only: FAQPage JSON-LD must not contain nested markup.
+  answer    String   @db.Text
+  category  String? // booking | pricing | travel | equipment | music | weddings
+  personaId String?
+  persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  /// Anchor for deep-linking, e.g. /faq#do-you-travel
+  slug      String   @unique
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([category, status, sortIndex])
+  @@index([serviceId])
+  @@index([deletedAt])
+  @@map("faqs")
+}
+
+model PressAsset {
+  id            String         @id @default(cuid(2))
+  kind          PressAssetKind
+  title         String
+  description   String?
+  mediaId       String?
+  media         MediaAsset?    @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  personaId     String?
+  persona       Persona?       @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  version       Int            @default(1)
+  /// Gated downloads are served through a signed, expiring Cloudinary URL so
+  /// they cannot be hotlinked.
+  requiresEmail Boolean        @default(false)
+  downloadCount Int            @default(0)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([kind, status, sortIndex])
+  @@index([deletedAt])
+  @@map("press_assets")
+}
+
+model Post {
+  id      String  @id @default(cuid(2))
+  slug    String  @unique
+  title   String
+  excerpt String? @db.VarChar(400)
+  /// Tiptap JSON, never HTML. The frontend renders it through a typed
+  /// RichText component, so injected markup cannot reach the DOM.
+  content Json
+  /// Plain-text projection of `content`, used for the generated search
+  /// vector, reading time and meta-description fallbacks.
+  contentText    String? @db.Text
+  readingMinutes Int?
+  coverId        String?
+  cover          MediaAsset? @relation("PostCover", fields: [coverId], references: [id], onDelete: SetNull)
+  personaId      String?
+  persona        Persona?    @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  authorName     String?     @default("DJ Felicitous")
+  isFeatured     Boolean     @default(false)
+
+  tags PostTag[]
+
+  seoMetaId String?  @unique
+  seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  sortIndex   Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([personaId])
+  @@index([deletedAt])
+  @@map("posts")
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+  @@map("post_tags")
+}
+
+model Tag {
+  id          String  @id @default(cuid(2))
+  slug        String  @unique
+  name        String  @unique
+  description String?
+
+  posts PostTag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tags")
+}
+
+/// CMS-managed prose pages: /privacy, /terms, /cookies and about-page blocks.
+model StaticPage {
+  id             String    @id @default(cuid(2))
+  slug           String    @unique
+  title          String
+  content        Json // Tiptap JSON
+  contentText    String?   @db.Text
+  lastReviewedAt DateTime?
+
+  seoMetaId String?  @unique
+  seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([deletedAt])
+  @@map("static_pages")
+}
+
+// ============================================================================
+//  ENGAGEMENT: booking inquiries + newsletter
+//  The legacy BookingModal only called console.log and alert(), so every
+//  inquiry ever submitted was silently discarded. This is the fix.
+// ============================================================================
+
+model BookingInquiry {
+  id String @id @default(cuid(2))
+  /// Human-quotable reference, INQ-2026-0042. Generated on create.
+  reference String @unique
+
+  name  String
+  email String
+  phone String?
+  /// Preferred contact channel; WhatsApp is the norm for this market.
+  preferredChannel String? @default("WHATSAPP")
+
+  eventType     EventKind @default(PRIVATE)
+  eventDate     DateTime?
+  eventEndDate  DateTime?
+  isDateFlexible Boolean  @default(false)
+  venueText     String?
+  city          String?
+  country       String?   @default("India")
+  guestCount    Int?
+  durationHours Int?
+
+  /// INR by default. Nullable because "not sure yet" is a real answer and
+  /// forcing a bracket loses leads.
+  budgetMin Decimal? @db.Decimal(12, 2)
+  budgetMax Decimal? @db.Decimal(12, 2)
+  currency  Currency @default(INR)
+
+  personaId String?
+  persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  serviceSlug String?
+  message   String?  @db.Text
+
+  status       InquiryStatus @default(NEW)
+  source       InquirySource @default(WEBSITE_FORM)
+  assignedToId String?
+  assignedTo   User?         @relation("InquiryOwner", fields: [assignedToId], references: [id], onDelete: SetNull)
+  quotedAmount Decimal?      @db.Decimal(12, 2)
+  lostReason   String?
+
+  /// Heuristic score from link count, all-caps ratio and disposable-email
+  /// domains. High scores land in SPAM without notifying.
+  spamScore Int     @default(0)
+  honeypotTripped Boolean @default(false)
+
+  /// Null means the notification email has not gone out yet; the retry cron
+  /// scans on this, because a dropped notification costs a booking.
+  notifiedAt       DateTime?
+  autoRespondedAt  DateTime?
+  mailFailureCount Int       @default(0)
+
+  // Attribution
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  referrerUrl String?
+  landingPath String?
+  ipHash      String?
+  userAgent   String?
+
+  notes InquiryNote[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([status, createdAt(sort: Desc)])
+  @@index([eventDate])
+  @@index([email])
+  @@index([assignedToId, status])
+  @@index([notifiedAt])
+  @@index([deletedAt])
+  @@map("booking_inquiries")
+}
+
+model InquiryNote {
+  id        String         @id @default(cuid(2))
+  inquiryId String
+  inquiry   BookingInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  body      String         @db.Text
+  createdAt DateTime       @default(now())
+
+  @@index([inquiryId, createdAt(sort: Desc)])
+  @@index([authorId])
+  @@map("inquiry_notes")
+}
+
+/// Double opt-in only. Confirmation is required before a subscriber can be
+/// mailed, which keeps deliverability and consent defensible.
+model NewsletterSubscriber {
+  id     String           @id @default(cuid(2))
+  email  String           @unique
+  name   String?
+  status SubscriberStatus @default(PENDING)
+
+  confirmToken       String?   @unique
+  confirmTokenExpires DateTime?
+  confirmedAt        DateTime?
+  unsubscribeToken   String    @unique
+  unsubscribedAt     DateTime?
+
+  source    String? // footer | book-page | press-kit-gate
+  ipHash    String?
+  tags      String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@map("newsletter_subscribers")
+}
+
+// ============================================================================
+//  SITE: settings singleton, redirects, analytics
+// ============================================================================
+
+/// Enforced as a single row by a CHECK constraint added in the raw-SQL
+/// migration: id must equal 'singleton'.
+model SiteSettings {
+  id String @id @default("singleton")
+
+  // Brand
+  siteName    String  @default("DJ Felicitous")
+  siteTagline String?
+  logoId      String?
+  logo        MediaAsset? @relation("SettingsLogo", fields: [logoId], references: [id], onDelete: SetNull)
+
+  // Contact / NAP - kept consistent with the Google Business Profile for
+  // local SEO.
+  contactEmail   String  @default("bookings@djfelicitous.com")
+  bookingEmail   String?
+  contactPhone   String? // E.164, e.g. +919847352182
+  whatsappNumber String? // digits only, for wa.me deep links
+  addressCity    String? @default("Bengaluru")
+  addressRegion  String? @default("Karnataka")
+  addressCountry String? @default("IN")
+  latitude       Float?
+  longitude      Float?
+  googleMapsUrl  String?
+  /// Free text, e.g. "Bengaluru, Karnataka and across India"
+  serviceAreaText String?
+
+  // Default SEO
+  defaultSeoTitle       String?
+  defaultSeoDescription String?
+  defaultOgImageId      String?
+  defaultOgImage        MediaAsset? @relation("SettingsOgImage", fields: [defaultOgImageId], references: [id], onDelete: SetNull)
+  twitterHandle         String?
+
+  // Theme defaults, overridable per persona
+  defaultAccentColor String @default("#2DD4BF")
+
+  // Feature flags, so a phase can ship dark and be switched on without a deploy
+  featureBlogEnabled       Boolean @default(false)
+  featureNewsletterEnabled Boolean @default(false)
+  featureShopEnabled       Boolean @default(false)
+  bookingFormEnabled       Boolean @default(true)
+  maintenanceMode          Boolean @default(false)
+
+  /// Curated business claims surfaced on the site. Values live in Stat rows;
+  /// this holds the "responds within" style promises.
+  responseTimePromise String? @default("Replies within 24 hours")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@map("site_settings")
+}
+
+/// Legacy URL map plus any future slug changes. Consumed by the web
+/// middleware, cached for an hour.
+model Redirect {
+  id        String       @id @default(cuid(2))
+  fromPath  String       @unique
+  toPath    String
+  kind      RedirectKind @default(PERMANENT)
+  isActive  Boolean      @default(true)
+  hitCount  Int          @default(0)
+  note      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("redirects")
+}
+
+/// Lightweight first-party analytics. `visitorHash` is a salted daily hash,
+/// never a raw IP, and raw rows are rolled up then dropped after 90 days.
+model PageView {
+  id          String   @id @default(cuid(2))
+  path        String
+  referrer    String?
+  country     String?
+  deviceType  String? // mobile | tablet | desktop
+  visitorHash String
+  personaSlug String?
+  createdAt   DateTime @default(now())
+
+  @@index([path, createdAt])
+  @@index([createdAt])
+  @@map("page_views")
+}
+
+model DailyMetric {
+  id          String   @id @default(cuid(2))
+  date        DateTime @db.Date
+  path        String
+  views       Int      @default(0)
+  uniques     Int      @default(0)
+  /// Core Web Vitals p75 for the day, from the RUM beacon.
+  lcpP75Ms    Int?
+  inpP75Ms    Int?
+  clsP75      Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([date, path])
+  @@index([date])
+  @@map("daily_metrics")
+}

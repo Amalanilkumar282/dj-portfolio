@@ -1,0 +1,152 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  # Turbo remote cache. Optional — the pipeline works without them.
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  verify:
+    name: Lint, typecheck, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Turbo needs history to resolve --filter='...[origin/main]'.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Environment parity
+        # Catches a variable added to code but not to .env.example, which
+        # would otherwise fail at deploy time instead of here.
+        run: pnpm check:env
+
+      - name: Format
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm turbo lint --filter='...[origin/main]'
+
+      - name: Typecheck
+        run: pnpm turbo typecheck --filter='...[origin/main]'
+
+      - name: Build
+        run: pnpm turbo build
+
+  database:
+    name: Database — migrations, seeds, integration tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: djf
+          POSTGRES_PASSWORD: djf
+          POSTGRES_DB: djf
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U djf -d djf"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://djf:djf@localhost:5432/djf?schema=public
+      DIRECT_URL: postgresql://djf:djf@localhost:5432/djf?schema=public
+      SHADOW_DATABASE_URL: postgresql://djf:djf@localhost:5432/djf_shadow?schema=public
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+
+      - name: Create shadow database
+        run: |
+          PGPASSWORD=djf psql -h localhost -U djf -d postgres \
+            -c 'CREATE DATABASE djf_shadow' || true
+
+      - name: Apply migrations
+        run: pnpm db:migrate:deploy
+
+      - name: Schema drift check
+        # The gate that catches editing schema.prisma without generating a
+        # migration. Exit 2 means drift.
+        # See docs/01-decisions/0015-post-migrate-sql-outside-migrations.md
+        run: pnpm db:migrate:check
+
+      - name: Seed
+        # NODE_ENV=test runs the system layer only; run content explicitly so
+        # the integration tests have real data to assert against.
+        run: |
+          pnpm --filter @dj/db seed:system
+          pnpm --filter @dj/db seed:content
+
+      - name: Integration tests
+        run: pnpm --filter @dj/db test
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: db-coverage
+          path: packages/db/coverage/
+          if-no-files-found: ignore
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level=high
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# ── Added in later phases ─────────────────────────────────────────────────────
+#  api-e2e      Phase 3  — auth and RBAC matrix via supertest
+#  web-e2e      Phase 7  — Playwright, sharded, incl. the no-JS run and the
+#                          internal-link crawl
+#  a11y         Phase 7  — @axe-core/playwright, zero serious/critical
+#  lighthouse   Phase 9  — Lighthouse CI against the Vercel preview
+#  size-limit   Phase 9  — bundle budget gates
+#  visual       Phase 12 — Playwright screenshots, 3 viewports x 4 themes

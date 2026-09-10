@@ -1,0 +1,12 @@
+{
+  "name": "@dj/config-ts",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "base.json",
+    "nest.json",
+    "next.json",
+    "react-lib.json",
+    "node-lib.json"
+  ]
+}

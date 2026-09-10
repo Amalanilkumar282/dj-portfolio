@@ -1,0 +1,9 @@
+{
+  "extends": "@dj/config-ts/node-lib.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts", "seed/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "@dj/config-tailwind",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./postcss": "./postcss.config.mjs"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.0.0"
+  }
+}
