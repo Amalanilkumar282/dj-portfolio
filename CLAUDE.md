@@ -47,29 +47,44 @@ without a developer.**
 
 ## Current state (2026-09-11)
 
-Phases 0, 1, 2 and 4 are complete. Phase 3 has one documented gap.
+Groups A and B (Phases 0-6) are code-complete. Phase 3 has one documented
+gap; Phases 5 and 6's credential-dependent paths (Cloudinary, Resend,
+Turnstile) are written and wired but not live-verified — see below.
 
 The data layer is finished, migrated, seeded and tested against a real
 Postgres — 48 models, 90 integration tests, zero schema drift. The API boots,
-authenticates, authorises, validates, caches, audits and revalidates all 8
-Phase 4 content types, verified by 133 e2e tests against a live database.
+authenticates, authorises, validates, caches, audits and revalidates **25
+content/engagement modules**, verified by 163 e2e tests against a live
+database.
 
-**All 8 content modules are done and verified**: `Personas`, `Venues`,
+**Group A — all 8 content modules done and verified**: `Personas`, `Venues`,
 `Tracks`, `Releases`, `Playlists`, `Programs`, `Events` (publishable — extend
 `BaseContentService`) and `Genres` (taxonomy — no publish workflow, guarded
-hard delete). The next task is **Group B**: Phase 6's pure-CRUD modules
-(Testimonials, Services, Brands, Stats, FAQ, Gear, Experience, StaticPages,
-Settings, Redirects, Sitemap), which need no external credentials. Phase 5
-and Phase 6's engagement half (Inquiries, Newsletter, press-kit PDF) remain
-blocked on Cloudinary/Resend credentials.
+hard delete).
+
+**Group B — all 17 modules written and wired**: `Media` (signed uploads,
+confirm-via-Cloudinary-reread, two-phase delete, orphan sweeper),
+`Testimonials`, `Services`, `Brands`, `Stats`, `Faq`, `Gear`, `Experience`,
+`StaticPages`, `Settings` (singleton), `Redirects`, `Sitemap`, `Inquiries`
+(spam scoring, honeypot, retry cron), `Newsletter` (double opt-in),
+`PressAssets` (+ EPK PDF generator), `Tags`, `Posts`. The pure-CRUD half is
+fully verified end to end. The Cloudinary/Resend/Turnstile-dependent paths
+(a real upload, a real email send, a real Turnstile check) are **not**
+live-verified — credentials remain placeholders — but every one of those
+code paths is verified to degrade gracefully (a clean 503, or a skip-and-log
+rather than a crash), mirroring the pattern `CloudinaryService` established
+in Phase 2. Gallery and Video are deliberately out of scope for Phase 6 —
+`phases.md`'s own exit criteria do not list them.
 
 One documented gap: `auth/` unit-test coverage — behaviour is fully verified
 by 36 e2e tests, but `AuthService` and 4 other classes have no unit tests.
 See [ADR 0021](docs/01-decisions/0021-auth-coverage-gap-and-inert-threshold.md).
 
-Read [`docs/06-roadmap/STATUS.md`](docs/06-roadmap/STATUS.md), then
-[`docs/02-architecture/backend.md`](docs/02-architecture/backend.md)
-§"Adding a content module" for the pattern the next modules should copy.
+Read [`docs/06-roadmap/STATUS.md`](docs/06-roadmap/STATUS.md) for the full
+account — especially the Group B section, which spells out exactly what
+"code complete" does and does not mean for the credential-dependent modules
+— then [`docs/02-architecture/backend.md`](docs/02-architecture/backend.md)
+§"Adding a content module" for the pattern to copy for Phase 7 onward.
 
 `apps/web` and `apps/admin` are still **scaffolds only**.
 
@@ -199,6 +214,16 @@ to cover.
 - **Cache tags live in two places and must stay symmetrical** —
   `packages/contracts/src/cache-tags.ts` and the API's `TAG_MAP`. An asymmetry
   fails silently as "I published but nothing changed".
+- **A new "is this credential configured" check must match this repo's
+  actual placeholder values, not just the documented pattern.**
+  `apps/api/.env.local` uses `test`/`re_test`, not `replace-me`, for several
+  keys — `CloudinaryService` already special-cases both; `TurnstileService`
+  and `MailService` initially matched only `replace-me` and silently believed
+  they were configured, attempting real network calls on every request until
+  caught by an e2e spec. Copy `CloudinaryService.onModuleInit()`'s exact
+  regex, not just its shape, and prefer graceful skip/log over throwing when
+  unconfigured — the established pattern for Cloudinary, Resend and
+  Turnstile alike.
 
 ## Agent-specific notes
 

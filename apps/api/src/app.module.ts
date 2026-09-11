@@ -26,13 +26,30 @@ import { PrismaModule } from './infra/prisma/prisma.module';
 import { RevalidationModule } from './infra/revalidation/revalidation.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { BrandsModule } from './modules/brands/brands.module';
 import { EventsModule } from './modules/events/events.module';
+import { ExperienceModule } from './modules/experience/experience.module';
+import { FaqsModule } from './modules/faqs/faqs.module';
+import { GearModule } from './modules/gear/gear.module';
 import { GenresModule } from './modules/genres/genres.module';
+import { InquiriesModule } from './modules/inquiries/inquiries.module';
+import { MediaModule } from './modules/media/media.module';
+import { NewsletterModule } from './modules/newsletter/newsletter.module';
 import { PersonasModule } from './modules/personas/personas.module';
 import { PlaylistsModule } from './modules/playlists/playlists.module';
+import { PostsModule } from './modules/posts/posts.module';
+import { PressAssetsModule } from './modules/press-assets/press-assets.module';
 import { ProgramsModule } from './modules/programs/programs.module';
 import { RbacModule } from './modules/rbac/rbac.module';
+import { RedirectsModule } from './modules/redirects/redirects.module';
 import { ReleasesModule } from './modules/releases/releases.module';
+import { ServicesModule } from './modules/services/services.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { SitemapModule } from './modules/sitemap/sitemap.module';
+import { StaticPagesModule } from './modules/static-pages/static-pages.module';
+import { StatsModule } from './modules/stats/stats.module';
+import { TagsModule } from './modules/tags/tags.module';
+import { TestimonialsModule } from './modules/testimonials/testimonials.module';
 import { TracksModule } from './modules/tracks/tracks.module';
 import { VenuesModule } from './modules/venues/venues.module';
 
@@ -116,6 +133,23 @@ import { VenuesModule } from './modules/venues/venues.module';
     ProgramsModule,
     EventsModule,
     CloudinaryModule,
+    MediaModule,
+    FaqsModule,
+    ExperienceModule,
+    GearModule,
+    TestimonialsModule,
+    StaticPagesModule,
+    ServicesModule,
+    BrandsModule,
+    StatsModule,
+    SettingsModule,
+    RedirectsModule,
+    SitemapModule,
+    InquiriesModule,
+    NewsletterModule,
+    PressAssetsModule,
+    TagsModule,
+    PostsModule,
     HealthModule,
   ],
 

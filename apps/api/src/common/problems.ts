@@ -74,6 +74,8 @@ export const ERROR_CODES = {
   REQUEST_TIMEOUT: 'REQUEST_TIMEOUT',
   RATE_LIMITED: 'RATE_LIMITED',
   INTERNAL: 'INTERNAL',
+  /** A dependent external service (Cloudinary, Resend) is unconfigured or unreachable. */
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

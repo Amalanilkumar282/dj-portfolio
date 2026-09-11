@@ -802,3 +802,554 @@ export const PersonaPageResponse = z.object({
   releases: z.array(ReleaseSummary),
 });
 export type PersonaPageResponse = z.infer<typeof PersonaPageResponse>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Testimonial
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * No slug, no detail route: a testimonial is rendered inline on /testimonials
+ * and on persona pages, never as its own page. Admin reads/writes by id.
+ */
+export const TestimonialDetail = z.object({
+  id: Id,
+  authorName: z.string(),
+  authorRole: z.string().nullable(),
+  venueOrEvent: z.string().nullable(),
+  company: z.string().nullable(),
+  quote: z.string(),
+  rating: z.number().int().min(1).max(5).nullable(),
+  eventDate: z.coerce.date().nullable(),
+  personaSlug: Slug.nullable(),
+  avatar: MediaImageSchema.nullable(),
+  sourceUrl: z.string().nullable(),
+  isFeatured: z.boolean(),
+  /** Gates Review/AggregateRating JSON-LD — only real, verified quotes. */
+  isVerified: z.boolean(),
+});
+export type TestimonialDetail = z.infer<typeof TestimonialDetail>;
+
+export const TestimonialCreateInput = inputObject({
+  authorName: z.string().min(1).max(160),
+  authorRole: z.string().max(160).nullish(),
+  venueOrEvent: z.string().max(200).nullish(),
+  company: z.string().max(160).nullish(),
+  quote: z.string().min(1).max(2000),
+  rating: z.number().int().min(1).max(5).nullish(),
+  eventDate: z.coerce.date().nullish(),
+  personaKey: PersonaKeySchema.nullish(),
+  avatarId: Id.nullish(),
+  sourceUrl: z.string().url().nullish(),
+  isFeatured: z.boolean().optional(),
+  isVerified: z.boolean().optional(),
+  ...PublishableInput,
+});
+export type TestimonialCreateInput = z.infer<typeof TestimonialCreateInput>;
+
+export const TestimonialUpdateInput = TestimonialCreateInput.partial();
+export type TestimonialUpdateInput = z.infer<typeof TestimonialUpdateInput>;
+
+export const TestimonialQuery = PaginationSchema.and(
+  z.object({
+    personaSlug: Slug.optional(),
+    featured: z.coerce.boolean().optional(),
+    verifiedOnly: z.coerce.boolean().optional(),
+    sort: sortSchema(['sortIndex', 'eventDate', 'createdAt']).default('sortIndex'),
+  }),
+);
+export type TestimonialQuery = z.infer<typeof TestimonialQuery>;
+
+export const TestimonialAdminDetail = TestimonialDetail.extend(PublishableFields);
+export type TestimonialAdminDetail = z.infer<typeof TestimonialAdminDetail>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Brand
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const BrandSummary = z.object({
+  id: Id,
+  slug: Slug,
+  name: z.string(),
+  websiteUrl: z.string().nullable(),
+  logo: MediaImageSchema.nullable(),
+  logoMono: MediaImageSchema.nullable(),
+  category: z.string().nullable(),
+  isFeatured: z.boolean(),
+  personaSlugs: z.array(Slug),
+});
+export type BrandSummary = z.infer<typeof BrandSummary>;
+
+export const BrandCreateInput = inputObject({
+  slug: Slug.optional(),
+  name: z.string().min(1).max(160),
+  websiteUrl: z.string().url().nullish(),
+  logoId: Id.nullish(),
+  logoMonoId: Id.nullish(),
+  category: z.string().max(60).nullish(),
+  isFeatured: z.boolean().optional(),
+  /** Ordered. Position in the array becomes each PersonaBrand's sortIndex. */
+  personaKeys: z.array(PersonaKeySchema).max(4).optional(),
+  ...PublishableInput,
+});
+export type BrandCreateInput = z.infer<typeof BrandCreateInput>;
+
+export const BrandUpdateInput = BrandCreateInput.partial();
+export type BrandUpdateInput = z.infer<typeof BrandUpdateInput>;
+
+export const BrandQuery = PaginationSchema.and(
+  z.object({
+    personaSlug: Slug.optional(),
+    featured: z.coerce.boolean().optional(),
+    sort: sortSchema(['sortIndex', 'name', 'createdAt']).default('sortIndex'),
+  }),
+);
+export type BrandQuery = z.infer<typeof BrandQuery>;
+
+export const BrandAdminDetail = BrandSummary.extend(PublishableFields);
+export type BrandAdminDetail = z.infer<typeof BrandAdminDetail>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Experience (work-experience timeline)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const ExperienceEntryDetail = z.object({
+  id: Id,
+  role: z.string(),
+  organisation: z.string(),
+  location: z.string().nullable(),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date().nullable(),
+  isCurrent: z.boolean(),
+  summary: z.string().nullable(),
+  highlights: z.array(z.string()),
+  logo: MediaImageSchema.nullable(),
+});
+export type ExperienceEntryDetail = z.infer<typeof ExperienceEntryDetail>;
+
+export const ExperienceEntryCreateInput = inputObject({
+  role: z.string().min(1).max(160),
+  organisation: z.string().min(1).max(200),
+  location: z.string().max(160).nullish(),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date().nullish(),
+  isCurrent: z.boolean().optional(),
+  summary: z.string().max(2000).nullish(),
+  highlights: z.array(z.string().max(300)).max(20).optional(),
+  logoId: Id.nullish(),
+  ...PublishableInput,
+}).refine((v) => v.endDate == null || v.endDate >= v.startDate, {
+  message: 'End date must not be before the start date.',
+  path: ['endDate'],
+});
+export type ExperienceEntryCreateInput = z.infer<typeof ExperienceEntryCreateInput>;
+
+export const ExperienceEntryUpdateInput = inputObject({
+  role: z.string().min(1).max(160).optional(),
+  organisation: z.string().min(1).max(200).optional(),
+  location: z.string().max(160).nullish(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().nullish(),
+  isCurrent: z.boolean().optional(),
+  summary: z.string().max(2000).nullish(),
+  highlights: z.array(z.string().max(300)).max(20).optional(),
+  logoId: Id.nullish(),
+  ...PublishableInput,
+});
+export type ExperienceEntryUpdateInput = z.infer<typeof ExperienceEntryUpdateInput>;
+
+export const ExperienceEntryQuery = PaginationSchema.and(
+  z.object({
+    current: z.coerce.boolean().optional(),
+    sort: sortSchema(['startDate', 'sortIndex', 'createdAt']).default('-startDate'),
+  }),
+);
+export type ExperienceEntryQuery = z.infer<typeof ExperienceEntryQuery>;
+
+export const ExperienceEntryAdminDetail = ExperienceEntryDetail.extend(PublishableFields);
+export type ExperienceEntryAdminDetail = z.infer<typeof ExperienceEntryAdminDetail>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Gear
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const GearCategorySchema = z.enum([
+  'MIXER',
+  'CDJ',
+  'CONTROLLER',
+  'TURNTABLE',
+  'DAW',
+  'MONITOR',
+  'SOFTWARE',
+  'OUTBOARD',
+  'MICROPHONE',
+  'LIGHTING',
+]);
+export type GearCategory = z.infer<typeof GearCategorySchema>;
+
+export const ProficiencyLevelSchema = z.enum(['FAMILIAR', 'PROFICIENT', 'ADVANCED', 'EXPERT']);
+export type ProficiencyLevel = z.infer<typeof ProficiencyLevelSchema>;
+
+export const GearItemDetail = z.object({
+  id: Id,
+  slug: Slug,
+  category: GearCategorySchema,
+  brand: z.string(),
+  model: z.string(),
+  proficiency: ProficiencyLevelSchema,
+  yearsUsed: z.number().int().nullable(),
+  notes: z.string().nullable(),
+  isRiderItem: z.boolean(),
+  isPreferred: z.boolean(),
+  image: MediaImageSchema.nullable(),
+});
+export type GearItemDetail = z.infer<typeof GearItemDetail>;
+
+export const GearItemCreateInput = inputObject({
+  slug: Slug.optional(),
+  category: GearCategorySchema,
+  brand: z.string().min(1).max(120),
+  model: z.string().min(1).max(120),
+  proficiency: ProficiencyLevelSchema.optional(),
+  yearsUsed: z.number().int().min(0).max(60).nullish(),
+  notes: z.string().max(2000).nullish(),
+  isRiderItem: z.boolean().optional(),
+  isPreferred: z.boolean().optional(),
+  imageId: Id.nullish(),
+  ...PublishableInput,
+});
+export type GearItemCreateInput = z.infer<typeof GearItemCreateInput>;
+
+export const GearItemUpdateInput = GearItemCreateInput.partial();
+export type GearItemUpdateInput = z.infer<typeof GearItemUpdateInput>;
+
+export const GearItemQuery = PaginationSchema.and(
+  z.object({
+    category: GearCategorySchema.optional(),
+    riderOnly: z.coerce.boolean().optional(),
+    sort: sortSchema(['sortIndex', 'brand', 'createdAt']).default('sortIndex'),
+  }),
+);
+export type GearItemQuery = z.infer<typeof GearItemQuery>;
+
+export const GearItemAdminDetail = GearItemDetail.extend(PublishableFields);
+export type GearItemAdminDetail = z.infer<typeof GearItemAdminDetail>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Service
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const ServiceCategorySchema = z.enum([
+  'WEDDING',
+  'CORPORATE',
+  'CLUB',
+  'FESTIVAL',
+  'PRIVATE_PARTY',
+  'PRODUCTION',
+]);
+export type ServiceCategory = z.infer<typeof ServiceCategorySchema>;
+
+export const ServiceSummary = z.object({
+  id: Id,
+  slug: Slug,
+  name: z.string(),
+  category: ServiceCategorySchema,
+  summary: z.string().nullable(),
+  durationHours: z.number().int().nullable(),
+  priceFrom: z.number().nullable(),
+  priceTo: z.number().nullable(),
+  currency: CurrencySchema,
+  personaSlug: Slug.nullable(),
+  image: MediaImageSchema.nullable(),
+  isFeatured: z.boolean(),
+});
+export type ServiceSummary = z.infer<typeof ServiceSummary>;
+
+export const ServiceDetail = ServiceSummary.extend({
+  description: z.string().nullable(),
+  inclusions: z.array(z.string()),
+  exclusions: z.array(z.string()),
+  addons: z.array(z.string()),
+  seo: SeoMetaSchema.nullable(),
+});
+export type ServiceDetail = z.infer<typeof ServiceDetail>;
+
+export const ServiceCreateInput = inputObject({
+  slug: Slug.optional(),
+  name: z.string().min(1).max(200),
+  category: ServiceCategorySchema,
+  summary: z.string().max(280).nullish(),
+  description: z.string().max(5000).nullish(),
+  inclusions: z.array(z.string().max(200)).max(30).optional(),
+  exclusions: z.array(z.string().max(200)).max(30).optional(),
+  addons: z.array(z.string().max(200)).max(30).optional(),
+  durationHours: z.number().int().min(1).max(72).nullish(),
+  priceFrom: z.number().min(0).max(100_000_000).nullish(),
+  priceTo: z.number().min(0).max(100_000_000).nullish(),
+  currency: CurrencySchema.optional(),
+  personaKey: PersonaKeySchema.nullish(),
+  imageId: Id.nullish(),
+  isFeatured: z.boolean().optional(),
+  ...PublishableInput,
+});
+export type ServiceCreateInput = z.infer<typeof ServiceCreateInput>;
+
+export const ServiceUpdateInput = ServiceCreateInput.partial();
+export type ServiceUpdateInput = z.infer<typeof ServiceUpdateInput>;
+
+export const ServiceQuery = PaginationSchema.and(
+  z.object({
+    category: ServiceCategorySchema.optional(),
+    personaSlug: Slug.optional(),
+    featured: z.coerce.boolean().optional(),
+    sort: sortSchema(['sortIndex', 'name', 'createdAt']).default('sortIndex'),
+    include: includeSchema(['seo']),
+  }),
+);
+export type ServiceQuery = z.infer<typeof ServiceQuery>;
+
+export const ServiceAdminDetail = ServiceDetail.extend(PublishableFields);
+export type ServiceAdminDetail = z.infer<typeof ServiceAdminDetail>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Faq
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const FaqDetail = z.object({
+  id: Id,
+  slug: Slug,
+  question: z.string(),
+  /** Plain text only: FAQPage JSON-LD must not carry nested markup. */
+  answer: z.string(),
+  category: z.string().nullable(),
+  personaSlug: Slug.nullable(),
+  serviceSlug: Slug.nullable(),
+});
+export type FaqDetail = z.infer<typeof FaqDetail>;
+
+export const FaqCreateInput = inputObject({
+  slug: Slug.optional(),
+  question: z.string().min(1).max(300),
+  answer: z.string().min(1).max(5000),
+  category: z.string().max(60).nullish(),
+  personaKey: PersonaKeySchema.nullish(),
+  serviceId: Id.nullish(),
+  ...PublishableInput,
+});
+export type FaqCreateInput = z.infer<typeof FaqCreateInput>;
+
+export const FaqUpdateInput = FaqCreateInput.partial();
+export type FaqUpdateInput = z.infer<typeof FaqUpdateInput>;
+
+export const FaqQuery = PaginationSchema.and(
+  z.object({
+    category: z.string().max(60).optional(),
+    personaSlug: Slug.optional(),
+    serviceSlug: Slug.optional(),
+    sort: sortSchema(['sortIndex', 'createdAt']).default('sortIndex'),
+  }),
+);
+export type FaqQuery = z.infer<typeof FaqQuery>;
+
+export const FaqAdminDetail = FaqDetail.extend(PublishableFields);
+export type FaqAdminDetail = z.infer<typeof FaqAdminDetail>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Static pages
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const StaticPageDetail = z.object({
+  id: Id,
+  slug: Slug,
+  title: z.string(),
+  /** Tiptap JSON, opaque to the contract — rendered through a typed RichText component. */
+  content: z.unknown(),
+  lastReviewedAt: z.coerce.date().nullable(),
+  seo: SeoMetaSchema.nullable(),
+});
+export type StaticPageDetail = z.infer<typeof StaticPageDetail>;
+
+export const StaticPageCreateInput = inputObject({
+  slug: Slug.optional(),
+  title: z.string().min(1).max(200),
+  content: z.unknown(),
+  contentText: z.string().max(50_000).nullish(),
+  lastReviewedAt: z.coerce.date().nullish(),
+  status: ContentStatusSchema.optional(),
+  scheduledAt: z.coerce.date().nullish(),
+});
+export type StaticPageCreateInput = z.infer<typeof StaticPageCreateInput>;
+
+export const StaticPageUpdateInput = StaticPageCreateInput.partial();
+export type StaticPageUpdateInput = z.infer<typeof StaticPageUpdateInput>;
+
+export const StaticPageQuery = PaginationSchema.and(z.object({}));
+export type StaticPageQuery = z.infer<typeof StaticPageQuery>;
+
+/**
+ * `StaticPage` has no `sortIndex` column, unlike every other publishable
+ * model — it is never drag-reordered — so the admin shape omits it rather
+ * than extending `PublishableFields` wholesale.
+ */
+export const StaticPageAdminDetail = StaticPageDetail.extend({
+  status: ContentStatusSchema,
+  publishedAt: z.coerce.date().nullable(),
+  scheduledAt: z.coerce.date().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type StaticPageAdminDetail = z.infer<typeof StaticPageAdminDetail>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Press kit
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const PressAssetKindSchema = z.enum([
+  'LOGO_PACK',
+  'LOGO_SVG',
+  'HI_RES_PHOTO',
+  'TECH_RIDER',
+  'STAGE_PLOT',
+  'BIO_PDF',
+  'EPK_PDF',
+  'RIDER_HOSPITALITY',
+]);
+export type PressAssetKind = z.infer<typeof PressAssetKindSchema>;
+
+export const PressAssetDetail = z.object({
+  id: Id,
+  kind: PressAssetKindSchema,
+  title: z.string(),
+  description: z.string().nullable(),
+  media: MediaImageSchema.nullable(),
+  /** Set only when `requiresEmail` and a valid request has been made — see the download endpoint. */
+  downloadUrl: z.string().nullable(),
+  personaSlug: Slug.nullable(),
+  version: z.number().int(),
+  requiresEmail: z.boolean(),
+});
+export type PressAssetDetail = z.infer<typeof PressAssetDetail>;
+
+export const PressAssetCreateInput = inputObject({
+  kind: PressAssetKindSchema,
+  title: z.string().min(1).max(200),
+  description: z.string().max(1000).nullish(),
+  mediaId: Id.nullish(),
+  personaKey: PersonaKeySchema.nullish(),
+  requiresEmail: z.boolean().optional(),
+  ...PublishableInput,
+});
+export type PressAssetCreateInput = z.infer<typeof PressAssetCreateInput>;
+
+export const PressAssetUpdateInput = PressAssetCreateInput.partial();
+export type PressAssetUpdateInput = z.infer<typeof PressAssetUpdateInput>;
+
+export const PressAssetQuery = PaginationSchema.and(
+  z.object({
+    kind: PressAssetKindSchema.optional(),
+    personaSlug: Slug.optional(),
+    sort: sortSchema(['sortIndex', 'createdAt']).default('sortIndex'),
+  }),
+);
+export type PressAssetQuery = z.infer<typeof PressAssetQuery>;
+
+export const PressAssetAdminDetail = PressAssetDetail.extend(PublishableFields).extend({
+  downloadCount: z.number().int(),
+});
+export type PressAssetAdminDetail = z.infer<typeof PressAssetAdminDetail>;
+
+/** Requesting a gated download: email required so it can be recorded and rate-limited. */
+export const PressAssetDownloadInput = inputObject({
+  email: z.string().email().optional(),
+});
+export type PressAssetDownloadInput = z.infer<typeof PressAssetDownloadInput>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Blog (Post + Tag)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const TagDetail = z.object({
+  id: Id,
+  slug: Slug,
+  name: z.string(),
+  description: z.string().nullable(),
+});
+export type TagDetail = z.infer<typeof TagDetail>;
+
+export const TagCreateInput = inputObject({
+  slug: Slug.optional(),
+  name: z.string().min(1).max(60),
+  description: z.string().max(300).nullish(),
+});
+export type TagCreateInput = z.infer<typeof TagCreateInput>;
+
+export const TagUpdateInput = TagCreateInput.partial();
+export type TagUpdateInput = z.infer<typeof TagUpdateInput>;
+
+export const TagQuery = z.object({
+  q: z.string().max(120).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(100),
+});
+export type TagQuery = z.infer<typeof TagQuery>;
+
+export const TagAdminDetail = TagDetail.extend({
+  postCount: z.number().int(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type TagAdminDetail = z.infer<typeof TagAdminDetail>;
+
+export const PostSummary = z.object({
+  id: Id,
+  slug: Slug,
+  title: z.string(),
+  excerpt: z.string().nullable(),
+  readingMinutes: z.number().int().nullable(),
+  cover: MediaImageSchema.nullable(),
+  personaSlug: Slug.nullable(),
+  authorName: z.string().nullable(),
+  isFeatured: z.boolean(),
+  publishedAt: z.coerce.date().nullable(),
+  tags: z.array(TagDetail),
+});
+export type PostSummary = z.infer<typeof PostSummary>;
+
+export const PostDetail = PostSummary.extend({
+  /** Tiptap JSON, opaque to the contract. */
+  content: z.unknown(),
+  seo: SeoMetaSchema.nullable(),
+});
+export type PostDetail = z.infer<typeof PostDetail>;
+
+export const PostCreateInput = inputObject({
+  slug: Slug.optional(),
+  title: z.string().min(1).max(200),
+  excerpt: z.string().max(400).nullish(),
+  content: z.unknown(),
+  contentText: z.string().max(200_000).nullish(),
+  readingMinutes: z.number().int().min(1).max(120).nullish(),
+  coverId: Id.nullish(),
+  personaKey: PersonaKeySchema.nullish(),
+  authorName: z.string().max(120).nullish(),
+  isFeatured: z.boolean().optional(),
+  tagSlugs: z.array(Slug).max(10).optional(),
+  ...PublishableInput,
+});
+export type PostCreateInput = z.infer<typeof PostCreateInput>;
+
+export const PostUpdateInput = PostCreateInput.partial();
+export type PostUpdateInput = z.infer<typeof PostUpdateInput>;
+
+export const PostQuery = PaginationSchema.and(
+  z.object({
+    personaSlug: Slug.optional(),
+    tagSlug: Slug.optional(),
+    featured: z.coerce.boolean().optional(),
+    q: z.string().max(120).optional(),
+    sort: sortSchema(['publishedAt', 'title', 'createdAt']).default('-publishedAt'),
+    include: includeSchema(['seo']),
+  }),
+);
+export type PostQuery = z.infer<typeof PostQuery>;
+
+export const PostAdminDetail = PostDetail.extend(PublishableFields);
+export type PostAdminDetail = z.infer<typeof PostAdminDetail>;

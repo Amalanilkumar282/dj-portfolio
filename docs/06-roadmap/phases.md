@@ -14,8 +14,8 @@ Canonical phase table with exit criteria. For current state, read
 | 2   | API skeleton & global concerns | 1                   | **A** | ✅         |
 | 3   | Auth & RBAC                    | 2                   | **A** | ✅ (1 gap) |
 | 4   | Core content CRUD              | 3                   | **A** | ✅         |
-| 5   | Media pipeline                 | 4 + Cloudinary keys | **B** | ⬜         |
-| 6   | Remaining content + engagement | 4 + Resend keys     | **B** | ⬜         |
+| 5   | Media pipeline                 | 4 + Cloudinary keys | **B** | ✅ (code) / ⬜ (live) |
+| 6   | Remaining content + engagement | 4 + Resend keys     | **B** | ✅ (code) / ⬜ (live) |
 | 7   | Web shell + data + SEO core    | 4                   | **C** | ⬜         |
 | 8   | Conversion (booking funnel)    | 6, 7                | **D** | ⬜         |
 | 9   | Media & player                 | 5, 7                | **D** | ⬜         |
@@ -40,7 +40,7 @@ have to be met, and verified together before the group is called done.
 | Group | Phases | Theme               | State                                                               |
 | ----- | ------ | ------------------- | ------------------------------------------------------------------- |
 | **A** | 2+3+4  | Backend foundation  | 2 and 4 done; 3 has one documented gap (auth unit coverage)         |
-| **B** | 5+6    | Media + content     | Phase 6's pure-CRUD modules unblocked; rest needs Cloudinary/Resend |
+| **B** | 5+6    | Media + content     | All code written and wired; live Cloudinary/Resend/Turnstile verification blocked on credentials (STATUS.md gap #2) |
 | **C** | 7      | Web shell + SEO     | Needs Group A complete                                              |
 | **D** | 8+9    | Conversion + player | —                                                                   |
 | **E** | 10+11  | Motion + admin      | —                                                                   |
@@ -121,7 +121,7 @@ a live app-boot smoke test verified the last six, documented in
 [`../02-architecture/backend.md`](../02-architecture/backend.md)
 §"Adding a content module".
 
-## Phase 5 — Media pipeline ⬜
+## Phase 5 — Media pipeline ✅ (code) / ⬜ (live verification)
 
 Cloudinary module, signed uploads, transformation bootstrap, metadata re-read,
 placeholder generation, reference counting, two-phase delete, orphan sweeper.
@@ -133,7 +133,16 @@ referenced asset 409s **listing the referencing entities**; the sweeper removes
 a 31-day-old soft-deleted asset from both database and Cloudinary; a background
 video and an audio track both round-trip, the audio with peaks.
 
-## Phase 6 — Remaining content + engagement ⬜
+**Not met as literally written** — every clause needs a real upload against
+live Cloudinary credentials, which remain placeholders (STATUS.md gap #2).
+What is built and verified: signing (pure local computation, tested), the
+confirm/re-read flow's code path (tested to fail as a clean 503 when
+unconfigured, not tested against a real Cloudinary response), the reference-
+counting delete guard across every FK that can point at a `MediaAsset`, and
+the orphan sweeper's `pg_try_advisory_xact_lock` guard. See STATUS.md's
+Phase 5 section for the full account.
+
+## Phase 6 — Remaining content + engagement ✅ (code) / ⬜ (live verification)
 
 Testimonials, Services, Brands, Stats, FAQ, PressKit, Gear, Experience, Blog,
 StaticPages, Settings, Redirects, Sitemap; Inquiries and Newsletter; all email
@@ -143,6 +152,13 @@ templates and the retry cron.
 **<100ms**, and delivers both the notification and the autoresponder;
 `GET /sitemap` lists exactly the published indexable URLs; the press-kit PDF
 generates and downloads through a signed URL.
+
+**Partially met.** The pure-CRUD half (Testimonials, Services, Brands, Stats,
+FAQ, Gear, Experience, StaticPages, Settings, Redirects, Sitemap, Blog/Tags)
+is fully verified against a live database — 37 new e2e tests. The row/
+201-in-under-100ms half of the inquiry criterion is verified; actual email
+delivery and actual PDF upload are not, for the same reason as Phase 5 (gap
+#2). Gallery and Video are deliberately out of scope — see STATUS.md.
 
 ## Phase 7 — Web shell + data + SEO core ⬜
 

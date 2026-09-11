@@ -7,9 +7,17 @@ persistent container on Railway ([ADR 0007](../01-decisions/0007-railway-for-api
 documented gap (`auth/` unit-test coverage — behaviour is fully e2e-verified).
 All 8 Phase 4 content modules exist: `Personas`, `Venues`, `Tracks`,
 `Releases`, `Playlists`, `Programs`, `Events` (publishable — extend
-`BaseContentService`) and `Genres` (taxonomy). See
-[`../06-roadmap/STATUS.md`](../06-roadmap/STATUS.md) for the one remaining
-item and what Group B needs next.
+`BaseContentService`) and `Genres` (taxonomy).
+
+**Group B (Phases 5+6) is code-complete**, adding 17 more modules on the same
+two shapes: `Media`, `Testimonials`, `Services`, `Brands`, `Stats`, `Faq`,
+`Gear`, `Experience`, `StaticPages`, `Settings`, `Redirects`, `Sitemap`,
+`Inquiries`, `Newsletter`, `PressAssets`, `Tags`, `Posts`. The modules that
+talk to Cloudinary, Resend or Turnstile are verified only up to a clean,
+graceful failure with placeholder credentials — not against the live
+services. See [`../06-roadmap/STATUS.md`](../06-roadmap/STATUS.md)'s Group B
+section for exactly which half of each Phase 5/6 exit criterion that does
+and does not cover.
 
 ---
 
