@@ -1,5 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 
 import type {
   PersonaAdminDetail,
@@ -11,7 +10,8 @@ import type {
 } from '@dj/contracts';
 import { AuditAction, ContentStatus, type PersonaKey } from '@dj/db';
 
-import { BaseContentService, type PublishableRow } from '../../common/base';
+import { BaseContentService, type DomainEventBus, type PublishableRow } from '../../common/base';
+import { DOMAIN_EVENT_BUS } from '../../common/events';
 import { ERROR_CODES } from '../../common/problems';
 import { CursorService, type SortField } from '../../common/services/cursor.service';
 import { SlugService } from '../../common/services/slug.service';
@@ -75,7 +75,8 @@ export class PersonasService extends BaseContentService<PersonaRowBase> {
   constructor(
     protected readonly repository: PersonasRepository,
     protected readonly audit: AuditService,
-    protected readonly events: EventEmitter2,
+    // By token, not by class — see common/events.ts.
+    @Inject(DOMAIN_EVENT_BUS) protected readonly events: DomainEventBus,
     private readonly slugs: SlugService,
     private readonly cursors: CursorService,
   ) {

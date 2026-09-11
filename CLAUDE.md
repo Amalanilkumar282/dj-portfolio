@@ -52,12 +52,13 @@ Phases 0, 1, 2 and 3 are complete. Phase 4 is **partial**.
 The data layer is finished, migrated, seeded and tested against a real
 Postgres — 48 models, 73 integration tests, zero schema drift. The API boots,
 authenticates, authorises, validates, caches, audits and revalidates, verified
-by 40 e2e tests against a live database.
+by 66 e2e tests against a live database.
 
-**`Personas` is the worked exemplar** for a content module and is complete end
-to end. The next task is the **seven remaining content modules** — Genres,
-Venues, Tracks, Releases, Playlists, Programs, Events — whose contracts and
-mappers already exist.
+**There are two content-module exemplars**, both complete and verified:
+`Personas`/`Venues` (publishable — extends `BaseContentService`) and `Genres`
+(taxonomy — no publish workflow, guarded hard delete). The next task is the
+**five remaining Phase 4 modules** — Tracks, Releases, Playlists, Programs,
+Events — whose contracts and mappers already exist.
 
 Read [`docs/06-roadmap/STATUS.md`](docs/06-roadmap/STATUS.md), then
 [`docs/02-architecture/backend.md`](docs/02-architecture/backend.md)
@@ -118,6 +119,7 @@ already been paid for.
 | Unknown request properties are rejected, never stripped | `inputObject()` = `.strict()`        |
 | The OpenAPI document never drifts from the code         | committed `apps/api/openapi.json`    |
 | e2e tests leave seeded content exactly as they found it | restore in `finally` + a double run  |
+| A uniqueness pre-check sees soft-deleted rows too       | `anyDeletionState()` from `@dj/db`   |
 
 Do not disable a `dj/*` rule. Fix the code. If a rule is genuinely wrong,
 narrow it deliberately and write down why — as was done for
@@ -153,6 +155,20 @@ to cover.
   `@Patch('reorder')` swallows `/reorder` and tries to update a record named
   `"reorder"` — a 404 that reads like a missing row. Same for `@Get('slugs')`
   vs `@Get(':slug')`.
+- **A taxonomy row's `delete` is real, and its joins cascade.** `Genre`,
+  `Stat`, `Tag`, `Redirect` and `Settings` have no `deletedAt`, so deleting
+  one in use silently strips it from every row that referenced it — Postgres
+  does not object. Count references and 409 instead. `NON_PUBLISHABLE` in
+  `packages/db/seed/data/rbac.ts` is the list.
+- **`isSlugTaken` (and any uniqueness pre-check) must spread
+  `anyDeletionState()` from `@dj/db`.** A plain `findUnique` is narrowed by
+  the soft-delete extension to `deletedAt: null`, so it reports a slug held
+  by a soft-deleted row as free — and the auto-generated slug path then hands
+  back one the database rejects. [ADR 0020](docs/01-decisions/0020-any-deletion-state-for-uniqueness-checks.md).
+- **Inject the event bus as `DOMAIN_EVENT_BUS`, never as `EventEmitter2`.**
+  The upstream type resolves to an error type and propagates as `any`, which
+  silently disables type checking on every `emit`. See
+  `apps/api/src/common/events.ts`.
 - **A cursor must be decoded and applied.** A service that accepts `cursor`
   and ignores it still returns a plausible `nextCursor`, so page 2 is page 1
   and infinite scroll loops forever with no error.

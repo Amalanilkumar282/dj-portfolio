@@ -24,7 +24,7 @@ export {
 export type { DbRequestContext } from './context.js';
 
 // Publish-state helpers, composed by public controllers.
-export { publishedWhere, publishedOnly } from './extensions/publish.js';
+export { publishedWhere, publishedOnly, anyDeletionState } from './extensions/publish.js';
 export type { PublishedWhereOptions } from './extensions/publish.js';
 
 export { SYSTEM_ACTOR } from './extensions/audit.js';

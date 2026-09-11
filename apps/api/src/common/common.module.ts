@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 
+import { DOMAIN_EVENT_BUS, domainEventBusProvider } from './events';
 import { IdempotencyRepository } from './services/idempotency.repository';
 import { RequestContextService } from './services/request-context.service';
 
@@ -16,10 +17,14 @@ import { RequestContextService } from './services/request-context.service';
  * writes to one store while readers look in another. Nest guarantees one
  * instance per provider token, which is exactly why it belongs here rather
  * than being newed up anywhere.
+ *
+ * `DOMAIN_EVENT_BUS` is aliased here so every content service can inject a
+ * properly-typed event bus without referencing `EventEmitter2`, whose type
+ * declaration is broken upstream. See events.ts.
  */
 @Global()
 @Module({
-  providers: [RequestContextService, IdempotencyRepository],
-  exports: [RequestContextService, IdempotencyRepository],
+  providers: [RequestContextService, IdempotencyRepository, domainEventBusProvider],
+  exports: [RequestContextService, IdempotencyRepository, DOMAIN_EVENT_BUS],
 })
 export class CommonModule {}

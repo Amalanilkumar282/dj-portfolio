@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { ContentStatus, type PersonaKey, Prisma, publishedWhere } from '@dj/db';
+import { anyDeletionState, ContentStatus, type PersonaKey, Prisma, publishedWhere } from '@dj/db';
 
 import { MEDIA_IMAGE_SELECT } from '../../common/base';
 import { PrismaService } from '../../infra/prisma/prisma.service';
@@ -156,9 +156,19 @@ export class PersonasRepository {
     });
   }
 
+  /**
+   * `findFirst` with `anyDeletionState()`, not `findUnique`. A soft-deleted
+   * persona still occupies its `slug` at the database level — soft delete
+   * only rewrites `DELETE`, it does not relax the unique constraint — but a
+   * plain `findUnique` is narrowed by the soft-delete extension to
+   * `deletedAt: null` and so reports the slug free. `SlugService`'s
+   * auto-generated path then hands back a slug it believes is guaranteed
+   * available, which the database immediately rejects: a caller who never
+   * supplied a slug at all gets an unexplained 409. See `anyDeletionState()`.
+   */
   async isSlugTaken(slug: string, exceptId?: string): Promise<boolean> {
-    const existing = await this.prisma.client.persona.findUnique({
-      where: { slug },
+    const existing = await this.prisma.client.persona.findFirst({
+      where: { slug, ...anyDeletionState() },
       select: { id: true },
     });
 

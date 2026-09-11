@@ -211,6 +211,56 @@ export type GenreCreateInput = z.infer<typeof GenreCreateInput>;
 export const GenreUpdateInput = GenreCreateInput.partial();
 export type GenreUpdateInput = z.infer<typeof GenreUpdateInput>;
 
+/**
+ * Genres are a **taxonomy**, not publishable content: no `status`, no
+ * `publishedAt`, no `deletedAt`. So there is no publish workflow here and no
+ * `genre:publish` permission — see NON_PUBLISHABLE in the RBAC seed.
+ *
+ * The default limit is 100 rather than 20 because a genre list is a filter
+ * control: a paginated one is useless to the caller, who needs every option
+ * at once to render it. The set is bounded and small (22 seeded).
+ */
+export const GenreQuery = z
+  .object({
+    cursor: z.string().optional(),
+    /**
+     * Defaults to 100, not `PaginationSchema`'s 20.
+     *
+     * Written out rather than composed with `PaginationSchema.and(...)`
+     * because an intersection cannot override the base default — the 20 wins
+     * silently, and the endpoint then truncates the taxonomy while reporting
+     * `hasMore: false` only after the caller pages. Overriding a default is a
+     * reason not to use `.and()`.
+     */
+    limit: z.coerce.number().int().min(1).max(100).default(100),
+    page: z.coerce.number().int().min(1).optional(),
+    perPage: z.coerce.number().int().min(1).max(100).optional(),
+    q: z.string().max(120).optional(),
+    /** Only genres actually attached to published content. */
+    inUse: z.coerce.boolean().optional(),
+    sort: sortSchema(['sortIndex', 'name', 'createdAt']).default('sortIndex'),
+  })
+  .refine((v) => !(v.cursor && v.page), {
+    message: 'Use either cursor or page, not both',
+  });
+export type GenreQuery = z.infer<typeof GenreQuery>;
+
+/**
+ * The admin view adds usage counts.
+ *
+ * They are the whole reason deleting a genre is guarded: `PersonaGenre` and
+ * `TrackGenre` both cascade, so a hard delete silently strips the tag from
+ * every persona and track that used it. The admin needs to see the blast
+ * radius *before* clicking.
+ */
+export const GenreAdminDetail = GenreDetail.extend({
+  personaCount: z.number().int(),
+  trackCount: z.number().int(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type GenreAdminDetail = z.infer<typeof GenreAdminDetail>;
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Track
 // ─────────────────────────────────────────────────────────────────────────────
@@ -451,13 +501,30 @@ export const VenueCreateInput = inputObject({
   instagramUrl: z.string().url().nullish(),
   capacity: z.number().int().min(1).max(500_000).nullish(),
   notes: z.string().max(2000).nullish(),
-  sortIndex: z.number().int().min(0).optional(),
-  status: ContentStatusSchema.optional(),
+  // `...PublishableInput` (status, scheduledAt, sortIndex) rather than the
+  // hand-written pair this had before: Venue was one of the 6 models missing
+  // `scheduledAt` entirely until ADR 0019, and a hand-written field list is
+  // exactly how that goes unnoticed a second time.
+  ...PublishableInput,
 });
 export type VenueCreateInput = z.infer<typeof VenueCreateInput>;
 
 export const VenueUpdateInput = VenueCreateInput.partial();
 export type VenueUpdateInput = z.infer<typeof VenueUpdateInput>;
+
+export const VenueQuery = PaginationSchema.and(
+  z.object({
+    city: z.string().max(120).optional(),
+    q: z.string().max(120).optional(),
+    sort: sortSchema(['sortIndex', 'name', 'city', 'createdAt']).default('sortIndex'),
+    include: includeSchema(['seo']),
+  }),
+);
+export type VenueQuery = z.infer<typeof VenueQuery>;
+
+/** Admin detail adds the publish-workflow fields. */
+export const VenueAdminDetail = VenueDetail.extend(PublishableFields);
+export type VenueAdminDetail = z.infer<typeof VenueAdminDetail>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Event

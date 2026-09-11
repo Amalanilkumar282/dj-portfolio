@@ -72,3 +72,44 @@ export function publishedOnly<T extends { status: ContentStatus; deletedAt?: Dat
 ): T[] {
   return rows.filter((row) => row.status === ContentStatus.PUBLISHED && row.deletedAt == null);
 }
+
+/**
+ * Spread into a `where` to check a uniqueness constraint against **every**
+ * row, live or trashed.
+ *
+ * A soft-deleted row still occupies its `slug` and any other `@unique`
+ * column at the database level — soft delete only rewrites `DELETE`, it does
+ * not relax the constraint. But the soft-delete extension's automatic
+ * `deletedAt: null` narrowing means an ordinary `findUnique({ where: { slug }})`
+ * cannot see a trashed row holding that slug, so an uniqueness pre-check
+ * reports a false "free" — and `SlugService.resolve()`'s auto-generated path
+ * in particular then hands back a slug it believes is guaranteed available,
+ * which the database immediately rejects. The caller who never supplied a
+ * slug at all gets an unexplained 409 on something that should "just work".
+ *
+ * `slugTaken` example:
+ * ```ts
+ * async isSlugTaken(slug: string, exceptId?: string) {
+ *   const existing = await this.prisma.client.persona.findFirst({
+ *     where: { slug, ...anyDeletionState() },
+ *     select: { id: true },
+ *   });
+ *   return existing != null && existing.id !== exceptId;
+ * }
+ * ```
+ *
+ * This must use `findFirst`, not `findUnique` — `findUnique` requires its
+ * `where` to be exactly a unique field (or a unique field plus this clause is
+ * fine too, since `anyDeletionState()` is additive, not exclusive; either
+ * works here, but `findFirst` reads the same either way).
+ *
+ * The `OR` shape — not a bare `{}` — is deliberate: `hasExplicitDeletedAtFilter`
+ * in the soft-delete extension detects "the caller has an opinion" by
+ * checking for the literal key `deletedAt`, including inside `OR` branches.
+ * A `{ deletedAt: undefined }` would rely on Prisma silently dropping
+ * `undefined` filter values, which is real but not the kind of behaviour a
+ * reader should have to know to trust this function is doing what it says.
+ */
+export function anyDeletionState(): Record<string, unknown> {
+  return { OR: [{ deletedAt: null }, { deletedAt: { not: null } }] };
+}

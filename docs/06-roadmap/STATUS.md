@@ -10,7 +10,8 @@
 **Last updated:** 2026-09-11
 **Current phase:** Group A (Phases 2 + 3 + 4) — 2 and 3 complete, 4 partial
 **Phases complete:** 0, 1, 2, 3
-**Phase 4:** Personas done end to end and verified; **7 content modules remain**
+**Phase 4:** Personas, Genres and **Venues** done end to end and verified;
+**5 content modules remain**
 
 ---
 
@@ -33,16 +34,37 @@ seven modules whose contracts and mappers already exist.
 
 ### The next task
 
-Implement the 7 remaining content modules, in this order (simplest first, so
+Implement the 5 remaining content modules, in this order (simplest first, so
 the pattern is confirmed before the complicated ones):
 
-1. `Genres` — no publish workflow, no media; the smallest possible case
-2. `Venues` — `@@unique([name, city])`, so slug collisions matter
-3. `Tracks` — media + genres + stream links
-4. `Releases` — tracklist ordering
-5. `Playlists` — ordered join table (`PlaylistTrack`)
-6. `Programs` — venue + persona relations
-7. `Events` — the most complex: venue, program, lineup slots, `isPast`
+1. `Tracks` — media + genres + stream links
+2. `Releases` — tracklist ordering
+3. `Playlists` — ordered join table (`PlaylistTrack`)
+4. `Programs` — venue + persona relations
+5. `Events` — the most complex: venue, program, lineup slots, `isPast`
+
+**Two exemplars exist now**, and which one to copy depends on the model:
+
+- **`Personas`** — the publishable case. Extends `BaseContentService`, so it
+  gets publish / unpublish / archive / schedule / restore and soft delete.
+  Copy this for all six remaining modules.
+- **`Genres`** — the taxonomy case. Does **not** extend `BaseContentService`:
+  no `status`, no `publishedAt`, no `deletedAt`, so `delete` is real and is
+  guarded by a reference check. Copy this only for the other non-publishable
+  models in Phase 6 (`Stat`, `Tag`, `Redirect`, `Settings`) — check
+  `NON_PUBLISHABLE` in `packages/db/seed/data/rbac.ts` to tell which is which.
+- **`Venues`** — the second publishable exemplar, and the one with a
+  **compound** uniqueness constraint (`@@unique([name, city])`) alongside the
+  usual unique `slug`. Copy its `assertNameCityFree` pattern for any future
+  model with more than one uniqueness rule.
+
+**Every repository's `isSlugTaken` (and any other uniqueness pre-check) must
+spread `anyDeletionState()` from `@dj/db` into the `where`.** A plain
+`findUnique`/`findFirst` is narrowed by the soft-delete extension to
+`deletedAt: null`, so it reports a slug held by a soft-deleted row as free —
+and `SlugService`'s auto-generated path then hands back a slug the database
+immediately rejects. Both `Personas` and `Venues` had this bug; both are
+fixed. See [ADR 0020](../01-decisions/0020-any-deletion-state-for-uniqueness-checks.md).
 
 Each needs: `X.repository.ts`, `X.service.ts`, `X.controller.ts` (public,
 `@Public()`, by slug), `X.admin.controller.ts` (by id, `@RequirePermissions`),
@@ -57,6 +79,35 @@ Contracts (`packages/contracts/src/content.ts`) and mappers
 (`apps/api/src/modules/*/x.mapper.ts`) **already exist for all seven.** Do not
 rewrite them; wire them up.
 
+### Group B — started, and why it is partly deferred
+
+The user asked to begin Group B (Phases 5 + 6) before Group A was finished.
+What was actually done, and the reasoning, so the next session does not have
+to reconstruct it:
+
+**Group B's two halves have very different verifiability.** Phase 5's exit
+criteria are all of the form "a signed upload lands in the correct
+server-decided folder and produces a `MediaAsset` with correct bytes,
+dimensions and `blurDataUrl`" — that requires live Cloudinary credentials,
+which are still placeholders (gap #2). Phase 6's engagement half (Inquiries
+notification, Newsletter double opt-in, press-kit PDF upload) needs Resend.
+Writing those now would produce a large amount of code that **cannot be
+proven**, which is the state `STATUS.md` exists to prevent.
+
+Most of Phase 6, though, touches no external service at all: Testimonials,
+Services, Brands, Stats, FAQ, Gear, Experience, StaticPages, Settings,
+Redirects and Sitemap are pure database CRUD, fully verifiable today — and
+they are the **same pattern** as Phase 4's outstanding modules.
+
+So the chosen order is: **finish every content module first** (Phase 4's six
+remaining plus Phase 6's pure-CRUD ones, one pass, one pattern), then Phase 5
+and Phase 6's engagement half once credentials land. This closes Group A on
+the way through rather than leaving it hanging, and avoids two passes over the
+same file shapes.
+
+**Nothing was skipped or descoped.** Phase 5 and the engagement half are
+blocked on gap #2, not deprioritised.
+
 ---
 
 ## Verified in this session
@@ -64,38 +115,49 @@ rewrite them; wire them up.
 Everything below was actually executed against a live Postgres (embedded
 18.4 on port 55432 — see gap #1), not assumed.
 
-| Check                                                    | Result                                                           |
-| -------------------------------------------------------- | ---------------------------------------------------------------- |
-| `pnpm turbo lint typecheck build`                        | **19/19 tasks pass**                                             |
-| `pnpm turbo test --filter='!@dj/db'`                     | **9/9 tasks pass** — api 32, utils 45                            |
-| `packages/db` integration tests (correct `DATABASE_URL`) | **73 pass** — Phase 1 guarantees still hold after db changes     |
-| `apps/api` e2e suite                                     | **40 pass** across auth, RBAC and OpenAPI                        |
-| `GET /health`, `/health/ready`                           | 200; all four readiness indicators up                            |
-| Wrong password vs unknown email                          | **byte-identical** 401 bodies                                    |
-| Login                                                    | access token + `dj_rt` (HttpOnly) + `dj_csrf` (readable)         |
-| Refresh rotation                                         | new token issued, old one spent                                  |
-| Replaying a spent refresh token                          | 401 `REFRESH_TOKEN_REUSED` **and the whole family revoked**      |
-| Refresh with no / mismatched CSRF header                 | 403 `CSRF_FAILED`                                                |
-| 12 failed logins from one IP                             | first 401, later ones **429** — per-IP limit enforced            |
-| Validation failure                                       | **422** with JSON Pointer field errors, no raw Zod internals     |
-| Unknown request property                                 | 422 `unrecognized_keys` — rejected, not stripped                 |
-| VIEWER attempting write / publish / delete               | **403 `INSUFFICIENT_PERMISSIONS`** (not 401)                     |
-| EDITOR permission set                                    | no `user:*`, no `role:*`, no `settings:*`, no `media:delete`     |
-| VIEWER permission set                                    | every entry ends `:read`                                         |
-| `GET /personas`                                          | 4 seeded personas with CMS accent colours                        |
-| Cursor pagination                                        | advances correctly; full walk returns every row **exactly once** |
-| Tampered cursor                                          | 400, not 500                                                     |
-| `?include=secretTable`                                   | 422 — allowlist holds                                            |
-| `GET /personas/felicitous/page`                          | **5 queries** (`X-Query-Count`), criterion is ≤8                 |
-| `PATCH /admin/personas/reorder`                          | 204 — routed to reorder, not swallowed by `:id`                  |
-| Publish workflow                                         | unpublish hides publicly (404 by slug), republish restores       |
-| Re-publishing a published persona                        | 409 `INVALID_STATUS_TRANSITION`                                  |
-| Soft delete + restore                                    | hidden publicly, still visible to admin, restored intact         |
-| Audit trail                                              | `updatedBy` = admin id; `AuditLog` rows carry actor + requestId  |
-| Revalidation                                             | emitted `tags=home,nav,persona:tnt,personas,sitemap`             |
-| Log redaction                                            | `authorization` and `set-cookie` both `[redacted]`               |
-| OpenAPI snapshot gate                                    | **fails on drift** (verified by mutating the file)               |
-| e2e suite run twice, then db integration tests           | **still 73 pass** — the suite is non-destructive                 |
+| Check                                                     | Result                                                                           |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `pnpm turbo lint typecheck build`                         | **19/19 tasks pass**                                                             |
+| `pnpm turbo test --filter='!@dj/db'`                      | **9/9 tasks pass** — api 32, utils 45                                            |
+| `packages/db` integration tests (correct `DATABASE_URL`)  | **88 pass** (73 + 15 new for ADR 0019) — Phase 1 guarantees still hold           |
+| `migrate:check` after the new migration                   | **"No difference detected."** — zero drift                                       |
+| Full seed re-run against the migrated schema              | succeeds; no `PUBLISHED` row anywhere lacked `publishedAt`                       |
+| `apps/api` e2e suite                                      | **66 pass** across auth, RBAC, genres, revalidation and OpenAPI                  |
+| `GET /health`, `/health/ready`                            | 200; all four readiness indicators up                                            |
+| Wrong password vs unknown email                           | **byte-identical** 401 bodies                                                    |
+| Login                                                     | access token + `dj_rt` (HttpOnly) + `dj_csrf` (readable)                         |
+| Refresh rotation                                          | new token issued, old one spent                                                  |
+| Replaying a spent refresh token                           | 401 `REFRESH_TOKEN_REUSED` **and the whole family revoked**                      |
+| Refresh with no / mismatched CSRF header                  | 403 `CSRF_FAILED`                                                                |
+| 12 failed logins from one IP                              | first 401, later ones **429** — per-IP limit enforced                            |
+| Validation failure                                        | **422** with JSON Pointer field errors, no raw Zod internals                     |
+| Unknown request property                                  | 422 `unrecognized_keys` — rejected, not stripped                                 |
+| VIEWER attempting write / publish / delete                | **403 `INSUFFICIENT_PERMISSIONS`** (not 401)                                     |
+| EDITOR permission set                                     | no `user:*`, no `role:*`, no `settings:*`, no `media:delete`                     |
+| VIEWER permission set                                     | every entry ends `:read`                                                         |
+| `GET /personas`                                           | 4 seeded personas with CMS accent colours                                        |
+| Cursor pagination                                         | advances correctly; full walk returns every row **exactly once**                 |
+| Tampered cursor                                           | 400, not 500                                                                     |
+| `?include=secretTable`                                    | 422 — allowlist holds                                                            |
+| `GET /personas/felicitous/page`                           | **5 queries** (`X-Query-Count`), criterion is ≤8                                 |
+| `PATCH /admin/personas/reorder`                           | 204 — routed to reorder, not swallowed by `:id`                                  |
+| Publish workflow                                          | unpublish hides publicly (404 by slug), republish restores                       |
+| Re-publishing a published persona                         | 409 `INVALID_STATUS_TRANSITION`                                                  |
+| Soft delete + restore                                     | hidden publicly, still visible to admin, restored intact                         |
+| Audit trail                                               | `updatedBy` = admin id; `AuditLog` rows carry actor + requestId                  |
+| Revalidation                                              | emitted `tags=home,nav,persona:tnt,personas,sitemap`                             |
+| Log redaction                                             | `authorization` and `set-cookie` both `[redacted]`                               |
+| OpenAPI snapshot gate                                     | **fails on drift** (verified by mutating the file)                               |
+| `GET /genres`                                             | 22 seeded genres, cursor meta, default limit 100                                 |
+| Genre cursor walk                                         | every row exactly once                                                           |
+| `GET /genres/slugs`                                       | 200 — not swallowed by `:slug`                                                   |
+| Genre publish/unpublish/archive/schedule routes           | **404** — correctly do not exist                                                 |
+| `DELETE` a genre in use                                   | **409 `GENRE_IN_USE`** listing the referencing content                           |
+| Referencing content after a refused delete                | counts unchanged — nothing was stripped                                          |
+| `DELETE` an unreferenced genre                            | 204, and really gone (no `deletedAt` column)                                     |
+| Duplicate genre name                                      | 409 against **`/name`**, not `/slug`                                             |
+| Revalidation wiring (persona, genre create, genre delete) | listener receives the event — verified to **fail** when the bus is two instances |
+| e2e suite run twice, then db integration tests            | **still 73 pass** — the suite is non-destructive                                 |
 
 ### Not verified
 
@@ -203,12 +265,13 @@ checks; the OpenAPI document renders; a thrown error returns valid
 - [x] Include allowlist, sort allowlist, `publishedWhere()` composition
 - [x] Idempotency, ETag / `If-None-Match`, cache-control policies
 - [x] Cache-tag revalidation, HMAC-signed, symmetrical with `@dj/contracts`
-- [x] **Personas** — complete, verified, the exemplar
+- [x] **Personas** — complete and verified; the **publishable** exemplar
+- [x] **Genres** — complete and verified; the **taxonomy** exemplar
 - [x] `GET /personas/:slug/page` — **5 queries**, criterion ≤8
 - [x] **OpenAPI snapshot committed** (`apps/api/openapi.json`) and gated
 - [x] Contracts for all 8 content domains
 - [x] Mappers for all 8 content domains
-- [ ] Genres, Venues, Tracks, Releases, Playlists, Programs, Events modules
+- [ ] Venues, Tracks, Releases, Playlists, Programs, Events modules
 - [ ] Those modules registered in `app.module.ts`
 - [ ] Snapshot regenerated once they exist
 
@@ -365,7 +428,61 @@ _silently_ — that is why they are listed rather than merely fixed.
     module, diff the write contract against the read contract** — anything in
     `XCreateBase` must be readable somewhere.
 
-18. **A test that did not test what it claimed.** `tag-map.spec.ts` asserted
+18. **`EventEmitter2`'s type resolves to an error type**, which propagates
+    silently as `any`. `@nestjs/event-emitter`'s declaration does
+    `import eventemitter2 from 'eventemitter2'` and then reads
+    `eventemitter2.EventEmitter2` — a property that exists on the CJS
+    `module.exports` at runtime but **not** on the declared default export.
+    The consequence was not cosmetic: every `this.events.emit(...)` was an
+    unchecked call, so a typo in an event name or a malformed payload went
+    uncaught — in the one subsystem whose job is telling the web app what to
+    revalidate. Contained to a single line in `common/events.ts`, which
+    aliases a `DOMAIN_EVENT_BUS` token onto the emitter; services inject that
+    and are fully checked. `useExisting`, not `useClass` — a second instance
+    would mean listeners never hear the events, which is why
+    `revalidation.e2e-spec.ts` exists and was verified to fail against
+    `useClass`.
+
+19. **6 of 18 publishable models were missing `scheduledAt`, and 14 of 18 had
+    no `published_has_date` CHECK constraint at all.** Found while starting
+    the Venues module: `Venue` lacked both, despite the schema's own header
+    comment stating every publishable model carries `status + publishedAt +
+scheduledAt`, and `post-migrate.sql` having applied the CHECK to only 4
+    tables (`personas`, `tracks`, `events`, `posts`) since Phase 1. Two
+    `packages/db` test fixtures (a venue helper in `soft-delete.int-spec.ts`,
+    a duplicate-venue test in `schema.int-spec.ts`) were themselves creating
+    `PUBLISHED` venues with no `publishedAt` — passing tests built on
+    genuinely invalid data, because nothing enforced the invariant they
+    assumed. Fixed for all 18 models in one migration rather than one at a
+    time as each remaining module gets built; both test files corrected to
+    create `DRAFT` fixtures where the publish state was incidental. 15 new
+    `packages/db` tests (14 existence + 1 behavioural). See
+    [ADR 0019](../01-decisions/0019-scheduled-at-and-published-check-on-every-publishable-model.md).
+    Also recorded: `prisma migrate dev` will offer to reset any database
+    `post-migrate.sql` has touched, because it drift-checks the live database
+    against out-of-band objects by design — use `migrate diff` +
+    `migrate deploy` instead. See
+    [migrations.md](../05-operations/migrations.md).
+
+20. **`isSlugTaken` reported a soft-deleted row's slug as free.** Both
+    `Personas` (the exemplar) and the new `Venues` module called
+    `findUnique({ where: { slug } })`, which the soft-delete extension
+    silently narrows to `deletedAt: null`. A soft-deleted row still occupies
+    its `slug` at the database level, so `SlugService`'s auto-generated path
+    would hand back a slug it believed was guaranteed free, and the actual
+    `INSERT` then hit the real unique constraint — a 409 on a creation that
+    supplied no slug at all and had no reason to expect a collision. Fixed
+    with `anyDeletionState()` in `@dj/db`, spread into every uniqueness
+    pre-check; a regression test proves a soft-deleted row is invisible to a
+    plain query and visible once the helper is added. See
+    [ADR 0020](../01-decisions/0020-any-deletion-state-for-uniqueness-checks.md).
+21. **`genre` was in neither the cache-tag taxonomy nor `TAG_MAP`**, so a
+    renamed or deleted genre would never have revalidated the pages that
+    render it — the filter bar on /music and the chips on every persona page.
+    Added to both halves, which the "cache tags live in two places and must
+    stay symmetrical" invariant requires.
+
+22. **A test that did not test what it claimed.** `tag-map.spec.ts` asserted
     `resolved.length > 0` for every revalidatable entity, with a comment
     saying it caught a missing `TAG_MAP` entry — but the sitemap-only fallback
     satisfies that, so a missing entry would have passed. Now asserts that
@@ -373,17 +490,17 @@ _silently_ — that is why they are listed rather than merely fixed.
 
 ### Phase 0–1 (earlier sessions)
 
-19. **`runWithDbContext` silently dropped audit attribution** by returning a
+23. **`runWithDbContext` silently dropped audit attribution** by returning a
     lazy `PrismaPromise` out of the ALS scope. Regression test:
     `soft-delete.int-spec.ts` → `'survives a lazily-returned PrismaPromise'`.
     **Do not "simplify" that function.**
-20. The ESLint config silently discarded `disableTypeChecked` by declaring
+24. The ESLint config silently discarded `disableTypeChecked` by declaring
     `rules:` after the spread.
-21. `nest build` produced an empty `dist/` — `incremental` + `deleteOutDir`.
-22. `formatINR` compact mode overstated prices (₹2.5L rendered as ₹3L).
-23. `app.get('ConfigService')` threw — Nest resolves by class, not string.
-24. Turbo strict env mode hid `DATABASE_URL` from the test task.
-25. `typecheck` raced the app's own `build` for `.next/types`.
+25. `nest build` produced an empty `dist/` — `incremental` + `deleteOutDir`.
+26. `formatINR` compact mode overstated prices (₹2.5L rendered as ₹3L).
+27. `app.get('ConfigService')` threw — Nest resolves by class, not string.
+28. Turbo strict env mode hid `DATABASE_URL` from the test task.
+29. `typecheck` raced the app's own `build` for `.next/types`.
 
 ---
 

@@ -1,4 +1,4 @@
-import type { GenreDetail } from '@dj/contracts';
+import type { GenreAdminDetail, GenreDetail } from '@dj/contracts';
 
 interface GenreRow {
   id: string;
@@ -7,6 +7,13 @@ interface GenreRow {
   description: string | null;
   colorHex: string | null;
   sortIndex: number;
+}
+
+/** The admin row, which carries usage counts and timestamps. */
+interface GenreAdminRow extends GenreRow {
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: { personas: number; tracks: number };
 }
 
 /**
@@ -21,5 +28,23 @@ export function toGenreDetail(row: GenreRow): GenreDetail {
     description: row.description,
     colorHex: row.colorHex,
     sortIndex: row.sortIndex,
+  };
+}
+
+/**
+ * The admin shape.
+ *
+ * Counts default to 0 rather than being optional: a missing `_count` means
+ * the repository forgot to select it, and rendering "0 tracks" next to a
+ * delete button that will strip 40 tracks is worse than rendering nothing.
+ * The repository always selects it; this keeps the type honest if it stops.
+ */
+export function toGenreAdminDetail(row: GenreAdminRow): GenreAdminDetail {
+  return {
+    ...toGenreDetail(row),
+    personaCount: row._count?.personas ?? 0,
+    trackCount: row._count?.tracks ?? 0,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }

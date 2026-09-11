@@ -60,6 +60,13 @@ export const ERROR_CODES = {
   CSRF_FAILED: 'CSRF_FAILED',
   IDEMPOTENCY_KEY_REUSED: 'IDEMPOTENCY_KEY_REUSED',
   MEDIA_IN_USE: 'MEDIA_IN_USE',
+  /**
+   * A taxonomy row still tagged on content. Distinct from MEDIA_IN_USE so the
+   * admin can offer the right remedy: re-tag the content, rather than replace
+   * an asset. Both exist because the underlying relations **cascade**, so the
+   * delete would succeed and silently strip the association.
+   */
+  GENRE_IN_USE: 'GENRE_IN_USE',
   PASSWORD_TOO_WEAK: 'PASSWORD_TOO_WEAK',
   SLUG_TAKEN: 'SLUG_TAKEN',
   INVALID_STATUS_TRANSITION: 'INVALID_STATUS_TRANSITION',

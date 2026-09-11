@@ -31,6 +31,20 @@ const TAG_MAP: Record<RevalidatableEntity, TagResolver> = {
     tags.sitemap,
   ],
 
+  /**
+   * A genre has no page of its own yet — it is rendered as a filter control
+   * on /music and as chips on every persona page. So a rename has to reach
+   * both aggregates, or the old label keeps showing indefinitely on
+   * statically-rendered pages.
+   */
+  genre: (e) => [
+    tags.genres,
+    e.slug ? tags.genre(e.slug) : undefined,
+    tags.tracks,
+    tags.personas,
+    tags.sitemap,
+  ],
+
   track: (e) => [
     tags.tracks,
     e.slug ? tags.track(e.slug) : undefined,

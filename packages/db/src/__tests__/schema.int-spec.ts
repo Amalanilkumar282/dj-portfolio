@@ -168,10 +168,29 @@ describe('check constraints', () => {
     'events_ticket_price_band',
     'events_time_order',
     'experience_entries_date_order',
+    // Every publishable model gets this constraint, not only the original 4
+    // (personas, tracks, events, posts). Venue was found missing it entirely
+    // while building the Venues content module — see ADR 0019. Listed for
+    // all 18 so a model added later without it fails here immediately,
+    // rather than silently allowing a PUBLISHED row with no publishedAt.
     'personas_published_has_date',
     'tracks_published_has_date',
+    'playlists_published_has_date',
+    'releases_published_has_date',
+    'venues_published_has_date',
     'events_published_has_date',
+    'programs_published_has_date',
+    'galleries_published_has_date',
+    'videos_published_has_date',
+    'testimonials_published_has_date',
+    'brands_published_has_date',
+    'experience_entries_published_has_date',
+    'gear_items_published_has_date',
+    'services_published_has_date',
+    'faqs_published_has_date',
+    'press_assets_published_has_date',
     'posts_published_has_date',
+    'static_pages_published_has_date',
     'media_assets_image_alt_text',
   ];
 
@@ -187,6 +206,24 @@ describe('check constraints', () => {
     await expect(
       prisma.testimonial.create({
         data: { authorName: 'Range Test', quote: 'Out of range.', rating: 9 },
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('rejects a PUBLISHED venue with no publishedAt', async () => {
+    // Venue had no `published_has_date` constraint at all until this was
+    // found while building the Venues module — every other publishable model
+    // had it. Behavioural, not just existence: the constraint list above
+    // only proves the object exists, not that it actually rejects anything.
+    await expect(
+      prisma.venue.create({
+        data: {
+          slug: `unpublished-${Date.now().toString(36)}`,
+          name: 'Constraint Test Venue',
+          city: 'Bengaluru',
+          status: 'PUBLISHED',
+          publishedAt: null,
+        },
       }),
     ).rejects.toThrow();
   });
@@ -272,19 +309,27 @@ describe('check constraints', () => {
 describe('unique constraints', () => {
   it('rejects a duplicate venue in the same city', async () => {
     const name = `Dup Venue ${Date.now().toString(36)}`;
+    // DRAFT: Venue defaults to PUBLISHED, and this test is about the
+    // @@unique([name, city]) constraint, not the publish workflow. A bare
+    // default would now fail `venues_published_has_date` (see ADR 0019).
     const first = await prisma.venue.create({
-      data: { slug: `dup-a-${Date.now().toString(36)}`, name, city: 'Bengaluru' },
+      data: { slug: `dup-a-${Date.now().toString(36)}`, name, city: 'Bengaluru', status: 'DRAFT' },
     });
 
     await expect(
       prisma.venue.create({
-        data: { slug: `dup-b-${Date.now().toString(36)}`, name, city: 'Bengaluru' },
+        data: {
+          slug: `dup-b-${Date.now().toString(36)}`,
+          name,
+          city: 'Bengaluru',
+          status: 'DRAFT',
+        },
       }),
     ).rejects.toThrow();
 
     // The same venue name in a different city is legitimate.
     const other = await prisma.venue.create({
-      data: { slug: `dup-c-${Date.now().toString(36)}`, name, city: 'Chennai' },
+      data: { slug: `dup-c-${Date.now().toString(36)}`, name, city: 'Chennai', status: 'DRAFT' },
     });
 
     await prisma.venue.delete({ where: { id: first.id } });

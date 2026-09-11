@@ -3,8 +3,11 @@
 Owns the database, the business rules and the security boundary. Deployed as a
 persistent container on Railway ([ADR 0007](../01-decisions/0007-railway-for-api.md)).
 
-**Status: not yet built.** This is the Phase 2 specification. See
-[`../06-roadmap/STATUS.md`](../06-roadmap/STATUS.md).
+**Status: built and verified.** Phases 2 and 3 are complete; Phase 4 is
+partial — `Personas`, `Genres` and `Venues` are done end to end and are the
+two exemplars (publishable and taxonomy respectively; `Venues` is a second
+instance of the publishable one). See
+[`../06-roadmap/STATUS.md`](../06-roadmap/STATUS.md) for what remains.
 
 ---
 
@@ -61,25 +64,53 @@ Mappers are pure, and there are two per aggregate where the shapes diverge:
 
 ## Adding a content module
 
-**`modules/personas/` is the worked exemplar.** It is implemented, verified
-against a live database, and every other content module should be a
-translation of it. Read those six files before writing new ones — this section
-is a map, not a replacement.
+There are **two exemplars**, and the first decision is which one applies.
+
+| Your model has…                            | Copy                | Because                                                                  |
+| ------------------------------------------ | ------------------- | ------------------------------------------------------------------------ |
+| `status` + `publishedAt` + `deletedAt`     | `modules/personas/` | It extends `BaseContentService` and inherits the whole publish workflow. |
+| none of those (a taxonomy or config table) | `modules/genres/`   | `BaseContentService` would inherit methods with no column to write to.   |
+
+`NON_PUBLISHABLE` in `packages/db/seed/data/rbac.ts` is the authoritative
+list: anything in it has no `:publish` permission and must not get publish
+routes. `Genre`, `Stat`, `Tag`, `Redirect` and `Settings` are all taxonomy-
+shaped.
+
+Both are implemented and verified against a live database. Read the relevant
+one before writing new files — this section is a map, not a replacement.
+
+### The taxonomy case needs a delete guard
+
+This is the one place the two shapes diverge in a way that can destroy data.
+A publishable model soft-deletes, so a mistaken delete is recoverable for 30
+days. A taxonomy model has no `deletedAt`, so `delete` is **real** — and if
+its join tables declare `onDelete: Cascade`, Postgres does not reject the
+delete, it succeeds and silently strips the tag from everything that used it.
+
+`Genre` is exactly this: `PersonaGenre` and `TrackGenre` both cascade, so
+deleting a genre in use would remove it from every persona and track, with no
+undo and nothing in the response to hint at it.
+
+So a taxonomy module counts references first and **409s** with the list of
+what is in the way (`GENRE_IN_USE`, mirroring `MEDIA_IN_USE`), and its admin
+detail shape carries usage counts so the CMS can show the blast radius before
+the button is pressed. Re-tagging content is a deliberate act; losing tags as
+a side effect of a delete is not.
 
 Build in this order, because each step depends on the one above:
 
-| #   | File                    | What it owns                                                                         |
-| --- | ----------------------- | ------------------------------------------------------------------------------------ |
-| 1   | `@dj/contracts` entry   | Create / Update / Query / Summary / Detail / AdminDetail schemas. **Already exist.** |
-| 2   | `x.mapper.ts`           | Prisma row → contract shape. Pure. **Already exists.**                               |
-| 3   | `x.repository.ts`       | The only Prisma access. Include allowlist, `publishedWhere()`, keyset support.       |
-| 4   | `x.service.ts`          | Extends `BaseContentService`. Slug resolution, cursor decoding, audit, events.       |
-| 5   | `dto/x.dto.ts`          | `createZodDto` wrappers plus the admin offset-pagination query.                      |
-| 6   | `x.controller.ts`       | Public reads **by slug**. `@Public()`, `@CacheControl(publicContent)`.               |
-| 7   | `x.admin.controller.ts` | Writes **by id**. `@RequirePermissions`, `@CacheControl(noStore)`.                   |
-| 8   | `x.module.ts`           | Both controllers, repository, service, `CursorService`, `SlugService`.               |
-| 9   | `app.module.ts`         | Register the module.                                                                 |
-| 10  | `pnpm openapi:update`   | Regenerate and commit the snapshot **with** the change.                              |
+| #   | File                    | What it owns                                                                                                            |
+| --- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 1   | `@dj/contracts` entry   | Create / Update / Query / Summary / Detail / AdminDetail schemas. **Already exist.**                                    |
+| 2   | `x.mapper.ts`           | Prisma row → contract shape. Pure. **Already exists.**                                                                  |
+| 3   | `x.repository.ts`       | The only Prisma access. Include allowlist, `publishedWhere()`, keyset support.                                          |
+| 4   | `x.service.ts`          | Extends `BaseContentService` (publishable) or stands alone (taxonomy). Slug resolution, cursor decoding, audit, events. |
+| 5   | `dto/x.dto.ts`          | `createZodDto` wrappers plus the admin offset-pagination query.                                                         |
+| 6   | `x.controller.ts`       | Public reads **by slug**. `@Public()`, `@CacheControl(publicContent)`.                                                  |
+| 7   | `x.admin.controller.ts` | Writes **by id**. `@RequirePermissions`, `@CacheControl(noStore)`.                                                      |
+| 8   | `x.module.ts`           | Both controllers, repository, service, `CursorService`, `SlugService`.                                                  |
+| 9   | `app.module.ts`         | Register the module.                                                                                                    |
+| 10  | `pnpm openapi:update`   | Regenerate and commit the snapshot **with** the change.                                                                 |
 
 ### The three mistakes that are easy to repeat
 
@@ -140,6 +171,49 @@ otherwise.
 - **Derive partial Update schemas from an explicit base**, not via
   `.innerType()` off a refined schema. Adding a refinement silently changes
   how many unwraps are needed.
+
+### `isSlugTaken` must spread `anyDeletionState()`
+
+```ts
+async isSlugTaken(slug: string, exceptId?: string) {
+  const existing = await this.prisma.client.<model>.findFirst({
+    where: { slug, ...anyDeletionState() },   // from @dj/db
+    select: { id: true },
+  });
+  return existing != null && existing.id !== exceptId;
+}
+```
+
+Not `findUnique({ where: { slug } })`. A soft-deleted row still occupies its
+`slug` at the database level, but the soft-delete extension narrows an
+ordinary read to `deletedAt: null`, so the check reports a slug held by a
+trashed row as free. `SlugService`'s auto-generated path then hands back a
+slug it believes is guaranteed available, and the actual insert hits the real
+unique constraint — a 409 on a creation that supplied no slug at all. Both
+`Personas` and `Venues` had this bug; see
+[ADR 0020](../01-decisions/0020-any-deletion-state-for-uniqueness-checks.md).
+The same applies to any other uniqueness pre-check — `Venues.isNameCityTaken`
+for its `@@unique([name, city])`, and to whatever the next module's own
+compound constraint turns out to be.
+
+### Inject the event bus by token, never by class
+
+```ts
+@Inject(DOMAIN_EVENT_BUS) private readonly events: DomainEventBus,
+```
+
+Not `private readonly events: EventEmitter2`. `@nestjs/event-emitter`'s type
+declaration is broken upstream — it reads a property off the default export
+that only exists on the CJS `module.exports` — so the type resolves to an
+**error type** and propagates as `any`. Every `emit` through it is then an
+unchecked call, in the one subsystem whose whole job is telling the web app
+what to revalidate. `common/events.ts` contains that to a single line.
+
+**Register the entity in both halves of the cache-tag taxonomy** —
+`packages/contracts/src/cache-tags.ts` and the API's `TAG_MAP`. An entity
+missing from `TAG_MAP` falls through to a sitemap-only default and never
+revalidates its own page; `tag-map.spec.ts` fails on that, which is the only
+thing standing between you and "I published but nothing changed".
 
 ### Diff the write contract against the read contract
 

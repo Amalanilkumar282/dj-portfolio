@@ -20,6 +20,71 @@
         ],
         "type": "object"
       },
+      "GenreCreateDto": {
+        "properties": {
+          "colorHex": {
+            "nullable": true,
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GenreUpdateDto": {
+        "properties": {
+          "colorHex": {
+            "nullable": true,
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "LoginDto": {
         "properties": {
           "email": {
@@ -395,6 +460,200 @@
           "totp"
         ],
         "type": "object"
+      },
+      "VenueCreateDto": {
+        "properties": {
+          "addressLine": {
+            "maxLength": 300,
+            "nullable": true,
+            "type": "string"
+          },
+          "capacity": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 500000,
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "city": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "country": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "instagramUrl": {
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "latitude": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 90,
+            "minimum": -90,
+            "nullable": true,
+            "type": "number"
+          },
+          "longitude": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 180,
+            "minimum": -180,
+            "nullable": true,
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 2000,
+            "nullable": true,
+            "type": "string"
+          },
+          "postalCode": {
+            "maxLength": 20,
+            "nullable": true,
+            "type": "string"
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "state": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "websiteUrl": {
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "city"
+        ],
+        "type": "object"
+      },
+      "VenueUpdateDto": {
+        "properties": {
+          "addressLine": {
+            "maxLength": 300,
+            "nullable": true,
+            "type": "string"
+          },
+          "capacity": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 500000,
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "city": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "country": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "instagramUrl": {
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "latitude": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 90,
+            "minimum": -90,
+            "nullable": true,
+            "type": "number"
+          },
+          "longitude": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 180,
+            "minimum": -180,
+            "nullable": true,
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 2000,
+            "nullable": true,
+            "type": "string"
+          },
+          "postalCode": {
+            "maxLength": 20,
+            "nullable": true,
+            "type": "string"
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "state": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "websiteUrl": {
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -418,6 +677,212 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/admin/genres": {
+      "get": {
+        "operationId": "GenresAdminController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List genres with usage counts, offset-paginated",
+        "tags": [
+          "admin: genres"
+        ]
+      },
+      "post": {
+        "operationId": "GenresAdminController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenreCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a genre",
+        "tags": [
+          "admin: genres"
+        ]
+      }
+    },
+    "/api/v1/admin/genres/{id}": {
+      "delete": {
+        "description": "This is a real delete — a genre has no deletedAt. Both join tables cascade, so deleting a genre in use would silently strip it from every persona and track. The endpoint refuses instead, listing what is in the way.",
+        "operationId": "GenresAdminController_remove_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a genre. 409 with the referencing content if it is still in use.",
+        "tags": [
+          "admin: genres"
+        ]
+      },
+      "get": {
+        "operationId": "GenresAdminController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One genre by id, with usage counts",
+        "tags": [
+          "admin: genres"
+        ]
+      },
+      "patch": {
+        "operationId": "GenresAdminController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenreUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a genre. Unmentioned fields are untouched.",
+        "tags": [
+          "admin: genres"
+        ]
+      }
+    },
+    "/api/v1/admin/genres/reorder": {
+      "patch": {
+        "operationId": "GenresAdminController_reorder_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply a new ordering in one transaction",
+        "tags": [
+          "admin: genres"
+        ]
+      }
+    },
     "/api/v1/admin/personas": {
       "get": {
         "operationId": "PersonasAdminController_list_v1",
@@ -791,6 +1256,379 @@
         ]
       }
     },
+    "/api/v1/admin/venues": {
+      "get": {
+        "operationId": "VenuesAdminController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "ARCHIVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List venues of every status, offset-paginated",
+        "tags": [
+          "admin: venues"
+        ]
+      },
+      "post": {
+        "operationId": "VenuesAdminController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VenueCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a venue",
+        "tags": [
+          "admin: venues"
+        ]
+      }
+    },
+    "/api/v1/admin/venues/{id}": {
+      "delete": {
+        "operationId": "VenuesAdminController_remove_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete. Recoverable from the trash for 30 days.",
+        "tags": [
+          "admin: venues"
+        ]
+      },
+      "get": {
+        "operationId": "VenuesAdminController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One venue by id, any status",
+        "tags": [
+          "admin: venues"
+        ]
+      },
+      "patch": {
+        "operationId": "VenuesAdminController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VenueUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a venue. Unmentioned fields are untouched.",
+        "tags": [
+          "admin: venues"
+        ]
+      }
+    },
+    "/api/v1/admin/venues/{id}/archive": {
+      "patch": {
+        "operationId": "VenuesAdminController_archive_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive, removing it from the site but keeping it in the CMS",
+        "tags": [
+          "admin: venues"
+        ]
+      }
+    },
+    "/api/v1/admin/venues/{id}/publish": {
+      "patch": {
+        "operationId": "VenuesAdminController_publish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish, and revalidate the public page",
+        "tags": [
+          "admin: venues"
+        ]
+      }
+    },
+    "/api/v1/admin/venues/{id}/restore": {
+      "post": {
+        "operationId": "VenuesAdminController_restore_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore from the trash",
+        "tags": [
+          "admin: venues"
+        ]
+      }
+    },
+    "/api/v1/admin/venues/{id}/schedule": {
+      "patch": {
+        "operationId": "VenuesAdminController_schedule_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Schedule a publish; the five-minute cron performs it",
+        "tags": [
+          "admin: venues"
+        ]
+      }
+    },
+    "/api/v1/admin/venues/{id}/unpublish": {
+      "patch": {
+        "operationId": "VenuesAdminController_unpublish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Return to draft",
+        "tags": [
+          "admin: venues"
+        ]
+      }
+    },
+    "/api/v1/admin/venues/reorder": {
+      "patch": {
+        "operationId": "VenuesAdminController_reorder_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply a new ordering in one transaction",
+        "tags": [
+          "admin: venues"
+        ]
+      }
+    },
     "/api/v1/auth/2fa/disable": {
       "post": {
         "operationId": "AuthController_disableTotp_v1",
@@ -998,6 +1836,130 @@
         "summary": "Rotate the refresh token and issue a new access token",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/genres": {
+      "get": {
+        "operationId": "GenresController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "inUse",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "sortIndex"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List genres, for filter controls and chips",
+        "tags": [
+          "genres"
+        ]
+      }
+    },
+    "/api/v1/genres/{slug}": {
+      "get": {
+        "operationId": "GenresController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "example": "psytrance",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "One genre",
+        "tags": [
+          "genres"
+        ]
+      }
+    },
+    "/api/v1/genres/slugs": {
+      "get": {
+        "operationId": "GenresController_slugs_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Genre slugs with lastmod",
+        "tags": [
+          "genres"
         ]
       }
     },
@@ -1231,6 +2193,216 @@
         "summary": "Published slugs with lastmod, for prerendering and sitemaps",
         "tags": [
           "personas"
+        ]
+      }
+    },
+    "/api/v1/venues": {
+      "get": {
+        "operationId": "VenuesController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "sortIndex"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List published venues",
+        "tags": [
+          "venues"
+        ]
+      }
+    },
+    "/api/v1/venues/{slug}": {
+      "get": {
+        "operationId": "VenuesController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "example": "big-pitcher-sarjapur",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "sortIndex"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "One published venue",
+        "tags": [
+          "venues"
+        ]
+      }
+    },
+    "/api/v1/venues/slugs": {
+      "get": {
+        "operationId": "VenuesController_slugs_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Published venue slugs with lastmod, for prerendering and sitemaps",
+        "tags": [
+          "venues"
         ]
       }
     },

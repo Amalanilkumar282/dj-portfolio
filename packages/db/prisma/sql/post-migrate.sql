@@ -163,6 +163,13 @@ ALTER TABLE "experience_entries"
 -- PUBLISHED content must carry a publishedAt, so sitemap lastmod and the
 -- Article/Event/MusicRecording JSON-LD date fields are never null on a live
 -- page.
+--
+-- Originally applied to only 4 of the 18 publishable tables (personas,
+-- tracks, events, posts) — found while building the Venues module, when
+-- Venue turned out to be missing the constraint entirely. Every model with a
+-- `ContentStatus` column gets it now, generated from the same list this file
+-- otherwise treats as authoritative for the tsvector and partial-index
+-- sections below. See ADR 0019.
 ALTER TABLE "personas" DROP CONSTRAINT IF EXISTS "personas_published_has_date";
 ALTER TABLE "personas"
   ADD CONSTRAINT "personas_published_has_date"
@@ -173,14 +180,84 @@ ALTER TABLE "tracks"
   ADD CONSTRAINT "tracks_published_has_date"
   CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
 
+ALTER TABLE "playlists" DROP CONSTRAINT IF EXISTS "playlists_published_has_date";
+ALTER TABLE "playlists"
+  ADD CONSTRAINT "playlists_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "releases" DROP CONSTRAINT IF EXISTS "releases_published_has_date";
+ALTER TABLE "releases"
+  ADD CONSTRAINT "releases_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "venues" DROP CONSTRAINT IF EXISTS "venues_published_has_date";
+ALTER TABLE "venues"
+  ADD CONSTRAINT "venues_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
 ALTER TABLE "events" DROP CONSTRAINT IF EXISTS "events_published_has_date";
 ALTER TABLE "events"
   ADD CONSTRAINT "events_published_has_date"
   CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
 
+ALTER TABLE "programs" DROP CONSTRAINT IF EXISTS "programs_published_has_date";
+ALTER TABLE "programs"
+  ADD CONSTRAINT "programs_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "galleries" DROP CONSTRAINT IF EXISTS "galleries_published_has_date";
+ALTER TABLE "galleries"
+  ADD CONSTRAINT "galleries_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "videos" DROP CONSTRAINT IF EXISTS "videos_published_has_date";
+ALTER TABLE "videos"
+  ADD CONSTRAINT "videos_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "testimonials" DROP CONSTRAINT IF EXISTS "testimonials_published_has_date";
+ALTER TABLE "testimonials"
+  ADD CONSTRAINT "testimonials_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "brands" DROP CONSTRAINT IF EXISTS "brands_published_has_date";
+ALTER TABLE "brands"
+  ADD CONSTRAINT "brands_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "experience_entries" DROP CONSTRAINT IF EXISTS "experience_entries_published_has_date";
+ALTER TABLE "experience_entries"
+  ADD CONSTRAINT "experience_entries_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "gear_items" DROP CONSTRAINT IF EXISTS "gear_items_published_has_date";
+ALTER TABLE "gear_items"
+  ADD CONSTRAINT "gear_items_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "services" DROP CONSTRAINT IF EXISTS "services_published_has_date";
+ALTER TABLE "services"
+  ADD CONSTRAINT "services_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "faqs" DROP CONSTRAINT IF EXISTS "faqs_published_has_date";
+ALTER TABLE "faqs"
+  ADD CONSTRAINT "faqs_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "press_assets" DROP CONSTRAINT IF EXISTS "press_assets_published_has_date";
+ALTER TABLE "press_assets"
+  ADD CONSTRAINT "press_assets_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
 ALTER TABLE "posts" DROP CONSTRAINT IF EXISTS "posts_published_has_date";
 ALTER TABLE "posts"
   ADD CONSTRAINT "posts_published_has_date"
+  CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
+
+ALTER TABLE "static_pages" DROP CONSTRAINT IF EXISTS "static_pages_published_has_date";
+ALTER TABLE "static_pages"
+  ADD CONSTRAINT "static_pages_published_has_date"
   CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL);
 
 -- Alt text is required on in-page images. The admin blocks publish without it;

@@ -1,4 +1,5 @@
-import type { VenueDetail, VenueSummary } from '@dj/contracts';
+import type { VenueAdminDetail, VenueDetail, VenueSummary } from '@dj/contracts';
+import type { ContentStatus } from '@dj/db';
 
 import { toSeoMeta, type SeoRow } from '../../common/base/seo.mapper';
 
@@ -22,6 +23,16 @@ interface VenueRow {
   instagramUrl?: string | null;
   notes?: string | null;
   seoMeta?: SeoRow | null;
+}
+
+/** The admin row, which carries the publish-workflow columns. */
+interface VenueAdminRow extends VenueRow {
+  status: ContentStatus;
+  publishedAt: Date | null;
+  scheduledAt: Date | null;
+  sortIndex: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export function toVenueSummary(row: VenueRow): VenueSummary {
@@ -52,5 +63,22 @@ export function toVenueDetail(row: VenueRow): VenueDetail {
     instagramUrl: row.instagramUrl ?? null,
     notes: row.notes ?? null,
     seo: toSeoMeta(row.seoMeta),
+  };
+}
+
+/**
+ * The admin shape. Kept separate from `toVenueDetail` so a public response
+ * cannot accidentally disclose that a draft exists, or when something is
+ * scheduled.
+ */
+export function toVenueAdminDetail(row: VenueAdminRow): VenueAdminDetail {
+  return {
+    ...toVenueDetail(row),
+    status: row.status,
+    publishedAt: row.publishedAt,
+    scheduledAt: row.scheduledAt,
+    sortIndex: row.sortIndex,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }

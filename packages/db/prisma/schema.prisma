@@ -893,6 +893,7 @@ model Venue {
 
   status      ContentStatus @default(PUBLISHED)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())
@@ -1191,6 +1192,7 @@ model Brand {
 
   status      ContentStatus @default(PUBLISHED)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())
@@ -1261,6 +1263,7 @@ model ExperienceEntry {
 
   status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())
@@ -1294,6 +1297,7 @@ model GearItem {
 
   status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())
@@ -1370,6 +1374,7 @@ model Faq {
 
   status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())
@@ -1401,6 +1406,7 @@ model PressAsset {
 
   status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())

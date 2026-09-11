@@ -26,8 +26,10 @@ import { PrismaModule } from './infra/prisma/prisma.module';
 import { RevalidationModule } from './infra/revalidation/revalidation.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { GenresModule } from './modules/genres/genres.module';
 import { PersonasModule } from './modules/personas/personas.module';
 import { RbacModule } from './modules/rbac/rbac.module';
+import { VenuesModule } from './modules/venues/venues.module';
 
 /**
  * The application root.
@@ -101,6 +103,8 @@ import { RbacModule } from './modules/rbac/rbac.module';
     AuthModule,
     RbacModule,
     PersonasModule,
+    GenresModule,
+    VenuesModule,
     CloudinaryModule,
     HealthModule,
   ],
