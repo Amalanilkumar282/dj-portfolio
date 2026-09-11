@@ -2,17 +2,24 @@
   "name": "@dj/contracts",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./cache-tags": "./src/cache-tags.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./cache-tags": {
+      "types": "./dist/cache-tags.d.ts",
+      "default": "./dist/cache-tags.js"
+    }
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "zod": "^3.25.76"
@@ -23,5 +30,8 @@
     "@dj/db": "workspace:*",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }

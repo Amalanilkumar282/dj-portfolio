@@ -7,6 +7,25 @@ import { z } from 'zod';
  * frontend types from one definition. See ADR 0004.
  */
 
+/**
+ * An input object that REJECTS unknown properties.
+ *
+ * Zod strips unknown keys by default, which is the wrong default for a
+ * request body: a client sending `{ isAdmin: true }` gets a 200 and no
+ * indication that the field was ignored. That is how a frontend ships a bug
+ * nobody can reproduce — the request looks accepted, the field silently
+ * vanishes.
+ *
+ * Use this for every request body and query. Use plain `z.object` for
+ * RESPONSE schemas, where tolerating an extra field the API has started
+ * returning is what keeps an older client working.
+ *
+ * See docs/02-architecture/api-conventions.md
+ */
+export function inputObject<T extends z.ZodRawShape>(shape: T) {
+  return z.object(shape).strict();
+}
+
 /** cuid2 - 24-32 lowercase alphanumerics. */
 export const Id = z.string().regex(/^[a-z0-9]{20,32}$/, 'Invalid id');
 

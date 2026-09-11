@@ -1,0 +1,1441 @@
+{
+  "components": {
+    "schemas": {
+      "ChangePasswordDto": {
+        "properties": {
+          "currentPassword": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "newPassword": {
+            "maxLength": 256,
+            "minLength": 12,
+            "type": "string"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object"
+      },
+      "LoginDto": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "maxLength": 320,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "totp": {
+            "maxLength": 16,
+            "minLength": 6,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object"
+      },
+      "PersonaCreateDto": {
+        "properties": {
+          "accentColor": {
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "type": "string"
+          },
+          "accentColorSecondary": {
+            "nullable": true,
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "type": "string"
+          },
+          "bio": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "bioShort": {
+            "nullable": true,
+            "type": "string"
+          },
+          "bpmRangeHigh": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 300,
+            "minimum": 60,
+            "nullable": true,
+            "type": "integer"
+          },
+          "bpmRangeLow": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 300,
+            "minimum": 60,
+            "nullable": true,
+            "type": "integer"
+          },
+          "country": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "genreSlugs": {
+            "items": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "type": "array"
+          },
+          "gradientCss": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "homeCity": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "isDuo": {
+            "type": "boolean"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "key": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "type": "string"
+          },
+          "memberNames": {
+            "items": {
+              "maxLength": 120,
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "primaryGenreLabel": {
+            "maxLength": 80,
+            "nullable": true,
+            "type": "string"
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "shortDescription": {
+            "maxLength": 280,
+            "nullable": true,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "stageName": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "subtitle": {
+            "maxLength": 160,
+            "nullable": true,
+            "type": "string"
+          },
+          "tagline": {
+            "maxLength": 200,
+            "nullable": true,
+            "type": "string"
+          },
+          "yearsActiveFrom": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 2100,
+            "minimum": 1990,
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "stageName",
+          "bio"
+        ],
+        "type": "object"
+      },
+      "PersonaUpdateDto": {
+        "properties": {
+          "accentColor": {
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "type": "string"
+          },
+          "accentColorSecondary": {
+            "nullable": true,
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "type": "string"
+          },
+          "bio": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "bioShort": {
+            "nullable": true,
+            "type": "string"
+          },
+          "bpmRangeHigh": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 300,
+            "minimum": 60,
+            "nullable": true,
+            "type": "integer"
+          },
+          "bpmRangeLow": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 300,
+            "minimum": 60,
+            "nullable": true,
+            "type": "integer"
+          },
+          "country": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "genreSlugs": {
+            "items": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "type": "array"
+          },
+          "gradientCss": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "homeCity": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "isDuo": {
+            "type": "boolean"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "key": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "type": "string"
+          },
+          "memberNames": {
+            "items": {
+              "maxLength": 120,
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "primaryGenreLabel": {
+            "maxLength": 80,
+            "nullable": true,
+            "type": "string"
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "shortDescription": {
+            "maxLength": 280,
+            "nullable": true,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "stageName": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "subtitle": {
+            "maxLength": 160,
+            "nullable": true,
+            "type": "string"
+          },
+          "tagline": {
+            "maxLength": 200,
+            "nullable": true,
+            "type": "string"
+          },
+          "yearsActiveFrom": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 2100,
+            "minimum": 1990,
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ReorderDto": {
+        "properties": {
+          "entries": {
+            "items": {
+              "properties": {
+                "id": {
+                  "pattern": "^[a-z0-9]{20,32}$",
+                  "type": "string"
+                },
+                "sortIndex": {
+                  "exclusiveMinimum": false,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "sortIndex"
+              ],
+              "type": "object"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "type": "object"
+      },
+      "ScheduleDto": {
+        "properties": {
+          "publishAt": {}
+        },
+        "required": [
+          "publishAt"
+        ],
+        "type": "object"
+      },
+      "TotpDisableDto": {
+        "properties": {
+          "password": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
+      "TotpVerifyDto": {
+        "properties": {
+          "totp": {
+            "pattern": "^\\d{6}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "totp"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "cookie": {
+        "in": "cookie",
+        "name": "dj_rt",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "contact": {},
+    "description": "Content and booking API. Public reads are by slug and cacheable; admin writes are by id and require a bearer token. Errors follow RFC 9457 (application/problem+json).",
+    "title": "DJ Felicitous API",
+    "version": "1"
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/admin/personas": {
+      "get": {
+        "operationId": "PersonasAdminController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "ARCHIVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List personas of every status, offset-paginated",
+        "tags": [
+          "admin: personas"
+        ]
+      },
+      "post": {
+        "operationId": "PersonasAdminController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonaCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a persona",
+        "tags": [
+          "admin: personas"
+        ]
+      }
+    },
+    "/api/v1/admin/personas/{id}": {
+      "delete": {
+        "operationId": "PersonasAdminController_remove_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete. Recoverable from the trash for 30 days.",
+        "tags": [
+          "admin: personas"
+        ]
+      },
+      "get": {
+        "operationId": "PersonasAdminController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One persona by id, any status",
+        "tags": [
+          "admin: personas"
+        ]
+      },
+      "patch": {
+        "operationId": "PersonasAdminController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonaUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a persona. Unmentioned fields are untouched.",
+        "tags": [
+          "admin: personas"
+        ]
+      }
+    },
+    "/api/v1/admin/personas/{id}/archive": {
+      "patch": {
+        "operationId": "PersonasAdminController_archive_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive, removing it from the site but keeping it in the CMS",
+        "tags": [
+          "admin: personas"
+        ]
+      }
+    },
+    "/api/v1/admin/personas/{id}/publish": {
+      "patch": {
+        "operationId": "PersonasAdminController_publish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish, and revalidate the public page",
+        "tags": [
+          "admin: personas"
+        ]
+      }
+    },
+    "/api/v1/admin/personas/{id}/restore": {
+      "post": {
+        "operationId": "PersonasAdminController_restore_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore from the trash",
+        "tags": [
+          "admin: personas"
+        ]
+      }
+    },
+    "/api/v1/admin/personas/{id}/schedule": {
+      "patch": {
+        "operationId": "PersonasAdminController_schedule_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Schedule a publish; the five-minute cron performs it",
+        "tags": [
+          "admin: personas"
+        ]
+      }
+    },
+    "/api/v1/admin/personas/{id}/unpublish": {
+      "patch": {
+        "operationId": "PersonasAdminController_unpublish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Return to draft",
+        "tags": [
+          "admin: personas"
+        ]
+      }
+    },
+    "/api/v1/admin/personas/reorder": {
+      "patch": {
+        "operationId": "PersonasAdminController_reorder_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply a new ordering in one transaction",
+        "tags": [
+          "admin: personas"
+        ]
+      }
+    },
+    "/api/v1/auth/2fa/disable": {
+      "post": {
+        "operationId": "AuthController_disableTotp_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TotpDisableDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Disable 2FA; requires the password again",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/2fa/enroll": {
+      "post": {
+        "operationId": "AuthController_enrollTotp_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Begin TOTP enrolment; returns the QR URI and recovery codes",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/2fa/verify": {
+      "post": {
+        "operationId": "AuthController_verifyTotp_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TotpVerifyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm enrolment by verifying a code, which enables 2FA",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Sign in with email and password, plus TOTP when enrolled",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout_v1",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Revoke the current refresh token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout-all": {
+      "post": {
+        "operationId": "AuthController_logoutAll_v1",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke every session for the current user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The current user, with freshly resolved permissions",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password/change": {
+      "post": {
+        "operationId": "AuthController_changePassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change password and revoke every existing session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "dj_rt": []
+          }
+        ],
+        "summary": "Rotate the refresh token and issue a new access token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/personas": {
+      "get": {
+        "operationId": "PersonasController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "sortIndex"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List published personas",
+        "tags": [
+          "personas"
+        ]
+      }
+    },
+    "/api/v1/personas/{slug}": {
+      "get": {
+        "operationId": "PersonasController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "example": "trinitrocosmic",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "sortIndex"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "One published persona",
+        "tags": [
+          "personas"
+        ]
+      }
+    },
+    "/api/v1/personas/{slug}/page": {
+      "get": {
+        "operationId": "PersonasController_page_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "example": "tnt",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Aggregate payload for the persona landing page",
+        "tags": [
+          "personas"
+        ]
+      }
+    },
+    "/api/v1/personas/slugs": {
+      "get": {
+        "operationId": "PersonasController_slugs_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Published slugs with lastmod, for prerendering and sitemaps",
+        "tags": [
+          "personas"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Liveness. Checks nothing external, by design.",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "details": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "status"
+                        ],
+                        "type": "object"
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "error": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "status"
+                        ],
+                        "type": "object"
+                      },
+                      "example": {},
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "info": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "status"
+                        ],
+                        "type": "object"
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "status": {
+                      "example": "ok",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The Health Check is successful"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "details": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "status"
+                        ],
+                        "type": "object"
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        },
+                        "redis": {
+                          "message": "Could not connect",
+                          "status": "down"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "error": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "status"
+                        ],
+                        "type": "object"
+                      },
+                      "example": {
+                        "redis": {
+                          "message": "Could not connect",
+                          "status": "down"
+                        }
+                      },
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "info": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "status"
+                        ],
+                        "type": "object"
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "status": {
+                      "example": "error",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The Health Check is not successful"
+          }
+        },
+        "summary": "Readiness. Checks the database, Cloudinary, memory and disk.",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "servers": [],
+  "tags": [
+    {
+      "description": "Sign in, token rotation and two-factor",
+      "name": "auth"
+    },
+    {
+      "description": "Liveness and readiness probes",
+      "name": "health"
+    },
+    {
+      "description": "Public persona reads",
+      "name": "personas"
+    },
+    {
+      "description": "Persona CMS writes",
+      "name": "admin: personas"
+    }
+  ]
+}

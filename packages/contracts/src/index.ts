@@ -14,3 +14,5 @@
 
 export * from './common.js';
 export * from './cache-tags.js';
+export * from './auth.js';
+export * from './content.js';

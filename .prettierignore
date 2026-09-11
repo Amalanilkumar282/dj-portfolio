@@ -5,3 +5,8 @@ dist
 coverage
 pnpm-lock.yaml
 packages/db/prisma/migrations
+
+# Generated, and formatted by its own generator. Two formatters over one file
+# means a fight nobody wins: regenerate with
+# `pnpm --filter @dj/api openapi:update`.
+apps/api/openapi.json

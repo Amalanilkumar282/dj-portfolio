@@ -7,7 +7,18 @@
  *
  * See docs/02-architecture/frontend.md §"Server-first".
  */
-const ROUTE_FILE = /[\/]app[\/].*[\/]?(page|layout)\.(t|j)sx?$/;
+/**
+ * Matched against a forward-slash-normalised path.
+ *
+ * Without normalising, `/app/` never matches on Windows — where paths arrive
+ * as `src\app\page.tsx` — so this rule silently never fired for anyone
+ * developing on Windows, and the invariant held only in Linux CI. A lint rule
+ * that is a no-op on a contributor's machine is worse than no rule, because
+ * everyone believes it is running.
+ */
+const ROUTE_FILE = /\/app\/.*\/?(page|layout)\.(t|j)sx?$/;
+
+const normalise = (filename) => filename.replace(/\\/g, '/');
 
 export default {
   meta: {
@@ -22,7 +33,7 @@ export default {
     },
   },
   create(context) {
-    const filename = context.filename ?? context.getFilename();
+    const filename = normalise(context.filename ?? context.getFilename());
     if (!ROUTE_FILE.test(filename)) return {};
 
     return {
@@ -39,7 +50,7 @@ export default {
             context.report({
               node: stmt,
               messageId: 'noClientRoute',
-              data: { basename: filename.split(/[\/]/).pop() },
+              data: { basename: filename.split('/').pop() },
             });
           }
         }

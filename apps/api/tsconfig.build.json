@@ -1,0 +1,16 @@
+{
+  // The build config. Only `src` compiles into `dist`.
+  //
+  // Split from tsconfig.json because that one must also cover `test/**` so the
+  // e2e specs are type-checked and lintable — but those must never reach the
+  // shipped bundle, and `rootDir: src` makes including them impossible in a
+  // single config. `nest build` is pointed here via nest-cli.json.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "noEmit": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "test", "**/*.spec.ts"]
+}

@@ -36,3 +36,4 @@ strictDepBuilds: false
 
 allowBuilds:
   '@scarf/scarf': set this to true or false
+  '@swc/core': set this to true or false

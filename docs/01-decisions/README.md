@@ -24,3 +24,6 @@ Format: Context → Decision → Consequences → Alternatives rejected.
 | [0013](0013-cinematic-video-with-motiongate-fallbacks.md) | Cinematic video and 3D behind MotionGate           | Accepted |
 | [0014](0014-camelcase-columns.md)                         | Prisma-default camelCase columns                   | Accepted |
 | [0015](0015-post-migrate-sql-outside-migrations.md)       | Non-expressible DDL outside prisma/migrations      | Accepted |
+| [0016](0016-cjs-builds-for-shared-packages.md)            | db / contracts / utils build to CommonJS           | Accepted |
+| [0017](0017-app-env-precedence.md)                        | Each app applies its own env files, with override  | Accepted |
+| [0018](0018-validation-is-422-with-json-pointers.md)      | Validation failures are 422 with JSON Pointers     | Accepted |

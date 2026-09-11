@@ -45,15 +45,25 @@ without a developer.**
 | `apps/admin` | admin.djfelicitous.com | The CMS. **This is the product.**                   |
 | `apps/api`   | api.djfelicitous.com   | NestJS. Owns the database and business rules.       |
 
-## Current state (2026-09-10)
+## Current state (2026-09-11)
 
-Phases 0 and 1 are complete. The monorepo is scaffolded and the data layer is
-finished, migrated, seeded and tested against a real Postgres — 48 models,
-73 integration tests, zero schema drift.
+Phases 0, 1, 2 and 3 are complete. Phase 4 is **partial**.
 
-`apps/api`, `apps/web` and `apps/admin` are **scaffolds only**. Phase 2 is the
-next task: the API skeleton and global concerns.
-Read [`docs/02-architecture/backend.md`](docs/02-architecture/backend.md).
+The data layer is finished, migrated, seeded and tested against a real
+Postgres — 48 models, 73 integration tests, zero schema drift. The API boots,
+authenticates, authorises, validates, caches, audits and revalidates, verified
+by 40 e2e tests against a live database.
+
+**`Personas` is the worked exemplar** for a content module and is complete end
+to end. The next task is the **seven remaining content modules** — Genres,
+Venues, Tracks, Releases, Playlists, Programs, Events — whose contracts and
+mappers already exist.
+
+Read [`docs/06-roadmap/STATUS.md`](docs/06-roadmap/STATUS.md), then
+[`docs/02-architecture/backend.md`](docs/02-architecture/backend.md)
+§"Adding a content module".
+
+`apps/web` and `apps/admin` are still **scaffolds only**.
 
 ## Commands
 
@@ -70,6 +80,10 @@ pnpm lint                         # includes the 4 custom architectural rules
 pnpm typecheck
 pnpm test
 pnpm check:env                    # .env.example ↔ env.schema.ts parity
+
+pnpm --filter @dj/api test        # unit only, no infrastructure needed
+pnpm --filter @dj/api test:e2e    # boots the app; needs Postgres + seeds
+pnpm --filter @dj/api openapi:update   # regenerate the committed snapshot
 
 pnpm db:generate
 pnpm db:migrate                   # migrate + post-migrate SQL
@@ -100,8 +114,15 @@ already been paid for.
 | Every heavy visual effect has a reduced-motion fallback | `<MotionGate>` + phase exit criteria |
 | Every internal link resolves 200                        | Playwright link crawl                |
 | `schema.prisma` never drifts from `prisma/migrations`   | `pnpm db:migrate:check`              |
+| Validation failures are 422 with JSON Pointer errors    | `ZodValidationPipe` + e2e assertions |
+| Unknown request properties are rejected, never stripped | `inputObject()` = `.strict()`        |
+| The OpenAPI document never drifts from the code         | committed `apps/api/openapi.json`    |
+| e2e tests leave seeded content exactly as they found it | restore in `finally` + a double run  |
 
-Do not disable a `dj/*` rule. Fix the code.
+Do not disable a `dj/*` rule. Fix the code. If a rule is genuinely wrong,
+narrow it deliberately and write down why — as was done for
+`dj/prisma-only-in-repositories`, which banned domain enums it was never meant
+to cover.
 
 ## Conventions that will trip you up
 
@@ -118,6 +139,27 @@ Do not disable a `dj/*` rule. Fix the code.
   keep doing so.** Prisma's `PrismaPromise` is lazy, so returning it out of the
   scope means the query runs with no context and audit stamping silently
   becomes `null`. There is a regression test. Do not "simplify" it.
+- **`import './bootstrap-env'` must stay the first line of `apps/api/main.ts`.**
+  `@prisma/client` loads `packages/db/.env` at require time and dotenv never
+  overwrites, so without it a sibling package's `DATABASE_URL` silently wins
+  and the app dials a port no file mentions. Import sorters are a hazard here.
+  [ADR 0017](docs/01-decisions/0017-app-env-precedence.md).
+- **`@dj/db`, `@dj/contracts` and `@dj/utils` build to CommonJS.** The Nest app
+  is CJS and needs `emitDecoratorMetadata`. If a shared-package change seems
+  not to take effect in the API, **rebuild the package before debugging
+  anything else** — a stale `dist` presents as a missing export.
+  [ADR 0016](docs/01-decisions/0016-cjs-builds-for-shared-packages.md).
+- **Declare literal routes above parameterised ones.** `@Patch(':id')` above
+  `@Patch('reorder')` swallows `/reorder` and tries to update a record named
+  `"reorder"` — a 404 that reads like a missing row. Same for `@Get('slugs')`
+  vs `@Get(':slug')`.
+- **A cursor must be decoded and applied.** A service that accepts `cursor`
+  and ignores it still returns a plausible `nextCursor`, so page 2 is page 1
+  and infinite scroll loops forever with no error.
+- **e2e tests must not leave seeded content changed.** It is the artist's real
+  copy. Never probe a destructive endpoint to prove a permission is absent —
+  if the assumption is wrong the test does damage instead of failing.
+  [testing.md](docs/04-conventions/testing.md).
 - **Never `new Date()` bare** — there is a lint rule. Pass an explicit
   timestamp so tests stay deterministic.
 - **Always use `@dj/utils` for dates and money.** IST display, UTC storage,
