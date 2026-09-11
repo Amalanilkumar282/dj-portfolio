@@ -3,11 +3,13 @@
 Owns the database, the business rules and the security boundary. Deployed as a
 persistent container on Railway ([ADR 0007](../01-decisions/0007-railway-for-api.md)).
 
-**Status: built and verified.** Phases 2 and 3 are complete; Phase 4 is
-partial — `Personas`, `Genres` and `Venues` are done end to end and are the
-two exemplars (publishable and taxonomy respectively; `Venues` is a second
-instance of the publishable one). See
-[`../06-roadmap/STATUS.md`](../06-roadmap/STATUS.md) for what remains.
+**Status: built and verified.** Phases 2 and 4 are complete; Phase 3 has one
+documented gap (`auth/` unit-test coverage — behaviour is fully e2e-verified).
+All 8 Phase 4 content modules exist: `Personas`, `Venues`, `Tracks`,
+`Releases`, `Playlists`, `Programs`, `Events` (publishable — extend
+`BaseContentService`) and `Genres` (taxonomy). See
+[`../06-roadmap/STATUS.md`](../06-roadmap/STATUS.md) for the one remaining
+item and what Group B needs next.
 
 ---
 

@@ -29,3 +29,4 @@ Format: Context → Decision → Consequences → Alternatives rejected.
 | [0018](0018-validation-is-422-with-json-pointers.md)                        | Validation failures are 422 with JSON Pointers                  | Accepted |
 | [0019](0019-scheduled-at-and-published-check-on-every-publishable-model.md) | `scheduledAt` + `published_has_date` on every publishable model | Accepted |
 | [0020](0020-any-deletion-state-for-uniqueness-checks.md)                    | Uniqueness pre-checks must see soft-deleted rows                | Accepted |
+| [0021](0021-auth-coverage-gap-and-inert-threshold.md)                       | `auth/` coverage gate was inert; partially closed, not all      | Accepted |

@@ -370,6 +370,10 @@ export const TrackQuery = PaginationSchema.and(
 );
 export type TrackQuery = z.infer<typeof TrackQuery>;
 
+/** Admin detail adds the publish-workflow fields. */
+export const TrackAdminDetail = TrackDetail.extend(PublishableFields);
+export type TrackAdminDetail = z.infer<typeof TrackAdminDetail>;
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Playlist
 // ─────────────────────────────────────────────────────────────────────────────
@@ -407,6 +411,21 @@ export type PlaylistCreateInput = z.infer<typeof PlaylistCreateInput>;
 
 export const PlaylistUpdateInput = PlaylistCreateInput.partial();
 export type PlaylistUpdateInput = z.infer<typeof PlaylistUpdateInput>;
+
+export const PlaylistQuery = PaginationSchema.and(
+  z.object({
+    personaSlug: Slug.optional(),
+    featured: z.coerce.boolean().optional(),
+    q: z.string().max(120).optional(),
+    sort: sortSchema(['sortIndex', 'title', 'createdAt']).default('sortIndex'),
+    include: includeSchema(['seo']),
+  }),
+);
+export type PlaylistQuery = z.infer<typeof PlaylistQuery>;
+
+/** Admin detail adds the publish-workflow fields. */
+export const PlaylistAdminDetail = PlaylistDetail.extend(PublishableFields);
+export type PlaylistAdminDetail = z.infer<typeof PlaylistAdminDetail>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Release
@@ -457,6 +476,22 @@ export type ReleaseCreateInput = z.infer<typeof ReleaseCreateInput>;
 
 export const ReleaseUpdateInput = ReleaseCreateInput.partial();
 export type ReleaseUpdateInput = z.infer<typeof ReleaseUpdateInput>;
+
+export const ReleaseQuery = PaginationSchema.and(
+  z.object({
+    personaSlug: Slug.optional(),
+    type: ReleaseTypeSchema.optional(),
+    featured: z.coerce.boolean().optional(),
+    q: z.string().max(120).optional(),
+    sort: sortSchema(['sortIndex', 'releaseDate', 'title', 'createdAt']).default('-releaseDate'),
+    include: includeSchema(['tracks', 'streamLinks', 'seo']),
+  }),
+);
+export type ReleaseQuery = z.infer<typeof ReleaseQuery>;
+
+/** Admin detail adds the publish-workflow fields. */
+export const ReleaseAdminDetail = ReleaseDetail.extend(PublishableFields);
+export type ReleaseAdminDetail = z.infer<typeof ReleaseAdminDetail>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Venue
@@ -679,6 +714,10 @@ export const EventQuery = PaginationSchema.and(
 );
 export type EventQuery = z.infer<typeof EventQuery>;
 
+/** Admin detail adds the publish-workflow fields. */
+export const EventAdminDetail = EventDetail.extend(PublishableFields);
+export type EventAdminDetail = z.infer<typeof EventAdminDetail>;
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Program
 // ─────────────────────────────────────────────────────────────────────────────
@@ -723,6 +762,22 @@ export type ProgramCreateInput = z.infer<typeof ProgramCreateInput>;
 
 export const ProgramUpdateInput = ProgramCreateInput.partial();
 export type ProgramUpdateInput = z.infer<typeof ProgramUpdateInput>;
+
+export const ProgramQuery = PaginationSchema.and(
+  z.object({
+    personaSlug: Slug.optional(),
+    venueSlug: Slug.optional(),
+    ongoing: z.coerce.boolean().optional(),
+    q: z.string().max(120).optional(),
+    sort: sortSchema(['sortIndex', 'name', 'createdAt']).default('sortIndex'),
+    include: includeSchema(['seo']),
+  }),
+);
+export type ProgramQuery = z.infer<typeof ProgramQuery>;
+
+/** Admin detail adds the publish-workflow fields. */
+export const ProgramAdminDetail = ProgramDetail.extend(PublishableFields);
+export type ProgramAdminDetail = z.infer<typeof ProgramAdminDetail>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Persona page aggregate

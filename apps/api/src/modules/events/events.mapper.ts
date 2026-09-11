@@ -1,4 +1,5 @@
-import type { EventDetail, EventSummary } from '@dj/contracts';
+import type { EventAdminDetail, EventDetail, EventSummary } from '@dj/contracts';
+import type { ContentStatus } from '@dj/db';
 
 import { toMediaImage } from '../../common/base';
 import { toSeoMeta, type SeoRow } from '../../common/base/seo.mapper';
@@ -41,6 +42,15 @@ interface EventRow {
     persona?: { slug: string } | null;
   }[];
   seoMeta?: SeoRow | null;
+}
+
+interface EventAdminRow extends EventRow {
+  status: ContentStatus;
+  publishedAt: Date | null;
+  scheduledAt: Date | null;
+  sortIndex: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /**
@@ -103,5 +113,17 @@ export function toEventDetail(row: EventRow): EventDetail {
     })),
     programSlug: row.program?.slug ?? null,
     seo: toSeoMeta(row.seoMeta),
+  };
+}
+
+export function toEventAdminDetail(row: EventAdminRow): EventAdminDetail {
+  return {
+    ...toEventDetail(row),
+    status: row.status,
+    publishedAt: row.publishedAt,
+    scheduledAt: row.scheduledAt,
+    sortIndex: row.sortIndex,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }

@@ -20,6 +20,396 @@
         ],
         "type": "object"
       },
+      "EventCreateDto": {
+        "properties": {
+          "ageRestriction": {
+            "maxLength": 20,
+            "nullable": true,
+            "type": "string"
+          },
+          "attendanceEstimate": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "cityOverride": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "countryOverride": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "currency": {
+            "enum": [
+              "INR",
+              "USD",
+              "EUR",
+              "AED",
+              "GBP"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "doorsOpenAt": {
+            "nullable": true
+          },
+          "endsAt": {
+            "nullable": true
+          },
+          "eventStatus": {
+            "enum": [
+              "ANNOUNCED",
+              "CONFIRMED",
+              "SOLD_OUT",
+              "CANCELLED",
+              "POSTPONED",
+              "COMPLETED"
+            ],
+            "type": "string"
+          },
+          "isAllDay": {
+            "type": "boolean"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "isFree": {
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "CLUB",
+              "FESTIVAL",
+              "WEDDING",
+              "CORPORATE",
+              "PRIVATE",
+              "RADIO",
+              "LIVESTREAM"
+            ],
+            "type": "string"
+          },
+          "lineup": {
+            "items": {
+              "properties": {
+                "artistName": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "isHeadliner": {
+                  "type": "boolean"
+                },
+                "personaKey": {
+                  "enum": [
+                    "FELICITOUS",
+                    "TRINITROCOSMIC",
+                    "TNT",
+                    "COUPLE_DUO"
+                  ],
+                  "nullable": true,
+                  "type": "string"
+                },
+                "role": {
+                  "maxLength": 60,
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "artistName"
+              ],
+              "type": "object"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "programId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "startsAt": {},
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "subtitle": {
+            "maxLength": 200,
+            "nullable": true,
+            "type": "string"
+          },
+          "ticketPriceMax": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "ticketPriceMin": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "ticketUrl": {
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 60,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "venueId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "venueNameOverride": {
+            "maxLength": 200,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "startsAt"
+        ],
+        "type": "object"
+      },
+      "EventUpdateDto": {
+        "properties": {
+          "ageRestriction": {
+            "maxLength": 20,
+            "nullable": true,
+            "type": "string"
+          },
+          "attendanceEstimate": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "cityOverride": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "countryOverride": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "currency": {
+            "enum": [
+              "INR",
+              "USD",
+              "EUR",
+              "AED",
+              "GBP"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "doorsOpenAt": {
+            "nullable": true
+          },
+          "endsAt": {
+            "nullable": true
+          },
+          "eventStatus": {
+            "enum": [
+              "ANNOUNCED",
+              "CONFIRMED",
+              "SOLD_OUT",
+              "CANCELLED",
+              "POSTPONED",
+              "COMPLETED"
+            ],
+            "type": "string"
+          },
+          "isAllDay": {
+            "type": "boolean"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "isFree": {
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "CLUB",
+              "FESTIVAL",
+              "WEDDING",
+              "CORPORATE",
+              "PRIVATE",
+              "RADIO",
+              "LIVESTREAM"
+            ],
+            "type": "string"
+          },
+          "lineup": {
+            "items": {
+              "properties": {
+                "artistName": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "isHeadliner": {
+                  "type": "boolean"
+                },
+                "personaKey": {
+                  "enum": [
+                    "FELICITOUS",
+                    "TRINITROCOSMIC",
+                    "TNT",
+                    "COUPLE_DUO"
+                  ],
+                  "nullable": true,
+                  "type": "string"
+                },
+                "role": {
+                  "maxLength": 60,
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "artistName"
+              ],
+              "type": "object"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "programId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "startsAt": {},
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "subtitle": {
+            "maxLength": 200,
+            "nullable": true,
+            "type": "string"
+          },
+          "ticketPriceMax": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "ticketPriceMin": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "ticketUrl": {
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 60,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "venueId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "venueNameOverride": {
+            "maxLength": 200,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "GenreCreateDto": {
         "properties": {
           "colorHex": {
@@ -396,6 +786,438 @@
         },
         "type": "object"
       },
+      "PlaylistCreateDto": {
+        "properties": {
+          "description": {
+            "maxLength": 2000,
+            "nullable": true,
+            "type": "string"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "trackIds": {
+            "items": {
+              "pattern": "^[a-z0-9]{20,32}$",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "PlaylistUpdateDto": {
+        "properties": {
+          "description": {
+            "maxLength": 2000,
+            "nullable": true,
+            "type": "string"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "trackIds": {
+            "items": {
+              "pattern": "^[a-z0-9]{20,32}$",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ProgramCreateDto": {
+        "properties": {
+          "cadence": {
+            "maxLength": 60,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "isOngoing": {
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "residencyFrom": {
+            "nullable": true
+          },
+          "residencyTo": {
+            "nullable": true
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "subtitle": {
+            "maxLength": 200,
+            "nullable": true,
+            "type": "string"
+          },
+          "venueId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ProgramUpdateDto": {
+        "properties": {
+          "cadence": {
+            "maxLength": 60,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "isOngoing": {
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "residencyFrom": {
+            "nullable": true
+          },
+          "residencyTo": {
+            "nullable": true
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "subtitle": {
+            "maxLength": 200,
+            "nullable": true,
+            "type": "string"
+          },
+          "venueId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReleaseCreateDto": {
+        "properties": {
+          "artistLabel": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "catalogNumber": {
+            "maxLength": 60,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "label": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "releaseDate": {
+            "nullable": true
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "ALBUM",
+              "EP",
+              "SINGLE",
+              "COMPILATION"
+            ],
+            "type": "string"
+          },
+          "upc": {
+            "maxLength": 20,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "artistLabel"
+        ],
+        "type": "object"
+      },
+      "ReleaseUpdateDto": {
+        "properties": {
+          "artistLabel": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "catalogNumber": {
+            "maxLength": 60,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "label": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "releaseDate": {
+            "nullable": true
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "ALBUM",
+              "EP",
+              "SINGLE",
+              "COMPILATION"
+            ],
+            "type": "string"
+          },
+          "upc": {
+            "maxLength": 20,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ReorderDto": {
         "properties": {
           "entries": {
@@ -459,6 +1281,298 @@
         "required": [
           "totp"
         ],
+        "type": "object"
+      },
+      "TrackCreateDto": {
+        "properties": {
+          "artistLabel": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "bpm": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 400,
+            "minimum": 40,
+            "nullable": true,
+            "type": "integer"
+          },
+          "description": {
+            "maxLength": 2000,
+            "nullable": true,
+            "type": "string"
+          },
+          "durationSec": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 86400,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "genreSlugs": {
+            "items": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "musicalKey": {
+            "maxLength": 10,
+            "nullable": true,
+            "type": "string"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "releaseDate": {
+            "nullable": true
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "soundcloudTrackId": {
+            "nullable": true,
+            "pattern": "^\\d+$",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "streamLinks": {
+            "items": {
+              "properties": {
+                "platform": {
+                  "enum": [
+                    "SPOTIFY",
+                    "SOUNDCLOUD",
+                    "YOUTUBE",
+                    "APPLE_MUSIC",
+                    "BEATPORT",
+                    "BANDCAMP",
+                    "MIXCLOUD",
+                    "DEEZER",
+                    "AMAZON_MUSIC"
+                  ],
+                  "type": "string"
+                },
+                "url": {
+                  "format": "uri",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "platform",
+                "url"
+              ],
+              "type": "object"
+            },
+            "maxItems": 9,
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "ORIGINAL",
+              "REMIX",
+              "LIVE_SET",
+              "MIX",
+              "PODCAST",
+              "COLLABORATION"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "artistLabel"
+        ],
+        "type": "object"
+      },
+      "TrackUpdateDto": {
+        "properties": {
+          "artistLabel": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "bpm": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 400,
+            "minimum": 40,
+            "nullable": true,
+            "type": "integer"
+          },
+          "description": {
+            "maxLength": 2000,
+            "nullable": true,
+            "type": "string"
+          },
+          "durationSec": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 86400,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "genreSlugs": {
+            "items": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "musicalKey": {
+            "maxLength": 10,
+            "nullable": true,
+            "type": "string"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "releaseDate": {
+            "nullable": true
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "soundcloudTrackId": {
+            "nullable": true,
+            "pattern": "^\\d+$",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "streamLinks": {
+            "items": {
+              "properties": {
+                "platform": {
+                  "enum": [
+                    "SPOTIFY",
+                    "SOUNDCLOUD",
+                    "YOUTUBE",
+                    "APPLE_MUSIC",
+                    "BEATPORT",
+                    "BANDCAMP",
+                    "MIXCLOUD",
+                    "DEEZER",
+                    "AMAZON_MUSIC"
+                  ],
+                  "type": "string"
+                },
+                "url": {
+                  "format": "uri",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "platform",
+                "url"
+              ],
+              "type": "object"
+            },
+            "maxItems": 9,
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "ORIGINAL",
+              "REMIX",
+              "LIVE_SET",
+              "MIX",
+              "PODCAST",
+              "COLLABORATION"
+            ],
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "VenueCreateDto": {
@@ -677,6 +1791,402 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/admin/events": {
+      "get": {
+        "operationId": "EventsAdminController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "ARCHIVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "when",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "upcoming",
+                "past",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List events of every status, offset-paginated",
+        "tags": [
+          "admin: events"
+        ]
+      },
+      "post": {
+        "operationId": "EventsAdminController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an event",
+        "tags": [
+          "admin: events"
+        ]
+      }
+    },
+    "/api/v1/admin/events/{id}": {
+      "delete": {
+        "operationId": "EventsAdminController_remove_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete. Recoverable from the trash for 30 days.",
+        "tags": [
+          "admin: events"
+        ]
+      },
+      "get": {
+        "operationId": "EventsAdminController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One event by id, any status",
+        "tags": [
+          "admin: events"
+        ]
+      },
+      "patch": {
+        "description": "Sending lineup replaces the lineup wholesale. isPast is not settable here — the hourly cron is the single writer of that field.",
+        "operationId": "EventsAdminController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an event. Unmentioned fields are untouched.",
+        "tags": [
+          "admin: events"
+        ]
+      }
+    },
+    "/api/v1/admin/events/{id}/archive": {
+      "patch": {
+        "operationId": "EventsAdminController_archive_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive, removing it from the site but keeping it in the CMS",
+        "tags": [
+          "admin: events"
+        ]
+      }
+    },
+    "/api/v1/admin/events/{id}/publish": {
+      "patch": {
+        "operationId": "EventsAdminController_publish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish, and revalidate the public page",
+        "tags": [
+          "admin: events"
+        ]
+      }
+    },
+    "/api/v1/admin/events/{id}/restore": {
+      "post": {
+        "operationId": "EventsAdminController_restore_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore from the trash",
+        "tags": [
+          "admin: events"
+        ]
+      }
+    },
+    "/api/v1/admin/events/{id}/schedule": {
+      "patch": {
+        "operationId": "EventsAdminController_schedule_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Schedule a publish; the five-minute cron performs it",
+        "tags": [
+          "admin: events"
+        ]
+      }
+    },
+    "/api/v1/admin/events/{id}/unpublish": {
+      "patch": {
+        "operationId": "EventsAdminController_unpublish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Return to draft",
+        "tags": [
+          "admin: events"
+        ]
+      }
+    },
+    "/api/v1/admin/events/reorder": {
+      "patch": {
+        "operationId": "EventsAdminController_reorder_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply a new ordering in one transaction",
+        "tags": [
+          "admin: events"
+        ]
+      }
+    },
     "/api/v1/admin/genres": {
       "get": {
         "operationId": "GenresAdminController_list_v1",
@@ -1253,6 +2763,1531 @@
         "summary": "Apply a new ordering in one transaction",
         "tags": [
           "admin: personas"
+        ]
+      }
+    },
+    "/api/v1/admin/playlists": {
+      "get": {
+        "operationId": "PlaylistsAdminController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "ARCHIVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List playlists of every status, offset-paginated",
+        "tags": [
+          "admin: playlists"
+        ]
+      },
+      "post": {
+        "operationId": "PlaylistsAdminController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaylistCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a playlist",
+        "tags": [
+          "admin: playlists"
+        ]
+      }
+    },
+    "/api/v1/admin/playlists/{id}": {
+      "delete": {
+        "operationId": "PlaylistsAdminController_remove_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete. Recoverable from the trash for 30 days.",
+        "tags": [
+          "admin: playlists"
+        ]
+      },
+      "get": {
+        "operationId": "PlaylistsAdminController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One playlist by id, any status",
+        "tags": [
+          "admin: playlists"
+        ]
+      },
+      "patch": {
+        "description": "Sending trackIds replaces the ordered track list wholesale, and recomputes totalDurationSec.",
+        "operationId": "PlaylistsAdminController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaylistUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a playlist. Unmentioned fields are untouched.",
+        "tags": [
+          "admin: playlists"
+        ]
+      }
+    },
+    "/api/v1/admin/playlists/{id}/archive": {
+      "patch": {
+        "operationId": "PlaylistsAdminController_archive_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive, removing it from the site but keeping it in the CMS",
+        "tags": [
+          "admin: playlists"
+        ]
+      }
+    },
+    "/api/v1/admin/playlists/{id}/publish": {
+      "patch": {
+        "operationId": "PlaylistsAdminController_publish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish, and revalidate the public page",
+        "tags": [
+          "admin: playlists"
+        ]
+      }
+    },
+    "/api/v1/admin/playlists/{id}/restore": {
+      "post": {
+        "operationId": "PlaylistsAdminController_restore_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore from the trash",
+        "tags": [
+          "admin: playlists"
+        ]
+      }
+    },
+    "/api/v1/admin/playlists/{id}/schedule": {
+      "patch": {
+        "operationId": "PlaylistsAdminController_schedule_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Schedule a publish; the five-minute cron performs it",
+        "tags": [
+          "admin: playlists"
+        ]
+      }
+    },
+    "/api/v1/admin/playlists/{id}/unpublish": {
+      "patch": {
+        "operationId": "PlaylistsAdminController_unpublish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Return to draft",
+        "tags": [
+          "admin: playlists"
+        ]
+      }
+    },
+    "/api/v1/admin/playlists/reorder": {
+      "patch": {
+        "operationId": "PlaylistsAdminController_reorder_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply a new ordering in one transaction",
+        "tags": [
+          "admin: playlists"
+        ]
+      }
+    },
+    "/api/v1/admin/programs": {
+      "get": {
+        "operationId": "ProgramsAdminController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "ARCHIVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List programs of every status, offset-paginated",
+        "tags": [
+          "admin: programs"
+        ]
+      },
+      "post": {
+        "operationId": "ProgramsAdminController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a program",
+        "tags": [
+          "admin: programs"
+        ]
+      }
+    },
+    "/api/v1/admin/programs/{id}": {
+      "delete": {
+        "operationId": "ProgramsAdminController_remove_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete. Recoverable from the trash for 30 days.",
+        "tags": [
+          "admin: programs"
+        ]
+      },
+      "get": {
+        "operationId": "ProgramsAdminController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One program by id, any status",
+        "tags": [
+          "admin: programs"
+        ]
+      },
+      "patch": {
+        "operationId": "ProgramsAdminController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a program. Unmentioned fields are untouched.",
+        "tags": [
+          "admin: programs"
+        ]
+      }
+    },
+    "/api/v1/admin/programs/{id}/archive": {
+      "patch": {
+        "operationId": "ProgramsAdminController_archive_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive, removing it from the site but keeping it in the CMS",
+        "tags": [
+          "admin: programs"
+        ]
+      }
+    },
+    "/api/v1/admin/programs/{id}/publish": {
+      "patch": {
+        "operationId": "ProgramsAdminController_publish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish, and revalidate the public page",
+        "tags": [
+          "admin: programs"
+        ]
+      }
+    },
+    "/api/v1/admin/programs/{id}/restore": {
+      "post": {
+        "operationId": "ProgramsAdminController_restore_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore from the trash",
+        "tags": [
+          "admin: programs"
+        ]
+      }
+    },
+    "/api/v1/admin/programs/{id}/schedule": {
+      "patch": {
+        "operationId": "ProgramsAdminController_schedule_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Schedule a publish; the five-minute cron performs it",
+        "tags": [
+          "admin: programs"
+        ]
+      }
+    },
+    "/api/v1/admin/programs/{id}/unpublish": {
+      "patch": {
+        "operationId": "ProgramsAdminController_unpublish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Return to draft",
+        "tags": [
+          "admin: programs"
+        ]
+      }
+    },
+    "/api/v1/admin/programs/reorder": {
+      "patch": {
+        "operationId": "ProgramsAdminController_reorder_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply a new ordering in one transaction",
+        "tags": [
+          "admin: programs"
+        ]
+      }
+    },
+    "/api/v1/admin/releases": {
+      "get": {
+        "operationId": "ReleasesAdminController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "ARCHIVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List releases of every status, offset-paginated",
+        "tags": [
+          "admin: releases"
+        ]
+      },
+      "post": {
+        "operationId": "ReleasesAdminController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a release",
+        "tags": [
+          "admin: releases"
+        ]
+      }
+    },
+    "/api/v1/admin/releases/{id}": {
+      "delete": {
+        "operationId": "ReleasesAdminController_remove_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete. Recoverable from the trash for 30 days.",
+        "tags": [
+          "admin: releases"
+        ]
+      },
+      "get": {
+        "operationId": "ReleasesAdminController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One release by id, any status",
+        "tags": [
+          "admin: releases"
+        ]
+      },
+      "patch": {
+        "operationId": "ReleasesAdminController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a release. Unmentioned fields are untouched.",
+        "tags": [
+          "admin: releases"
+        ]
+      }
+    },
+    "/api/v1/admin/releases/{id}/archive": {
+      "patch": {
+        "operationId": "ReleasesAdminController_archive_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive, removing it from the site but keeping it in the CMS",
+        "tags": [
+          "admin: releases"
+        ]
+      }
+    },
+    "/api/v1/admin/releases/{id}/publish": {
+      "patch": {
+        "operationId": "ReleasesAdminController_publish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish, and revalidate the public page",
+        "tags": [
+          "admin: releases"
+        ]
+      }
+    },
+    "/api/v1/admin/releases/{id}/restore": {
+      "post": {
+        "operationId": "ReleasesAdminController_restore_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore from the trash",
+        "tags": [
+          "admin: releases"
+        ]
+      }
+    },
+    "/api/v1/admin/releases/{id}/schedule": {
+      "patch": {
+        "operationId": "ReleasesAdminController_schedule_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Schedule a publish; the five-minute cron performs it",
+        "tags": [
+          "admin: releases"
+        ]
+      }
+    },
+    "/api/v1/admin/releases/{id}/unpublish": {
+      "patch": {
+        "operationId": "ReleasesAdminController_unpublish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Return to draft",
+        "tags": [
+          "admin: releases"
+        ]
+      }
+    },
+    "/api/v1/admin/releases/reorder": {
+      "patch": {
+        "operationId": "ReleasesAdminController_reorder_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply a new ordering in one transaction",
+        "tags": [
+          "admin: releases"
+        ]
+      }
+    },
+    "/api/v1/admin/tracks": {
+      "get": {
+        "operationId": "TracksAdminController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "ARCHIVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List tracks of every status, offset-paginated",
+        "tags": [
+          "admin: tracks"
+        ]
+      },
+      "post": {
+        "operationId": "TracksAdminController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a track",
+        "tags": [
+          "admin: tracks"
+        ]
+      }
+    },
+    "/api/v1/admin/tracks/{id}": {
+      "delete": {
+        "operationId": "TracksAdminController_remove_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete. Recoverable from the trash for 30 days.",
+        "tags": [
+          "admin: tracks"
+        ]
+      },
+      "get": {
+        "operationId": "TracksAdminController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One track by id, any status",
+        "tags": [
+          "admin: tracks"
+        ]
+      },
+      "patch": {
+        "operationId": "TracksAdminController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a track. Unmentioned fields are untouched.",
+        "tags": [
+          "admin: tracks"
+        ]
+      }
+    },
+    "/api/v1/admin/tracks/{id}/archive": {
+      "patch": {
+        "operationId": "TracksAdminController_archive_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive, removing it from the site but keeping it in the CMS",
+        "tags": [
+          "admin: tracks"
+        ]
+      }
+    },
+    "/api/v1/admin/tracks/{id}/publish": {
+      "patch": {
+        "operationId": "TracksAdminController_publish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish, and revalidate the public page",
+        "tags": [
+          "admin: tracks"
+        ]
+      }
+    },
+    "/api/v1/admin/tracks/{id}/restore": {
+      "post": {
+        "operationId": "TracksAdminController_restore_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore from the trash",
+        "tags": [
+          "admin: tracks"
+        ]
+      }
+    },
+    "/api/v1/admin/tracks/{id}/schedule": {
+      "patch": {
+        "operationId": "TracksAdminController_schedule_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Schedule a publish; the five-minute cron performs it",
+        "tags": [
+          "admin: tracks"
+        ]
+      }
+    },
+    "/api/v1/admin/tracks/{id}/unpublish": {
+      "patch": {
+        "operationId": "TracksAdminController_unpublish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Return to draft",
+        "tags": [
+          "admin: tracks"
+        ]
+      }
+    },
+    "/api/v1/admin/tracks/reorder": {
+      "patch": {
+        "operationId": "TracksAdminController_reorder_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply a new ordering in one transaction",
+        "tags": [
+          "admin: tracks"
         ]
       }
     },
@@ -1839,6 +4874,384 @@
         ]
       }
     },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "EventsController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "when",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "upcoming",
+                "past",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venueSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "programSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "enum": [
+                "CLUB",
+                "FESTIVAL",
+                "WEDDING",
+                "CORPORATE",
+                "PRIVATE",
+                "RADIO",
+                "LIVESTREAM"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 2100,
+              "minimum": 2000,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "-startsAt"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List published events",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/{slug}": {
+      "get": {
+        "operationId": "EventsController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "example": "bolly-tech",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "when",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "upcoming",
+                "past",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venueSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "programSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "enum": [
+                "CLUB",
+                "FESTIVAL",
+                "WEDDING",
+                "CORPORATE",
+                "PRIVATE",
+                "RADIO",
+                "LIVESTREAM"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 2100,
+              "minimum": 2000,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "-startsAt"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "One published event",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/slugs": {
+      "get": {
+        "operationId": "EventsController_slugs_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Published event slugs with lastmod",
+        "tags": [
+          "events"
+        ]
+      }
+    },
     "/api/v1/genres": {
       "get": {
         "operationId": "GenresController_list_v1",
@@ -2193,6 +5606,1030 @@
         "summary": "Published slugs with lastmod, for prerendering and sitemaps",
         "tags": [
           "personas"
+        ]
+      }
+    },
+    "/api/v1/playlists": {
+      "get": {
+        "operationId": "PlaylistsController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "sortIndex"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List published playlists",
+        "tags": [
+          "playlists"
+        ]
+      }
+    },
+    "/api/v1/playlists/{slug}": {
+      "get": {
+        "operationId": "PlaylistsController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "example": "techno-essentials",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "sortIndex"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "One published playlist",
+        "tags": [
+          "playlists"
+        ]
+      }
+    },
+    "/api/v1/playlists/slugs": {
+      "get": {
+        "operationId": "PlaylistsController_slugs_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Published playlist slugs with lastmod",
+        "tags": [
+          "playlists"
+        ]
+      }
+    },
+    "/api/v1/programs": {
+      "get": {
+        "operationId": "ProgramsController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venueSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ongoing",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "sortIndex"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List published programs",
+        "tags": [
+          "programs"
+        ]
+      }
+    },
+    "/api/v1/programs/{slug}": {
+      "get": {
+        "operationId": "ProgramsController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "example": "housefull-sunday",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venueSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ongoing",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "sortIndex"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "One published program",
+        "tags": [
+          "programs"
+        ]
+      }
+    },
+    "/api/v1/programs/slugs": {
+      "get": {
+        "operationId": "ProgramsController_slugs_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Published program slugs with lastmod",
+        "tags": [
+          "programs"
+        ]
+      }
+    },
+    "/api/v1/releases": {
+      "get": {
+        "operationId": "ReleasesController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ALBUM",
+                "EP",
+                "SINGLE",
+                "COMPILATION"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "-releaseDate"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List published releases",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/api/v1/releases/{slug}": {
+      "get": {
+        "operationId": "ReleasesController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "example": "neeye-ep",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ALBUM",
+                "EP",
+                "SINGLE",
+                "COMPILATION"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "-releaseDate"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "One published release",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/api/v1/releases/slugs": {
+      "get": {
+        "operationId": "ReleasesController_slugs_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Published release slugs with lastmod",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/api/v1/tracks": {
+      "get": {
+        "operationId": "TracksController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ORIGINAL",
+                "REMIX",
+                "LIVE_SET",
+                "MIX",
+                "PODCAST",
+                "COLLABORATION"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "genreSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "-releaseDate"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List published tracks",
+        "tags": [
+          "tracks"
+        ]
+      }
+    },
+    "/api/v1/tracks/{slug}": {
+      "get": {
+        "operationId": "TracksController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "example": "bolly-tech-mix",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ORIGINAL",
+                "REMIX",
+                "LIVE_SET",
+                "MIX",
+                "PODCAST",
+                "COLLABORATION"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "genreSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "-releaseDate"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "One published track",
+        "tags": [
+          "tracks"
+        ]
+      }
+    },
+    "/api/v1/tracks/slugs": {
+      "get": {
+        "operationId": "TracksController_slugs_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Published track slugs with lastmod",
+        "tags": [
+          "tracks"
         ]
       }
     },

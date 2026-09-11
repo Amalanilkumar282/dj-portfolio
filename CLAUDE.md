@@ -47,22 +47,29 @@ without a developer.**
 
 ## Current state (2026-09-11)
 
-Phases 0, 1, 2 and 3 are complete. Phase 4 is **partial**.
+Phases 0, 1, 2 and 4 are complete. Phase 3 has one documented gap.
 
 The data layer is finished, migrated, seeded and tested against a real
-Postgres — 48 models, 73 integration tests, zero schema drift. The API boots,
-authenticates, authorises, validates, caches, audits and revalidates, verified
-by 66 e2e tests against a live database.
+Postgres — 48 models, 90 integration tests, zero schema drift. The API boots,
+authenticates, authorises, validates, caches, audits and revalidates all 8
+Phase 4 content types, verified by 133 e2e tests against a live database.
 
-**There are two content-module exemplars**, both complete and verified:
-`Personas`/`Venues` (publishable — extends `BaseContentService`) and `Genres`
-(taxonomy — no publish workflow, guarded hard delete). The next task is the
-**five remaining Phase 4 modules** — Tracks, Releases, Playlists, Programs,
-Events — whose contracts and mappers already exist.
+**All 8 content modules are done and verified**: `Personas`, `Venues`,
+`Tracks`, `Releases`, `Playlists`, `Programs`, `Events` (publishable — extend
+`BaseContentService`) and `Genres` (taxonomy — no publish workflow, guarded
+hard delete). The next task is **Group B**: Phase 6's pure-CRUD modules
+(Testimonials, Services, Brands, Stats, FAQ, Gear, Experience, StaticPages,
+Settings, Redirects, Sitemap), which need no external credentials. Phase 5
+and Phase 6's engagement half (Inquiries, Newsletter, press-kit PDF) remain
+blocked on Cloudinary/Resend credentials.
+
+One documented gap: `auth/` unit-test coverage — behaviour is fully verified
+by 36 e2e tests, but `AuthService` and 4 other classes have no unit tests.
+See [ADR 0021](docs/01-decisions/0021-auth-coverage-gap-and-inert-threshold.md).
 
 Read [`docs/06-roadmap/STATUS.md`](docs/06-roadmap/STATUS.md), then
 [`docs/02-architecture/backend.md`](docs/02-architecture/backend.md)
-§"Adding a content module".
+§"Adding a content module" for the pattern the next modules should copy.
 
 `apps/web` and `apps/admin` are still **scaffolds only**.
 
@@ -151,6 +158,14 @@ to cover.
   not to take effect in the API, **rebuild the package before debugging
   anything else** — a stale `dist` presents as a missing export.
   [ADR 0016](docs/01-decisions/0016-cjs-builds-for-shared-packages.md).
+- **After `pnpm add` anywhere in the workspace, regenerate the Prisma
+  client** (`pnpm --filter @dj/db exec prisma generate`) before trusting a
+  build failure to be about the code. Installing a new dependency can make
+  pnpm resolve a second peer-dependency hash for `@prisma/client`; if
+  `packages/db`'s symlink moves to that new, ungenerated copy, `@dj/db:build`
+  fails with `Module '@prisma/client' has no exported member 'PrismaClient'`
+  — which reads like the schema broke, not like a dependency-install side
+  effect.
 - **Declare literal routes above parameterised ones.** `@Patch(':id')` above
   `@Patch('reorder')` swallows `/reorder` and tries to update a record named
   `"reorder"` — a 404 that reads like a missing row. Same for `@Get('slugs')`

@@ -8,76 +8,66 @@
 > optimistic tick.
 
 **Last updated:** 2026-09-11
-**Current phase:** Group A (Phases 2 + 3 + 4) — 2 and 3 complete, 4 partial
-**Phases complete:** 0, 1, 2, 3
-**Phase 4:** Personas, Genres and **Venues** done end to end and verified;
-**5 content modules remain**
+**Current phase:** Group A (Phases 2 + 3 + 4) — **all 8 content modules done**;
+one documented gap remains (auth unit coverage)
+**Phases complete:** 0, 1, 2, 4
+**Phase 3:** complete except one gap — see "What is not done" below
 
 ---
 
 ## Where things stand
 
-The API is real. It boots, authenticates, authorises, validates, caches,
-audits, revalidates and serves content out of Postgres — verified against a
-live database, not asserted.
+**Group A is functionally complete.** The API boots, authenticates,
+authorises, validates, caches, audits, revalidates and serves every Phase 4
+content type out of Postgres — all verified against a live database, not
+asserted.
 
-**Phase 2 and Phase 3 are complete and their exit criteria are met.**
+**Phase 4 is done.** All 8 content modules exist, are registered, and are
+individually and jointly verified: `Personas`, `Genres`, `Venues`, `Tracks`,
+`Releases`, `Playlists`, `Programs`, `Events`. Two exemplar shapes, both
+proven:
 
-**Phase 4 is partial.** `Personas` is implemented end to end and is the
-**worked exemplar** every other content module should copy: repository →
-service → public controller → admin controller → DTOs → mapper → module. Its
-aggregate landing-page endpoint meets the ≤8-query criterion at **5
-operations**, and the OpenAPI snapshot is committed and gated.
+- **Publishable** (`Personas`, `Venues`, `Tracks`, `Releases`, `Playlists`,
+  `Programs`, `Events`) — extends `BaseContentService`: publish / unpublish /
+  archive / schedule / restore, soft delete.
+- **Taxonomy** (`Genres`) — no `status`/`publishedAt`/`deletedAt`; `delete` is
+  real and reference-guarded. Copy this one for Phase 6's non-publishable
+  models (`Stat`, `Tag`, `Redirect`, `Settings` — check `NON_PUBLISHABLE` in
+  `packages/db/seed/data/rbac.ts`).
 
-What remains in Phase 4 is **repetition of a proven pattern**, not design:
-seven modules whose contracts and mappers already exist.
+`GET /personas/:slug/page` still meets the ≤8-query criterion at **5
+operations**. The OpenAPI snapshot is committed and gated, and now describes
+all 8 modules' routes.
 
-### The next task
+Two schema/data-layer bugs were found and fixed for **every** model they
+applied to, not just the one being built when they were found — see
+[ADR 0019](../01-decisions/0019-scheduled-at-and-published-check-on-every-publishable-model.md)
+(6 models missing `scheduledAt`; 14 of 18 missing the `published_has_date`
+CHECK) and
+[ADR 0020](../01-decisions/0020-any-deletion-state-for-uniqueness-checks.md)
+(`isSlugTaken` blind to soft-deleted rows, including in the shipped `Personas`
+exemplar).
 
-Implement the 5 remaining content modules, in this order (simplest first, so
-the pattern is confirmed before the complicated ones):
+### What is not done
 
-1. `Tracks` — media + genres + stream links
-2. `Releases` — tracklist ordering
-3. `Playlists` — ordered join table (`PlaylistTrack`)
-4. `Programs` — venue + persona relations
-5. `Events` — the most complex: venue, program, lineup slots, `isPast`
+**One documented gap: `auth/` unit-test coverage.** `testing.md` specifies
+100%; `TotpService` and `PasswordService` are now genuinely covered (~98%
+lines each, 34 new tests) but `AuthService`, `AuthController`,
+`AuthRepository`, `RefreshTokenService` and `AuthCookieService` remain at 0%
+**unit** coverage — covered only by the 36-test e2e suite, which exercises
+the same security-critical paths (lockout, reuse detection, family
+revocation, CSRF, no-enumeration) at the HTTP boundary rather than in
+isolation. See
+[ADR 0021](../01-decisions/0021-auth-coverage-gap-and-inert-threshold.md) for
+the full account, including a second finding: the coverage **provider**
+(`@vitest/coverage-v8`) had never been installed, so the threshold config
+had never actually run before this session — it is installed now, and the
+gap is real and measured, not merely undiscovered.
 
-**Two exemplars exist now**, and which one to copy depends on the model:
-
-- **`Personas`** — the publishable case. Extends `BaseContentService`, so it
-  gets publish / unpublish / archive / schedule / restore and soft delete.
-  Copy this for all six remaining modules.
-- **`Genres`** — the taxonomy case. Does **not** extend `BaseContentService`:
-  no `status`, no `publishedAt`, no `deletedAt`, so `delete` is real and is
-  guarded by a reference check. Copy this only for the other non-publishable
-  models in Phase 6 (`Stat`, `Tag`, `Redirect`, `Settings`) — check
-  `NON_PUBLISHABLE` in `packages/db/seed/data/rbac.ts` to tell which is which.
-- **`Venues`** — the second publishable exemplar, and the one with a
-  **compound** uniqueness constraint (`@@unique([name, city])`) alongside the
-  usual unique `slug`. Copy its `assertNameCityFree` pattern for any future
-  model with more than one uniqueness rule.
-
-**Every repository's `isSlugTaken` (and any other uniqueness pre-check) must
-spread `anyDeletionState()` from `@dj/db` into the `where`.** A plain
-`findUnique`/`findFirst` is narrowed by the soft-delete extension to
-`deletedAt: null`, so it reports a slug held by a soft-deleted row as free —
-and `SlugService`'s auto-generated path then hands back a slug the database
-immediately rejects. Both `Personas` and `Venues` had this bug; both are
-fixed. See [ADR 0020](../01-decisions/0020-any-deletion-state-for-uniqueness-checks.md).
-
-Each needs: `X.repository.ts`, `X.service.ts`, `X.controller.ts` (public,
-`@Public()`, by slug), `X.admin.controller.ts` (by id, `@RequirePermissions`),
-`dto/x.dto.ts`, `X.module.ts` — then registration in `app.module.ts` and a
-regenerated OpenAPI snapshot.
-
-**Read [`../02-architecture/backend.md`](../02-architecture/backend.md)
-§"Adding a content module" first.** It documents the pattern, the order the
-files depend on each other, and the three mistakes that are easy to repeat.
-
-Contracts (`packages/contracts/src/content.ts`) and mappers
-(`apps/api/src/modules/*/x.mapper.ts`) **already exist for all seven.** Do not
-rewrite them; wire them up.
+This does not block anything in the normal pipeline (`pnpm test` does not
+pass `--coverage`), but it should be closed before `--coverage` is ever wired
+into CI as a gate. The next session's starting point is in ADR 0021's
+Consequences section.
 
 ### Group B — started, and why it is partly deferred
 
@@ -97,16 +87,16 @@ proven**, which is the state `STATUS.md` exists to prevent.
 Most of Phase 6, though, touches no external service at all: Testimonials,
 Services, Brands, Stats, FAQ, Gear, Experience, StaticPages, Settings,
 Redirects and Sitemap are pure database CRUD, fully verifiable today — and
-they are the **same pattern** as Phase 4's outstanding modules.
+they are the **same pattern** as Phase 4's modules, now fully proven twice
+over (8 modules, 2 shapes).
 
-So the chosen order is: **finish every content module first** (Phase 4's six
-remaining plus Phase 6's pure-CRUD ones, one pass, one pattern), then Phase 5
-and Phase 6's engagement half once credentials land. This closes Group A on
-the way through rather than leaving it hanging, and avoids two passes over the
-same file shapes.
+**Phase 4 finished this session** (all 8 modules), closing the reason Group
+A's content work needed sequencing at all. What is left before Phase 5 and
+Phase 6's engagement half can start is: (a) Phase 6's pure-CRUD modules,
+which have no credential dependency and can proceed now, and (b) Cloudinary
+and Resend credentials, which remain gap #2 — unchanged, not deprioritised.
 
-**Nothing was skipped or descoped.** Phase 5 and the engagement half are
-blocked on gap #2, not deprioritised.
+**Nothing was skipped or descoped.**
 
 ---
 
@@ -115,49 +105,51 @@ blocked on gap #2, not deprioritised.
 Everything below was actually executed against a live Postgres (embedded
 18.4 on port 55432 — see gap #1), not assumed.
 
-| Check                                                     | Result                                                                           |
-| --------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `pnpm turbo lint typecheck build`                         | **19/19 tasks pass**                                                             |
-| `pnpm turbo test --filter='!@dj/db'`                      | **9/9 tasks pass** — api 32, utils 45                                            |
-| `packages/db` integration tests (correct `DATABASE_URL`)  | **88 pass** (73 + 15 new for ADR 0019) — Phase 1 guarantees still hold           |
-| `migrate:check` after the new migration                   | **"No difference detected."** — zero drift                                       |
-| Full seed re-run against the migrated schema              | succeeds; no `PUBLISHED` row anywhere lacked `publishedAt`                       |
-| `apps/api` e2e suite                                      | **66 pass** across auth, RBAC, genres, revalidation and OpenAPI                  |
-| `GET /health`, `/health/ready`                            | 200; all four readiness indicators up                                            |
-| Wrong password vs unknown email                           | **byte-identical** 401 bodies                                                    |
-| Login                                                     | access token + `dj_rt` (HttpOnly) + `dj_csrf` (readable)                         |
-| Refresh rotation                                          | new token issued, old one spent                                                  |
-| Replaying a spent refresh token                           | 401 `REFRESH_TOKEN_REUSED` **and the whole family revoked**                      |
-| Refresh with no / mismatched CSRF header                  | 403 `CSRF_FAILED`                                                                |
-| 12 failed logins from one IP                              | first 401, later ones **429** — per-IP limit enforced                            |
-| Validation failure                                        | **422** with JSON Pointer field errors, no raw Zod internals                     |
-| Unknown request property                                  | 422 `unrecognized_keys` — rejected, not stripped                                 |
-| VIEWER attempting write / publish / delete                | **403 `INSUFFICIENT_PERMISSIONS`** (not 401)                                     |
-| EDITOR permission set                                     | no `user:*`, no `role:*`, no `settings:*`, no `media:delete`                     |
-| VIEWER permission set                                     | every entry ends `:read`                                                         |
-| `GET /personas`                                           | 4 seeded personas with CMS accent colours                                        |
-| Cursor pagination                                         | advances correctly; full walk returns every row **exactly once**                 |
-| Tampered cursor                                           | 400, not 500                                                                     |
-| `?include=secretTable`                                    | 422 — allowlist holds                                                            |
-| `GET /personas/felicitous/page`                           | **5 queries** (`X-Query-Count`), criterion is ≤8                                 |
-| `PATCH /admin/personas/reorder`                           | 204 — routed to reorder, not swallowed by `:id`                                  |
-| Publish workflow                                          | unpublish hides publicly (404 by slug), republish restores                       |
-| Re-publishing a published persona                         | 409 `INVALID_STATUS_TRANSITION`                                                  |
-| Soft delete + restore                                     | hidden publicly, still visible to admin, restored intact                         |
-| Audit trail                                               | `updatedBy` = admin id; `AuditLog` rows carry actor + requestId                  |
-| Revalidation                                              | emitted `tags=home,nav,persona:tnt,personas,sitemap`                             |
-| Log redaction                                             | `authorization` and `set-cookie` both `[redacted]`                               |
-| OpenAPI snapshot gate                                     | **fails on drift** (verified by mutating the file)                               |
-| `GET /genres`                                             | 22 seeded genres, cursor meta, default limit 100                                 |
-| Genre cursor walk                                         | every row exactly once                                                           |
-| `GET /genres/slugs`                                       | 200 — not swallowed by `:slug`                                                   |
-| Genre publish/unpublish/archive/schedule routes           | **404** — correctly do not exist                                                 |
-| `DELETE` a genre in use                                   | **409 `GENRE_IN_USE`** listing the referencing content                           |
-| Referencing content after a refused delete                | counts unchanged — nothing was stripped                                          |
-| `DELETE` an unreferenced genre                            | 204, and really gone (no `deletedAt` column)                                     |
-| Duplicate genre name                                      | 409 against **`/name`**, not `/slug`                                             |
-| Revalidation wiring (persona, genre create, genre delete) | listener receives the event — verified to **fail** when the bus is two instances |
-| e2e suite run twice, then db integration tests            | **still 73 pass** — the suite is non-destructive                                 |
+| Check                                                       | Result                                                                                   |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `pnpm turbo lint typecheck build`                           | **19/19 tasks pass**                                                                     |
+| `pnpm turbo test --filter='!@dj/db'`                        | **9/9 tasks pass** — api **66** (was 32), utils 45                                       |
+| `packages/db` integration tests (correct `DATABASE_URL`)    | **90 pass** (73 + 15 for ADR 0019 + 2 for ADR 0020) — Phase 1 guarantees hold            |
+| `migrate:check` after the new migration                     | **"No difference detected."** — zero drift                                               |
+| Full seed re-run against the migrated schema                | succeeds; no `PUBLISHED` row anywhere lacked `publishedAt`                               |
+| `apps/api` e2e suite                                        | **133 pass** (was 66) across auth, RBAC, all 8 content modules, revalidation and OpenAPI |
+| App boots against the live scratch DB (`node dist/main.js`) | clean; all 8 modules' routes mapped, zero DI errors                                      |
+| Live smoke test of all 5 new public endpoints               | tracks/playlists/programs/events return seeded data; releases empty (none seeded)        |
+| `GET /health`, `/health/ready`                              | 200; all four readiness indicators up                                                    |
+| Wrong password vs unknown email                             | **byte-identical** 401 bodies                                                            |
+| Login                                                       | access token + `dj_rt` (HttpOnly) + `dj_csrf` (readable)                                 |
+| Refresh rotation                                            | new token issued, old one spent                                                          |
+| Replaying a spent refresh token                             | 401 `REFRESH_TOKEN_REUSED` **and the whole family revoked**                              |
+| Refresh with no / mismatched CSRF header                    | 403 `CSRF_FAILED`                                                                        |
+| 12 failed logins from one IP                                | first 401, later ones **429** — per-IP limit enforced                                    |
+| Validation failure                                          | **422** with JSON Pointer field errors, no raw Zod internals                             |
+| Unknown request property                                    | 422 `unrecognized_keys` — rejected, not stripped                                         |
+| VIEWER attempting write / publish / delete                  | **403 `INSUFFICIENT_PERMISSIONS`** (not 401)                                             |
+| EDITOR permission set                                       | no `user:*`, no `role:*`, no `settings:*`, no `media:delete`                             |
+| VIEWER permission set                                       | every entry ends `:read`                                                                 |
+| `GET /personas`                                             | 4 seeded personas with CMS accent colours                                                |
+| Cursor pagination                                           | advances correctly; full walk returns every row **exactly once**                         |
+| Tampered cursor                                             | 400, not 500                                                                             |
+| `?include=secretTable`                                      | 422 — allowlist holds                                                                    |
+| `GET /personas/felicitous/page`                             | **5 queries** (`X-Query-Count`), criterion is ≤8                                         |
+| `PATCH /admin/personas/reorder`                             | 204 — routed to reorder, not swallowed by `:id`                                          |
+| Publish workflow                                            | unpublish hides publicly (404 by slug), republish restores                               |
+| Re-publishing a published persona                           | 409 `INVALID_STATUS_TRANSITION`                                                          |
+| Soft delete + restore                                       | hidden publicly, still visible to admin, restored intact                                 |
+| Audit trail                                                 | `updatedBy` = admin id; `AuditLog` rows carry actor + requestId                          |
+| Revalidation                                                | emitted `tags=home,nav,persona:tnt,personas,sitemap`                                     |
+| Log redaction                                               | `authorization` and `set-cookie` both `[redacted]`                                       |
+| OpenAPI snapshot gate                                       | **fails on drift** (verified by mutating the file)                                       |
+| `GET /genres`                                               | 22 seeded genres, cursor meta, default limit 100                                         |
+| Genre cursor walk                                           | every row exactly once                                                                   |
+| `GET /genres/slugs`                                         | 200 — not swallowed by `:slug`                                                           |
+| Genre publish/unpublish/archive/schedule routes             | **404** — correctly do not exist                                                         |
+| `DELETE` a genre in use                                     | **409 `GENRE_IN_USE`** listing the referencing content                                   |
+| Referencing content after a refused delete                  | counts unchanged — nothing was stripped                                                  |
+| `DELETE` an unreferenced genre                              | 204, and really gone (no `deletedAt` column)                                             |
+| Duplicate genre name                                        | 409 against **`/name`**, not `/slug`                                                     |
+| Revalidation wiring (persona, genre create, genre delete)   | listener receives the event — verified to **fail** when the bus is two instances         |
+| e2e suite run twice, then db integration tests              | **still 73 pass** — the suite is non-destructive                                         |
 
 ### Not verified
 
@@ -173,18 +165,18 @@ Everything below was actually executed against a live Postgres (embedded
 
 ## Known gaps and follow-ups
 
-| #   | Item                                                                                                                                                                                         | Why it matters                                                                                                                                                                                                                                                                                                                   | Owner |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| 1   | **No Postgres on this machine.** Neither Docker nor a local Postgres is installed. Everything was verified against a throwaway embedded Postgres 18.4 in the session scratchpad, port 55432. | Install Docker Desktop and run `docker compose up -d`, **or** put a Neon connection string in `packages/db/.env`. `docker-compose.yml` is written and correct but **has never been executed here**.                                                                                                                              | user  |
-| 2   | **No real credentials.** Neon, Cloudinary, Resend and Turnstile values are placeholders.                                                                                                     | Phase 5 (media) and Phase 6 (email) cannot be verified without them.                                                                                                                                                                                                                                                             | user  |
-| 3   | **Legacy Resend API key was committed** in the old `djfelicitous/.env.local`, and looked live.                                                                                               | **Revoke it in the Resend console.** [Runbook](../05-operations/runbooks/secret-rotation.md).                                                                                                                                                                                                                                    | user  |
-| 4   | **The 33 legacy images are no longer on disk.**                                                                                                                                              | Catalogued in [`../07-content/legacy-audit.md`](../07-content/legacy-audit.md); the files must come from the artist's originals. Phase 5 needs them.                                                                                                                                                                             | user  |
-| 5   | No events seeded from legacy data                                                                                                                                                            | The legacy gig list carried no dates. Inventing them would repeat the fabricated-testimonial mistake.                                                                                                                                                                                                                            | —     |
-| 6   | **`packages/db` unit-test task fails by default.** `packages/db/.env` points at `localhost:5432`; the specs need a reachable Postgres.                                                       | `pnpm turbo test` fails on `@dj/db` on any machine without a database there — which reads as a broken build rather than a missing service. Either point that file at a real database or make the specs skip with a clear message when none is reachable. Same root cause as gap #1.                                              | —     |
-| 7   | **`auth/` is not at 100% line coverage** — a Phase 3 exit criterion.                                                                                                                         | Behaviour is covered end to end, but `TotpService` (secret encryption, `epochTolerance`, recovery codes) and `PasswordService` (argon2 params, breach list, `burnVerifyTime`) have no unit tests. These are exactly the paths where a silent weakening is invisible. Do this in Group B.                                         | —     |
-| 8   | **No `UsersModule`.** The RBAC e2e spec mints its test users through `PrismaService` directly.                                                                                               | Fine for now and documented in the spec, but it means role assignment has no API. Phase 6 adds it; until then the admin cannot invite anyone.                                                                                                                                                                                    | —     |
-| 9   | `packages/{motion,media,seo,analytics}` do not exist yet                                                                                                                                     | Deliberate — empty stubs are worse than absent. Created in the phase that needs each.                                                                                                                                                                                                                                            | —     |
-| 10  | **The OpenAPI snapshot does not describe response bodies.** Every response is `{"200": {"description": ""}}` — controllers return contract types, not `createZodDto` response classes.       | The gate catches route, parameter, security and request-body changes, but not a changed response shape. `apps/web` will catch those via the shared Zod contract at `typecheck` time, so the risk is bounded — but the gate is narrower than "the contract". Annotating responses with nestjs-zod's `ZodResponse` would close it. | —     |
+| #   | Item                                                                                                                                                                                                                                                                        | Why it matters                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Owner |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 1   | **No Postgres on this machine.** Neither Docker nor a local Postgres is installed. Everything was verified against a throwaway embedded Postgres 18.4 in the session scratchpad, port 55432.                                                                                | Install Docker Desktop and run `docker compose up -d`, **or** put a Neon connection string in `packages/db/.env`. `docker-compose.yml` is written and correct but **has never been executed here**.                                                                                                                                                                                                                                                                                                     | user  |
+| 2   | **No real credentials.** Neon, Cloudinary, Resend and Turnstile values are placeholders.                                                                                                                                                                                    | Phase 5 (media) and Phase 6 (email) cannot be verified without them.                                                                                                                                                                                                                                                                                                                                                                                                                                    | user  |
+| 3   | **Legacy Resend API key was committed** in the old `djfelicitous/.env.local`, and looked live.                                                                                                                                                                              | **Revoke it in the Resend console.** [Runbook](../05-operations/runbooks/secret-rotation.md).                                                                                                                                                                                                                                                                                                                                                                                                           | user  |
+| 4   | **The 33 legacy images are no longer on disk.**                                                                                                                                                                                                                             | Catalogued in [`../07-content/legacy-audit.md`](../07-content/legacy-audit.md); the files must come from the artist's originals. Phase 5 needs them.                                                                                                                                                                                                                                                                                                                                                    | user  |
+| 5   | No events seeded from legacy data                                                                                                                                                                                                                                           | The legacy gig list carried no dates. Inventing them would repeat the fabricated-testimonial mistake.                                                                                                                                                                                                                                                                                                                                                                                                   | —     |
+| 6   | **`packages/db` unit-test task fails by default.** `packages/db/.env` points at `localhost:5432`; the specs need a reachable Postgres.                                                                                                                                      | `pnpm turbo test` fails on `@dj/db` on any machine without a database there — which reads as a broken build rather than a missing service. Either point that file at a real database or make the specs skip with a clear message when none is reachable. Same root cause as gap #1.                                                                                                                                                                                                                     | —     |
+| 7   | **`auth/` is not at 100% line coverage** — a Phase 3 exit criterion. `TotpService`/`PasswordService` are now ~98% (34 new tests); `AuthService` (520 lines, 8 deps), `AuthController`, `AuthRepository`, `RefreshTokenService`, `AuthCookieService` remain 0% unit-covered. | Behaviour is covered end to end by 36 e2e tests (lockout, reuse detection, family revocation, CSRF, no-enumeration) — the gap is unit-level isolation, which mocking 8 dependencies makes a substantial separate task. A second finding while closing this: the coverage _provider_ (`@vitest/coverage-v8`) had never been installed, so the threshold in `vitest.config.ts` had never actually run before this session. See [ADR 0021](../01-decisions/0021-auth-coverage-gap-and-inert-threshold.md). | —     |
+| 8   | **No `UsersModule`.** The RBAC e2e spec mints its test users through `PrismaService` directly.                                                                                                                                                                              | Fine for now and documented in the spec, but it means role assignment has no API. Phase 6 adds it; until then the admin cannot invite anyone.                                                                                                                                                                                                                                                                                                                                                           | —     |
+| 9   | `packages/{motion,media,seo,analytics}` do not exist yet                                                                                                                                                                                                                    | Deliberate — empty stubs are worse than absent. Created in the phase that needs each.                                                                                                                                                                                                                                                                                                                                                                                                                   | —     |
+| 10  | **The OpenAPI snapshot does not describe response bodies.** Every response is `{"200": {"description": ""}}` — controllers return contract types, not `createZodDto` response classes.                                                                                      | The gate catches route, parameter, security and request-body changes, but not a changed response shape. `apps/web` will catch those via the shared Zod contract at `typecheck` time, so the risk is bounded — but the gate is narrower than "the contract". Annotating responses with nestjs-zod's `ZodResponse` would close it.                                                                                                                                                                        | —     |
 
 ---
 
@@ -254,9 +246,13 @@ checks; the OpenAPI document renders; a thrown error returns valid
 - [x] RBAC: 3 roles × 104 permissions, `@RequirePermissions`, `@CurrentUser`
 - [x] Every auth outcome audited, **including failures**
 - [x] Full e2e matrix — 36 tests across auth and RBAC
-- [ ] **100% coverage of `auth/`** — not met, gap #7
+- [x] `TotpService` / `PasswordService` unit tests — ~98% lines each (new)
+- [ ] **100% coverage of `auth/`** — not met. `AuthService`, `AuthController`,
+      `AuthRepository`, `RefreshTokenService`, `AuthCookieService` remain
+      e2e-only. See gap #7 and
+      [ADR 0021](../01-decisions/0021-auth-coverage-gap-and-inert-threshold.md).
 
-## Phase 4 — Core content CRUD 🟡 PARTIAL
+## Phase 4 — Core content CRUD ✅
 
 - [x] `BaseContentService` — publish / unpublish / archive / schedule /
       remove / restore / reorder, with an enumerated transition table
@@ -267,13 +263,27 @@ checks; the OpenAPI document renders; a thrown error returns valid
 - [x] Cache-tag revalidation, HMAC-signed, symmetrical with `@dj/contracts`
 - [x] **Personas** — complete and verified; the **publishable** exemplar
 - [x] **Genres** — complete and verified; the **taxonomy** exemplar
+- [x] **Venues** — complete and verified; compound-uniqueness case
+- [x] **Tracks** — complete and verified; genres (M:N) + stream links (1:N replace)
+- [x] **Releases** — complete and verified
+- [x] **Playlists** — complete and verified; ordered tracks + `totalDurationSec`
+- [x] **Programs** — complete and verified; dual FK (venue + persona)
+- [x] **Events** — complete and verified; venue/program FKs + lineup + `isPast` ownership
 - [x] `GET /personas/:slug/page` — **5 queries**, criterion ≤8
-- [x] **OpenAPI snapshot committed** (`apps/api/openapi.json`) and gated
-- [x] Contracts for all 8 content domains
-- [x] Mappers for all 8 content domains
-- [ ] Venues, Tracks, Releases, Playlists, Programs, Events modules
-- [ ] Those modules registered in `app.module.ts`
-- [ ] Snapshot regenerated once they exist
+- [x] **OpenAPI snapshot committed** (`apps/api/openapi.json`) and gated —
+      describes all 8 modules
+- [x] Contracts for all 8 content domains (Query + AdminDetail added for
+      Track, Release, Playlist, Program, Event this session)
+- [x] Mappers for all 8 content domains (AdminDetail mapper added for each
+      this session)
+- [x] All 8 modules registered in `app.module.ts`
+- [x] All 8 modules verified with dedicated e2e specs (77 new tests) plus a
+      live app boot + smoke test against the scratch database
+
+**Exit criteria met.** Every resource supports list (cursor + offset, sort,
+filter, include), read-by-slug, admin CRUD and the publish workflow (or the
+taxonomy equivalent for Genres); the aggregate page stays at 5 queries; the
+snapshot is committed.
 
 ---
 
@@ -501,6 +511,29 @@ scheduledAt`, and `post-migrate.sql` having applied the CHECK to only 4
 27. `app.get('ConfigService')` threw — Nest resolves by class, not string.
 28. Turbo strict env mode hid `DATABASE_URL` from the test task.
 29. `typecheck` raced the app's own `build` for `.next/types`.
+
+### This session (Phase 4 completion)
+
+30. **`pnpm add` broke the Prisma client for the whole build**, not just the
+    package it touched. Installing `@vitest/coverage-v8` into `apps/api`
+    triggered pnpm to resolve a **second** peer-dependency hash for
+    `@prisma/client`, and `packages/db/node_modules/@prisma/client` was
+    re-symlinked to point at it — a copy with no generated `.prisma/client`
+    types, since `prisma generate` had only ever run against the original
+    hash. `@dj/db:build` then failed with `Module '@prisma/client' has no
+exported member 'PrismaClient'` and four other exports, which reads like
+    the schema broke rather than like a dependency-install side effect.
+    Fixed with `pnpm --filter @dj/db exec prisma generate`. **Any `pnpm add`
+    into any workspace package should be followed by a Prisma client
+    regeneration check** before trusting a subsequent build failure to be
+    about the code.
+31. **The coverage provider was never installed.** `vitest.config.ts` has
+    carried a threshold for `src/modules/auth/**` since an earlier session,
+    but `@vitest/coverage-v8` was never a dependency and `pnpm test` never
+    passes `--coverage` — so the gate had done nothing since it was written.
+    Installed and run for the first time this session; found `auth/` at
+    17.92% line coverage against an 80% threshold. See gap #7 and
+    [ADR 0021](../01-decisions/0021-auth-coverage-gap-and-inert-threshold.md).
 
 ---
 

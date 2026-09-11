@@ -1,4 +1,5 @@
-import type { ProgramDetail, ProgramSummary } from '@dj/contracts';
+import type { ProgramAdminDetail, ProgramDetail, ProgramSummary } from '@dj/contracts';
+import type { ContentStatus } from '@dj/db';
 
 import { toMediaImage } from '../../common/base';
 import { toSeoMeta, type SeoRow } from '../../common/base/seo.mapper';
@@ -18,6 +19,15 @@ interface ProgramRow {
   residencyFrom?: Date | null;
   residencyTo?: Date | null;
   seoMeta?: SeoRow | null;
+}
+
+interface ProgramAdminRow extends ProgramRow {
+  status: ContentStatus;
+  publishedAt: Date | null;
+  scheduledAt: Date | null;
+  sortIndex: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export function toProgramSummary(row: ProgramRow): ProgramSummary {
@@ -43,5 +53,17 @@ export function toProgramDetail(row: ProgramRow): ProgramDetail {
     residencyFrom: row.residencyFrom ?? null,
     residencyTo: row.residencyTo ?? null,
     seo: toSeoMeta(row.seoMeta),
+  };
+}
+
+export function toProgramAdminDetail(row: ProgramAdminRow): ProgramAdminDetail {
+  return {
+    ...toProgramDetail(row),
+    status: row.status,
+    publishedAt: row.publishedAt,
+    scheduledAt: row.scheduledAt,
+    sortIndex: row.sortIndex,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }

@@ -1,4 +1,5 @@
-import type { TrackDetail, TrackSummary } from '@dj/contracts';
+import type { TrackAdminDetail, TrackDetail, TrackSummary } from '@dj/contracts';
+import type { ContentStatus } from '@dj/db';
 
 import { toMediaImage } from '../../common/base';
 import { toSeoMeta, type SeoRow } from '../../common/base/seo.mapper';
@@ -33,6 +34,16 @@ interface TrackRow {
   streamLinks?: { platform: string; url: string }[];
   audio?: { secureUrl: string; waveformPeaks: unknown } | null;
   seoMeta?: SeoRow | null;
+}
+
+/** The admin row, which carries the publish-workflow columns. */
+interface TrackAdminRow extends TrackRow {
+  status: ContentStatus;
+  publishedAt: Date | null;
+  scheduledAt: Date | null;
+  sortIndex: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export function toTrackSummary(row: TrackRow): TrackSummary {
@@ -78,5 +89,22 @@ export function toTrackDetail(row: TrackRow): TrackDetail {
       : null,
     audioUrl: row.audio?.secureUrl ?? null,
     seo: toSeoMeta(row.seoMeta),
+  };
+}
+
+/**
+ * The admin shape. Kept separate from `toTrackDetail` so a public response
+ * cannot accidentally disclose that a draft exists, or when something is
+ * scheduled.
+ */
+export function toTrackAdminDetail(row: TrackAdminRow): TrackAdminDetail {
+  return {
+    ...toTrackDetail(row),
+    status: row.status,
+    publishedAt: row.publishedAt,
+    scheduledAt: row.scheduledAt,
+    sortIndex: row.sortIndex,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }

@@ -7,22 +7,22 @@ Canonical phase table with exit criteria. For current state, read
 > Phase 4 means building against an API that does not exist. Exit criteria are
 > the definition of "done" for a phase, not a wish list.
 
-| #   | Phase                          | Depends on          | Group | State          |
-| --- | ------------------------------ | ------------------- | ----- | -------------- |
-| 0   | Foundations                    | —                   | —     | ✅             |
-| 1   | Data layer                     | 0                   | —     | ✅             |
-| 2   | API skeleton & global concerns | 1                   | **A** | ✅             |
-| 3   | Auth & RBAC                    | 2                   | **A** | ✅ (1 gap)     |
-| 4   | Core content CRUD              | 3                   | **A** | 🟡 **partial** |
-| 5   | Media pipeline                 | 4 + Cloudinary keys | **B** | ⬜             |
-| 6   | Remaining content + engagement | 4 + Resend keys     | **B** | ⬜             |
-| 7   | Web shell + data + SEO core    | 4                   | **C** | ⬜             |
-| 8   | Conversion (booking funnel)    | 6, 7                | **D** | ⬜             |
-| 9   | Media & player                 | 5, 7                | **D** | ⬜             |
-| 10  | Cinematic + signature motion   | 9                   | **E** | ⬜             |
-| 11  | Admin panel                    | 3, 4, 5, 6          | **E** | ⬜             |
-| 12  | Hardening & launch             | all                 | **F** | ⬜             |
-| 13  | Growth                         | 12                  | **F** | ⬜             |
+| #   | Phase                          | Depends on          | Group | State      |
+| --- | ------------------------------ | ------------------- | ----- | ---------- |
+| 0   | Foundations                    | —                   | —     | ✅         |
+| 1   | Data layer                     | 0                   | —     | ✅         |
+| 2   | API skeleton & global concerns | 1                   | **A** | ✅         |
+| 3   | Auth & RBAC                    | 2                   | **A** | ✅ (1 gap) |
+| 4   | Core content CRUD              | 3                   | **A** | ✅         |
+| 5   | Media pipeline                 | 4 + Cloudinary keys | **B** | ⬜         |
+| 6   | Remaining content + engagement | 4 + Resend keys     | **B** | ⬜         |
+| 7   | Web shell + data + SEO core    | 4                   | **C** | ⬜         |
+| 8   | Conversion (booking funnel)    | 6, 7                | **D** | ⬜         |
+| 9   | Media & player                 | 5, 7                | **D** | ⬜         |
+| 10  | Cinematic + signature motion   | 9                   | **E** | ⬜         |
+| 11  | Admin panel                    | 3, 4, 5, 6          | **E** | ⬜         |
+| 12  | Hardening & launch             | all                 | **F** | ⬜         |
+| 13  | Growth                         | 12                  | **F** | ⬜         |
 
 ---
 
@@ -37,18 +37,17 @@ again to add CRUD.
 **Grouping changes nothing about scope.** Every phase's exit criteria still
 have to be met, and verified together before the group is called done.
 
-| Group | Phases | Theme               | State                                            |
-| ----- | ------ | ------------------- | ------------------------------------------------ |
-| **A** | 2+3+4  | Backend foundation  | 2 and 3 done; 4 partial — 7 content modules left |
-| **B** | 5+6    | Media + content     | Blocked on Cloudinary and Resend credentials     |
-| **C** | 7      | Web shell + SEO     | Needs Group A complete                           |
-| **D** | 8+9    | Conversion + player | —                                                |
-| **E** | 10+11  | Motion + admin      | —                                                |
-| **F** | 12+13  | Hardening + growth  | —                                                |
+| Group | Phases | Theme               | State                                                               |
+| ----- | ------ | ------------------- | ------------------------------------------------------------------- |
+| **A** | 2+3+4  | Backend foundation  | 2 and 4 done; 3 has one documented gap (auth unit coverage)         |
+| **B** | 5+6    | Media + content     | Phase 6's pure-CRUD modules unblocked; rest needs Cloudinary/Resend |
+| **C** | 7      | Web shell + SEO     | Needs Group A complete                                              |
+| **D** | 8+9    | Conversion + player | —                                                                   |
+| **E** | 10+11  | Motion + admin      | —                                                                   |
+| **F** | 12+13  | Hardening + growth  | —                                                                   |
 
-Group A's remaining work is listed in [`STATUS.md`](STATUS.md) — seven content
-modules following the verified `Personas` exemplar, plus the `auth/` coverage
-gate.
+Group A's one remaining item is listed in [`STATUS.md`](STATUS.md) — the
+`auth/` unit-test coverage gap, which does not block Group B or C.
 
 ---
 
@@ -95,11 +94,13 @@ for every auth action.
 
 **Met except coverage.** 36 e2e tests cover the behaviour — no enumeration,
 rotation, family revocation on reuse, CSRF, the per-IP limit, and the role
-matrix. `auth/` line coverage has **not** been measured or enforced;
-`TotpService` and `PasswordService` have no unit tests. Gap #7 in
-[`STATUS.md`](STATUS.md).
+matrix. `TotpService` and `PasswordService` now carry unit tests (~98% lines
+each); `AuthService`, `AuthController`, `AuthRepository`,
+`RefreshTokenService` and `AuthCookieService` remain unit-untested. Gap #7 in
+[`STATUS.md`](STATUS.md), full account in
+[ADR 0021](../01-decisions/0021-auth-coverage-gap-and-inert-threshold.md).
 
-## Phase 4 — Core content CRUD 🟡 PARTIAL
+## Phase 4 — Core content CRUD ✅
 
 Personas, Genres, Tracks, Playlists, Releases, Events, Venues, Programs, plus a
 shared `BaseContentService` implementing publish/unpublish/archive/restore/
@@ -110,14 +111,13 @@ fields), read-by-slug, admin CRUD and the publish workflow;
 `GET /personas/:slug/page` returns the complete landing payload in **≤8
 queries**; the OpenAPI snapshot is committed.
 
-**Done:** `BaseContentService`, cursor and offset pagination, the include and
-sort allowlists, idempotency, ETags, cache-tag revalidation, and **Personas**
-end to end. The aggregate page endpoint runs in **5 queries**. The OpenAPI
-snapshot is committed and gated against drift.
-
-**Remaining:** the Genres, Venues, Tracks, Releases, Playlists, Programs and
-Events modules. Their contracts and mappers already exist — this is repetition
-of the verified `Personas` pattern, documented in
+**Met.** `BaseContentService`, cursor and offset pagination, the include and
+sort allowlists, idempotency, ETags, cache-tag revalidation, and **all 8
+modules** end to end — Personas and Genres from the prior session, Venues,
+Tracks, Releases, Playlists, Programs and Events this one. The aggregate page
+endpoint runs in **5 queries**. The OpenAPI snapshot is committed and gated
+against drift, and now describes every module's routes. 77 new e2e tests plus
+a live app-boot smoke test verified the last six, documented in
 [`../02-architecture/backend.md`](../02-architecture/backend.md)
 §"Adding a content module".
 

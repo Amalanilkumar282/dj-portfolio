@@ -26,9 +26,14 @@ import { PrismaModule } from './infra/prisma/prisma.module';
 import { RevalidationModule } from './infra/revalidation/revalidation.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { EventsModule } from './modules/events/events.module';
 import { GenresModule } from './modules/genres/genres.module';
 import { PersonasModule } from './modules/personas/personas.module';
+import { PlaylistsModule } from './modules/playlists/playlists.module';
+import { ProgramsModule } from './modules/programs/programs.module';
 import { RbacModule } from './modules/rbac/rbac.module';
+import { ReleasesModule } from './modules/releases/releases.module';
+import { TracksModule } from './modules/tracks/tracks.module';
 import { VenuesModule } from './modules/venues/venues.module';
 
 /**
@@ -105,6 +110,11 @@ import { VenuesModule } from './modules/venues/venues.module';
     PersonasModule,
     GenresModule,
     VenuesModule,
+    TracksModule,
+    ReleasesModule,
+    PlaylistsModule,
+    ProgramsModule,
+    EventsModule,
     CloudinaryModule,
     HealthModule,
   ],

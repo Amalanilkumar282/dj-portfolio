@@ -1,4 +1,5 @@
-import type { ReleaseDetail, ReleaseSummary } from '@dj/contracts';
+import type { ReleaseAdminDetail, ReleaseDetail, ReleaseSummary } from '@dj/contracts';
+import type { ContentStatus } from '@dj/db';
 
 import { toMediaImage } from '../../common/base';
 import { toSeoMeta, type SeoRow } from '../../common/base/seo.mapper';
@@ -22,6 +23,15 @@ interface ReleaseRow {
   tracks?: (Parameters<typeof toTrackSummary>[0] & { trackNumber: number | null })[];
   streamLinks?: { platform: string; url: string }[];
   seoMeta?: SeoRow | null;
+}
+
+interface ReleaseAdminRow extends ReleaseRow {
+  status: ContentStatus;
+  publishedAt: Date | null;
+  scheduledAt: Date | null;
+  sortIndex: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export function toReleaseSummary(row: ReleaseRow): ReleaseSummary {
@@ -55,5 +65,17 @@ export function toReleaseDetail(row: ReleaseRow): ReleaseDetail {
       url: link.url,
     })),
     seo: toSeoMeta(row.seoMeta),
+  };
+}
+
+export function toReleaseAdminDetail(row: ReleaseAdminRow): ReleaseAdminDetail {
+  return {
+    ...toReleaseDetail(row),
+    status: row.status,
+    publishedAt: row.publishedAt,
+    scheduledAt: row.scheduledAt,
+    sortIndex: row.sortIndex,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }

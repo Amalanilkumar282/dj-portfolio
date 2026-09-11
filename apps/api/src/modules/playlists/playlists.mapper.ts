@@ -1,4 +1,5 @@
-import type { PlaylistDetail, PlaylistSummary } from '@dj/contracts';
+import type { PlaylistAdminDetail, PlaylistDetail, PlaylistSummary } from '@dj/contracts';
+import type { ContentStatus } from '@dj/db';
 
 import { toMediaImage } from '../../common/base';
 import { toSeoMeta, type SeoRow } from '../../common/base/seo.mapper';
@@ -16,6 +17,15 @@ interface PlaylistRow {
   _count?: { tracks: number };
   tracks?: { note: string | null; track: Parameters<typeof toTrackSummary>[0] }[];
   seoMeta?: SeoRow | null;
+}
+
+interface PlaylistAdminRow extends PlaylistRow {
+  status: ContentStatus;
+  publishedAt: Date | null;
+  scheduledAt: Date | null;
+  sortIndex: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export function toPlaylistSummary(row: PlaylistRow): PlaylistSummary {
@@ -43,5 +53,17 @@ export function toPlaylistDetail(row: PlaylistRow): PlaylistDetail {
       note: entry.note,
     })),
     seo: toSeoMeta(row.seoMeta),
+  };
+}
+
+export function toPlaylistAdminDetail(row: PlaylistAdminRow): PlaylistAdminDetail {
+  return {
+    ...toPlaylistDetail(row),
+    status: row.status,
+    publishedAt: row.publishedAt,
+    scheduledAt: row.scheduledAt,
+    sortIndex: row.sortIndex,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }
