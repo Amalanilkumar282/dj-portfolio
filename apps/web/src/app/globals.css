@@ -1,2 +1,18 @@
 /* The only import here. All tokens live in the design system. */
 @import '@dj/ui/styles/theme.css';
+
+/*
+ * Font fallbacks. The masterplan calls for three self-hosted variable fonts
+ * (Monument Extended / Satoshi / JetBrains Mono via `next/font/local`), but
+ * no font binaries exist in this repository yet — there is nothing to
+ * self-host. Defining safe system-font fallbacks here keeps
+ * `var(--font-display)` etc. from resolving to an invalid custom property
+ * (which would silently break every `font-family` that references it).
+ * Swap these for `next/font/local` the moment the artist supplies the actual
+ * font files. See docs/06-roadmap/STATUS.md.
+ */
+:root {
+  --font-monument: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-satoshi: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-jetbrains: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}

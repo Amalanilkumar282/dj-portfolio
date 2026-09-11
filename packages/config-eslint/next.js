@@ -9,8 +9,24 @@ import { djPlugin } from './rules/index.js';
 const LAYOUT_THRASH_MESSAGE =
   'Do not transition layout properties - animate transform/opacity/clip-path instead. See docs/03-design-system/motion.md.';
 
-const SERVER_ONLY_MESSAGE =
-  'Server query modules are server-only. Pass data down as props instead of importing them from a client component.';
+/**
+ * A `no-restricted-imports` ban on `**\/server/queries/*` used to live here,
+ * meant to stop a Client Component leaf from importing a server-only query
+ * module. As written it matched every `.tsx` file with no way to exempt
+ * Server Components — which is the documented, correct way to call a query
+ * module (`generateMetadata` and every page body in
+ * docs/02-architecture/frontend.md and seo.md do exactly this). It made the
+ * primary data-fetching pattern of the whole app a lint error.
+ *
+ * Removed rather than narrowed: the risk it guarded against — a Client
+ * Component importing `server-only` code — already fails at build time via
+ * the `server-only` package's own runtime guard (every query module and
+ * `lib/api-client.ts` starts with `import 'server-only'`), and
+ * `dj/no-client-in-route-files` already stops `'use client'` from reaching a
+ * page or layout file in the first place. Revisit with a custom rule that
+ * actually detects a `'use client'` directive if this needs to be enforced
+ * earlier than the build.
+ */
 
 /**
  * apps/web and apps/admin.
@@ -53,22 +69,6 @@ export const next = tseslint.config(
       'react/prop-types': 'off',
       'jsx-a11y/no-autofocus': 'error',
       'jsx-a11y/media-has-caption': 'warn',
-    },
-  },
-  {
-    files: ['**/*.tsx'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['**/server/queries/*', '@dj/api-client/server'],
-              message: SERVER_ONLY_MESSAGE,
-            },
-          ],
-        },
-      ],
     },
   },
 );

@@ -45,9 +45,9 @@ without a developer.**
 | `apps/admin` | admin.djfelicitous.com | The CMS. **This is the product.**                   |
 | `apps/api`   | api.djfelicitous.com   | NestJS. Owns the database and business rules.       |
 
-## Current state (2026-09-11)
+## Current state (2026-09-11, Group C session)
 
-Groups A and B (Phases 0-6) are code-complete. Phase 3 has one documented
+Groups A, B and C (Phases 0-7) are code-complete. Phase 3 has one documented
 gap; Phases 5 and 6's credential-dependent paths (Cloudinary, Resend,
 Turnstile) are written and wired but not live-verified — see below.
 
@@ -76,17 +76,26 @@ rather than a crash), mirroring the pattern `CloudinaryService` established
 in Phase 2. Gallery and Video are deliberately out of scope for Phase 6 —
 `phases.md`'s own exit criteria do not list them.
 
+**Group C — `apps/web` is now a real server-rendered site**, not a scaffold:
+the full public route tree from `docs/02-architecture/frontend.md`, a
+server-only Zod-validated data layer (`server/queries/*`, `React.cache()`-
+wrapped), `generateMetadata` + a JSON-LD `@graph` on every route, robots/
+sitemap/manifest/feeds, and the HMAC-verified `/api/revalidate` webhook —
+built and verified end to end against a live API instance. Deferred to
+later phases: the live Cloudinary image loader, mini player/lightbox (also
+blocked on Gallery/Video, never built), shader/motion work, self-hosted
+fonts, dynamic per-entity OG images, split sitemaps, and booking-funnel UX
+polish. `apps/admin` is still a **scaffold only**.
+
 One documented gap: `auth/` unit-test coverage — behaviour is fully verified
 by 36 e2e tests, but `AuthService` and 4 other classes have no unit tests.
 See [ADR 0021](docs/01-decisions/0021-auth-coverage-gap-and-inert-threshold.md).
 
 Read [`docs/06-roadmap/STATUS.md`](docs/06-roadmap/STATUS.md) for the full
-account — especially the Group B section, which spells out exactly what
-"code complete" does and does not mean for the credential-dependent modules
-— then [`docs/02-architecture/backend.md`](docs/02-architecture/backend.md)
-§"Adding a content module" for the pattern to copy for Phase 7 onward.
-
-`apps/web` and `apps/admin` are still **scaffolds only**.
+account — especially the Group B and Group C sections, which spell out
+exactly what "code complete" does and does not mean — then the relevant
+[`docs/02-architecture/`](docs/02-architecture/) doc before picking up
+Phase 8 (booking funnel) or Phase 11 (admin panel).
 
 ## Commands
 

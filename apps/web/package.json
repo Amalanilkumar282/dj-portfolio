@@ -16,7 +16,9 @@
     "@dj/utils": "workspace:*",
     "next": "^15.1.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@dj/config-eslint": "workspace:*",

@@ -1,22 +1,32 @@
 import type { Metadata, Viewport } from 'next';
 
+import { JsonLd, breadcrumbList } from '../lib/json-ld';
+import { SITE, absoluteUrl } from '../lib/site';
+
 import './globals.css';
 
 /**
- * Root layout — Phase 0 scaffold.
+ * Root layout.
  *
- * Phase 7 adds: the three self-hosted variable fonts, the (marketing) route
- * group with header/footer/mini-player, skip links, the JSON-LD graph and the
- * route announcer.
+ * Deliberately thin: header, footer, nav and the mini player belong to
+ * `(marketing)/layout.tsx`, not here, so a future `(admin-preview)` or
+ * other route group is never forced to inherit the marketing chrome. See
+ * docs/02-architecture/frontend.md.
  */
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(absoluteUrl('/')),
   title: {
-    default: 'DJ Felicitous — Multi-Genre DJ & Producer in Bengaluru',
-    template: '%s | DJ Felicitous — DJ in Bangalore',
+    default: SITE.defaultTitle,
+    template: SITE.titleTemplate,
   },
-  description:
-    'Bengaluru-based DJ and producer working across Bollywood, commercial, techno and psytrance. Weddings, corporate events, clubs and festivals.',
+  description: SITE.defaultDescription,
+  alternates: { languages: { 'en-IN': '/', 'x-default': '/' } },
+  openGraph: {
+    type: 'website',
+    siteName: SITE.name,
+    locale: SITE.locale,
+  },
+  twitter: { card: 'summary_large_image', site: SITE.twitter },
 };
 
 /**
@@ -31,14 +41,40 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+const siteGraph = [
+  {
+    '@type': 'WebSite',
+    '@id': `${absoluteUrl('/')}#website`,
+    name: SITE.name,
+    url: absoluteUrl('/'),
+    inLanguage: 'en-IN',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${absoluteUrl('/')}?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  },
+  {
+    '@type': 'Organization',
+    '@id': `${absoluteUrl('/')}#organization`,
+    name: SITE.name,
+    url: absoluteUrl('/'),
+  },
+  breadcrumbList([{ name: 'Home', url: absoluteUrl('/') }]),
+];
+
+export default function RootLayout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
     <html lang="en-IN">
       <body>
-        <a href="#main" className="sr-only focus:not-sr-only">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-(--radius-sm) focus:bg-accent focus:px-4 focus:py-2 focus:text-on-accent"
+        >
           Skip to content
         </a>
-        <main id="main">{children}</main>
+        {children}
+        <JsonLd graph={siteGraph} />
       </body>
     </html>
   );
