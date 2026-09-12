@@ -113,6 +113,8 @@ export const PersonaDetail = PersonaSummary.extend({
   bpmRangeHigh: z.number().int().nullable(),
   yearsActiveFrom: z.number().int().nullable(),
   avatarImage: MediaImageSchema.nullable(),
+  /** A looping muted background clip for the hero, if the artist has one. */
+  bgVideoUrl: z.string().nullable(),
   genres: z.array(GenreSummary),
   socialLinks: z.array(SocialLinkSchema),
   seo: SeoMetaSchema.nullable(),
@@ -126,7 +128,21 @@ export type PersonaDetail = z.infer<typeof PersonaDetail>;
  * visitor has no business knowing a draft exists, while the admin table needs
  * status, publish dates and ordering to render at all.
  */
-export const PersonaAdminDetail = PersonaDetail.extend(PublishableFields);
+export const PersonaAdminDetail = PersonaDetail.extend({
+  ...PublishableFields,
+  /**
+   * Raw media asset ids, admin-only. The public `PersonaDetail` resolves
+   * these straight to `heroImage`/`avatarImage`/`bgVideoUrl` because a
+   * visitor never needs the id — but the admin edit form picks a media
+   * asset *by id*, and had no way to show which one was already selected:
+   * re-opening a persona that already had a hero image always showed the
+   * picker as empty, and saving the form again would have silently wiped
+   * it. These three fields are what the form now round-trips.
+   */
+  heroMediaId: Id.nullable(),
+  avatarMediaId: Id.nullable(),
+  bgVideoMediaId: Id.nullable(),
+});
 export type PersonaAdminDetail = z.infer<typeof PersonaAdminDetail>;
 
 /**
@@ -161,6 +177,7 @@ const PersonaCreateBase = inputObject({
   genreSlugs: z.array(Slug).max(30).optional(),
   heroMediaId: Id.nullish(),
   avatarMediaId: Id.nullish(),
+  bgVideoMediaId: Id.nullish(),
   ...PublishableInput,
 });
 
@@ -1366,3 +1383,75 @@ export type PostQuery = z.infer<typeof PostQuery>;
 
 export const PostAdminDetail = PostDetail.extend(PublishableFields);
 export type PostAdminDetail = z.infer<typeof PostAdminDetail>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Gallery
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const GalleryItemSummary = z.object({
+  id: Id,
+  image: MediaImageSchema.nullable(),
+  caption: z.string().nullable(),
+  isCover: z.boolean(),
+});
+export type GalleryItemSummary = z.infer<typeof GalleryItemSummary>;
+
+export const GalleryLayoutSchema = z.enum(['MASONRY', 'GRID', 'CAROUSEL']);
+
+export const GallerySummary = z.object({
+  id: Id,
+  slug: Slug,
+  title: z.string(),
+  description: z.string().nullable(),
+  personaSlug: Slug.nullable(),
+  personaKey: PersonaKeySchema.nullable(),
+  layout: GalleryLayoutSchema,
+  cover: MediaImageSchema.nullable(),
+  itemCount: z.number().int(),
+});
+export type GallerySummary = z.infer<typeof GallerySummary>;
+
+export const GalleryDetail = GallerySummary.extend({
+  items: z.array(GalleryItemSummary),
+});
+export type GalleryDetail = z.infer<typeof GalleryDetail>;
+
+/** One item as the admin writes it — a full replace of the gallery's item list. */
+export const GalleryItemInput = z.object({
+  mediaId: Id,
+  caption: z.string().max(200).nullish(),
+  isCover: z.boolean().optional(),
+});
+export type GalleryItemInput = z.infer<typeof GalleryItemInput>;
+
+export const GalleryCreateInput = inputObject({
+  slug: Slug.optional(),
+  title: z.string().min(1).max(160),
+  description: z.string().max(2000).nullish(),
+  personaKey: PersonaKeySchema.nullish(),
+  layout: GalleryLayoutSchema.optional(),
+  /**
+   * Always a full replace, never a patch to one item. A gallery is small
+   * (photos from one shoot or event), so "resend the whole list in the
+   * order you want" is simpler and harder to get subtly wrong than a set
+   * of add/remove/reorder endpoints for what is, in practice, always
+   * edited as a single reordering pass.
+   */
+  items: z.array(GalleryItemInput).max(200).optional(),
+  ...PublishableInput,
+});
+export type GalleryCreateInput = z.infer<typeof GalleryCreateInput>;
+
+export const GalleryUpdateInput = GalleryCreateInput.partial();
+export type GalleryUpdateInput = z.infer<typeof GalleryUpdateInput>;
+
+export const GalleryQuery = PaginationSchema.and(
+  z.object({
+    personaSlug: Slug.optional(),
+    sort: sortSchema(['sortIndex', 'title', 'createdAt']).default('sortIndex'),
+  }),
+);
+export type GalleryQuery = z.infer<typeof GalleryQuery>;
+
+export const GalleryAdminDetail = GalleryDetail.extend(PublishableFields);
+export type GalleryAdminDetail = z.infer<typeof GalleryAdminDetail>;

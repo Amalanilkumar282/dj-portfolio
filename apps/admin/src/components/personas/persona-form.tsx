@@ -21,6 +21,9 @@ interface PersonaDetail {
   genres: { slug: string }[];
   isFeatured: boolean;
   isDuo: boolean;
+  heroMediaId: string | null;
+  avatarMediaId: string | null;
+  bgVideoMediaId: string | null;
 }
 
 export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
@@ -40,6 +43,7 @@ export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
   const [genreSlugs, setGenreSlugs] = useState<string[]>([]);
   const [heroMediaId, setHeroMediaId] = useState('');
   const [avatarMediaId, setAvatarMediaId] = useState('');
+  const [bgVideoMediaId, setBgVideoMediaId] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
   const [isDuo, setIsDuo] = useState(false);
   const [slug, setSlug] = useState<string | null>(null);
@@ -64,6 +68,9 @@ export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
         setGenreSlugs(persona.genres.map((genre) => genre.slug));
         setIsFeatured(persona.isFeatured);
         setIsDuo(persona.isDuo);
+        setHeroMediaId(persona.heroMediaId ?? '');
+        setAvatarMediaId(persona.avatarMediaId ?? '');
+        setBgVideoMediaId(persona.bgVideoMediaId ?? '');
       })
       .catch(() => {
         setError('Could not load this persona.');
@@ -96,8 +103,9 @@ export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
           ? memberNames.split(',').map((name) => name.trim()).filter(Boolean)
           : undefined,
         genreSlugs,
-        heroMediaId: heroMediaId || undefined,
-        avatarMediaId: avatarMediaId || undefined,
+        heroMediaId: heroMediaId || null,
+        avatarMediaId: avatarMediaId || null,
+        bgVideoMediaId: bgVideoMediaId || null,
         isFeatured,
         isDuo,
       };
@@ -285,6 +293,17 @@ export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
           value={avatarMediaId}
           onChange={setAvatarMediaId}
           hint="A small square photo used in listings and cards that reference this persona (e.g. the channel switcher on the homepage)."
+        />
+        <MediaSelect
+          label="Hero background video"
+          value={bgVideoMediaId}
+          onChange={setBgVideoMediaId}
+          mediaType="VIDEO"
+          hint={
+            slug
+              ? `An optional looping, muted background clip for the top of djfelicitous.com/${slug} — upload an MP4 on the Media library page first, then pick it here. Leave empty to keep the generated colour background.`
+              : 'An optional looping, muted background clip for the top of this persona’s public page — upload an MP4 on the Media library page first, then pick it here.'
+          }
         />
         <div className="flex gap-6">
           <label className="flex items-center gap-2 text-sm text-fg-strong">

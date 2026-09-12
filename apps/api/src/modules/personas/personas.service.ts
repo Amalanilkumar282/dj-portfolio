@@ -58,6 +58,7 @@ interface PersonaScalarWrite {
   yearsActiveFrom?: number | null;
   heroMediaId?: string | null;
   avatarMediaId?: string | null;
+  bgVideoMediaId?: string | null;
   sortIndex?: number;
   status?: ContentStatus;
   publishedAt?: Date;
@@ -305,6 +306,7 @@ export class PersonasService extends BaseContentService<PersonaRowBase> {
     assign('yearsActiveFrom');
     assign('heroMediaId');
     assign('avatarMediaId');
+    assign('bgVideoMediaId');
     assign('sortIndex');
     assign('scheduledAt');
 

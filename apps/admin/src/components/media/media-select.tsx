@@ -23,6 +23,7 @@ export function MediaSelect({
   value,
   onChange,
   hint,
+  mediaType = 'IMAGE',
 }: {
   label: string;
   value: string;
@@ -35,6 +36,9 @@ export function MediaSelect({
    * says so.
    */
   hint?: string;
+  /** Restricts the dropdown to one Cloudinary resource type. Most fields on
+   * this site are images; a hero background clip is the one video case. */
+  mediaType?: 'IMAGE' | 'VIDEO';
 }): React.JSX.Element {
   const { request } = useAuth();
   const [assets, setAssets] = useState<MediaRow[]>([]);
@@ -42,13 +46,13 @@ export function MediaSelect({
   useEffect(() => {
     request<{ data: MediaRow[] }>('admin/media?perPage=100')
       .then((result) => {
-        setAssets(result.data);
+        setAssets(result.data.filter((asset) => asset.resourceType === mediaType));
       })
       .catch(() => {
         setAssets([]);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetched once per mount
-  }, []);
+  }, [mediaType]);
 
   const selected = assets.find((asset) => asset.id === value);
 
@@ -60,6 +64,10 @@ export function MediaSelect({
         {selected?.resourceType === 'IMAGE' ? (
           // eslint-disable-next-line @next/next/no-img-element -- a thumbnail from a live Cloudinary URL for a plain picker, not a public-site `MediaImage`
           <img src={selected.secureUrl} alt="" className="h-10 w-10 rounded object-cover" />
+        ) : selected?.resourceType === 'VIDEO' ? (
+          <div className="bg-surface-raised text-fg-muted flex h-10 w-10 shrink-0 items-center justify-center rounded border border-border text-lg">
+            ▶
+          </div>
         ) : (
           // The empty state: nothing selected does not mean nothing to see
           // here — it means the public site currently falls back to a

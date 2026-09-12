@@ -2,9 +2,12 @@ import Link from 'next/link';
 
 import { getPersonas } from '../server/queries/personas';
 
+import { MobileNav } from './mobile-nav';
+
 const NAV_LINKS = [
   { href: '/music', label: 'Music' },
   { href: '/events', label: 'Events' },
+  { href: '/gallery', label: 'Gallery' },
   { href: '/services', label: 'Services' },
   { href: '/about', label: 'About' },
   { href: '/blog', label: 'Blog' },
@@ -32,15 +35,15 @@ export async function Header(): Promise<React.JSX.Element> {
 
         <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">
           <div className="group relative">
-            <span className="text-fg-secondary hover:text-fg-strong cursor-default text-sm font-medium">
+            <span className="text-fg-secondary hover-hover:hover:text-fg-strong cursor-default text-sm font-medium">
               Personas
             </span>
-            <div className="invisible absolute left-0 top-full flex flex-col gap-1 rounded-(--radius-md) border border-border bg-surface p-2 opacity-0 shadow-lg group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+            <div className="invisible absolute left-0 top-full flex flex-col gap-1 rounded-(--radius-md) border border-border bg-surface p-2 opacity-0 shadow-lg group-hover-hover:visible group-hover-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
               {personas.map((persona) => (
                 <Link
                   key={persona.id}
                   href={`/${persona.slug}`}
-                  className="text-fg-secondary hover:text-fg-strong hover:bg-surface-raised whitespace-nowrap rounded-(--radius-sm) px-3 py-1.5 text-sm"
+                  className="text-fg-secondary hover-hover:hover:text-fg-strong hover-hover:hover:bg-surface-raised whitespace-nowrap rounded-(--radius-sm) px-3 py-1.5 text-sm"
                 >
                   {persona.stageName}
                 </Link>
@@ -51,7 +54,7 @@ export async function Header(): Promise<React.JSX.Element> {
             <Link
               key={link.href}
               href={link.href}
-              className="text-fg-secondary hover:text-fg-strong text-sm font-medium"
+              className="text-fg-secondary hover-hover:hover:text-fg-strong text-sm font-medium"
             >
               {link.label}
             </Link>
@@ -64,29 +67,14 @@ export async function Header(): Promise<React.JSX.Element> {
           </Link>
         </nav>
 
-        <details className="md:hidden">
-          <summary className="text-fg-strong cursor-pointer list-none rounded-(--radius-sm) border border-border px-3 py-1.5 text-sm">
-            Menu
-          </summary>
-          <nav
-            aria-label="Primary"
-            className="absolute inset-x-0 top-full flex flex-col gap-1 border-b border-border bg-surface p-4"
-          >
-            {personas.map((persona) => (
-              <Link key={persona.id} href={`/${persona.slug}`} className="text-fg-secondary py-2 text-sm">
-                {persona.stageName}
-              </Link>
-            ))}
-            {NAV_LINKS.map((link) => (
-              <Link key={link.href} href={link.href} className="text-fg-secondary py-2 text-sm">
-                {link.label}
-              </Link>
-            ))}
-            <Link href="/book" className="text-accent py-2 text-sm font-semibold">
-              Book now
-            </Link>
-          </nav>
-        </details>
+        <MobileNav
+          personas={personas.map((persona) => ({
+            id: persona.id,
+            slug: persona.slug,
+            stageName: persona.stageName,
+          }))}
+          navLinks={NAV_LINKS}
+        />
       </div>
     </header>
   );

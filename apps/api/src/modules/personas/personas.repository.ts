@@ -56,6 +56,7 @@ export class PersonasRepository {
     const base: Record<string, unknown> = {
       heroMedia: { select: MEDIA_IMAGE_SELECT },
       avatarMedia: { select: MEDIA_IMAGE_SELECT },
+      bgVideoMedia: { select: { secureUrl: true } },
     };
 
     for (const key of include) {
@@ -274,6 +275,7 @@ export class PersonasRepository {
       include: {
         heroMedia: { select: MEDIA_IMAGE_SELECT },
         avatarMedia: { select: MEDIA_IMAGE_SELECT },
+        bgVideoMedia: { select: { secureUrl: true } },
         ...INCLUDE_FRAGMENTS.genres,
         ...INCLUDE_FRAGMENTS.socialLinks,
         ...INCLUDE_FRAGMENTS.seo,

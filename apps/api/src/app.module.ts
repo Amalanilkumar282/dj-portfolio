@@ -30,6 +30,7 @@ import { BrandsModule } from './modules/brands/brands.module';
 import { EventsModule } from './modules/events/events.module';
 import { ExperienceModule } from './modules/experience/experience.module';
 import { FaqsModule } from './modules/faqs/faqs.module';
+import { GalleriesModule } from './modules/galleries/galleries.module';
 import { GearModule } from './modules/gear/gear.module';
 import { GenresModule } from './modules/genres/genres.module';
 import { InquiriesModule } from './modules/inquiries/inquiries.module';
@@ -141,6 +142,7 @@ import { VenuesModule } from './modules/venues/venues.module';
     StaticPagesModule,
     ServicesModule,
     BrandsModule,
+    GalleriesModule,
     StatsModule,
     SettingsModule,
     RedirectsModule,

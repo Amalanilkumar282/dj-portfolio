@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useAuth } from '../lib/auth-context';
+import { previewUrl } from '../lib/preview';
 
 interface NavItem {
   href: string;
@@ -50,7 +51,10 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: 'Media',
-    items: [{ href: '/media', label: 'Media library', permission: 'media:read' }],
+    items: [
+      { href: '/media', label: 'Media library', permission: 'media:read' },
+      { href: '/galleries', label: 'Galleries', permission: 'gallery:read' },
+    ],
   },
   {
     label: 'Bookings',
@@ -69,21 +73,40 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+/** One small SVG dot per nav group — enough visual anchor to scan the list quickly. */
+function GroupDot({ className }: { className?: string }): React.JSX.Element {
+  return <span aria-hidden="true" className={`inline-block size-1.5 rounded-full ${className ?? ''}`} />;
+}
+
 /**
  * The protected shell. Auth is checked client-side (`useAuth`'s silent
  * refresh runs in the root layout, above this one) — the real enforcement
  * boundary is the API itself (every admin route requires a valid access
  * token server-side), this is purely a UX redirect so a signed-out visitor
  * sees `/login` instead of a page full of failed requests.
+ *
+ * Visual language deliberately mirrors the public site's own token layer
+ * (`@dj/ui`'s theme.css) rather than inventing a second one — an accent
+ * left-rail on the active nav item, the same radius/spacing scale, the same
+ * type ramp — so the artist recognises this as "the same brand", not a
+ * separate, colder developer tool bolted onto it.
  */
 export function DashboardShell({ children }: { children: React.ReactNode }): React.JSX.Element | null {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
   }, [loading, user, router]);
+
+  // A route change (clicking any nav link) closes the mobile drawer — the
+  // same class of bug flagged on the public site's header menu, fixed here
+  // before it could ship the same way.
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   if (loading) {
     return (
@@ -95,57 +118,132 @@ export function DashboardShell({ children }: { children: React.ReactNode }): Rea
 
   if (!user) return null;
 
+  const siteUrl = previewUrl('/') ?? process.env.NEXT_PUBLIC_SITE_URL ?? '/';
+
+  const nav = (
+    <nav className="flex flex-col gap-5">
+      {NAV_GROUPS.map((group) => {
+        const items = group.items.filter(
+          (item) => !item.permission || user.permissions.includes(item.permission),
+        );
+        if (items.length === 0) return null;
+        return (
+          <div key={group.label || 'root'}>
+            {group.label ? (
+              <p className="text-fg-muted mb-1.5 flex items-center gap-1.5 px-3 text-[11px] font-semibold tracking-widest uppercase">
+                <GroupDot className="bg-border" />
+                {group.label}
+              </p>
+            ) : null}
+            <div className="flex flex-col gap-0.5">
+              {items.map((item) => {
+                const active = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`relative rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
+                      active
+                        ? 'bg-accent-soft text-fg-strong font-semibold'
+                        : 'text-fg-secondary hover:bg-surface-raised hover:text-fg-strong'
+                    }`}
+                  >
+                    {active ? (
+                      <span
+                        aria-hidden="true"
+                        className="bg-accent absolute inset-y-1 left-0 w-0.5 rounded-full"
+                      />
+                    ) : null}
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </nav>
+  );
+
   return (
     <div className="flex min-h-dvh">
-      <aside className="w-56 shrink-0 overflow-y-auto border-r border-border bg-surface p-4">
-        <p className="text-eyebrow text-fg-muted mb-6 uppercase">DJ Felicitous</p>
-        <nav className="flex flex-col gap-4">
-          {NAV_GROUPS.map((group) => {
-            const items = group.items.filter(
-              (item) => !item.permission || user.permissions.includes(item.permission),
-            );
-            if (items.length === 0) return null;
-            return (
-              <div key={group.label || 'root'}>
-                {group.label ? (
-                  <p className="text-fg-muted mb-1 px-3 text-xs font-semibold uppercase">{group.label}</p>
-                ) : null}
-                <div className="flex flex-col gap-1">
-                  {items.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`rounded-md px-3 py-2 text-sm ${
-                        pathname === item.href
-                          ? 'bg-bg text-fg-strong font-semibold'
-                          : 'text-fg-secondary hover:text-fg-strong'
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </nav>
+      <aside className="hidden w-60 shrink-0 overflow-y-auto border-r border-border bg-surface p-4 lg:block">
+        <Link href="/" className="mb-6 block font-display text-lg tracking-tight text-fg-strong">
+          DJ <span className="text-accent">Felicitous</span>
+        </Link>
+        {nav}
       </aside>
-      <div className="flex-1">
-        <header className="flex items-center justify-between border-b border-border px-6 py-3">
-          <p className="text-fg-muted text-sm">{user.email}</p>
+
+      {/* Mobile drawer — the sidebar collapses below `lg`, opened from the topbar. */}
+      {mobileNavOpen ? (
+        <div className="fixed inset-0 z-50 flex lg:hidden">
           <button
             type="button"
+            aria-label="Close menu"
+            className="absolute inset-0 bg-black/60"
             onClick={() => {
-              void logout().then(() => {
-                router.replace('/login');
-              });
+              setMobileNavOpen(false);
             }}
-            className="text-fg-muted text-sm underline"
+          />
+          <aside className="relative w-72 max-w-[85vw] overflow-y-auto border-r border-border bg-surface p-4">
+            <div className="mb-6 flex items-center justify-between">
+              <Link href="/" className="font-display text-lg tracking-tight text-fg-strong">
+                DJ <span className="text-accent">Felicitous</span>
+              </Link>
+              <button
+                type="button"
+                aria-label="Close menu"
+                onClick={() => {
+                  setMobileNavOpen(false);
+                }}
+                className="text-fg-muted text-xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            {nav}
+          </aside>
+        </div>
+      ) : null}
+
+      <div className="min-w-0 flex-1">
+        <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 sm:px-6">
+          <button
+            type="button"
+            aria-label="Open menu"
+            onClick={() => {
+              setMobileNavOpen(true);
+            }}
+            className="text-fg-strong rounded-md border border-border px-2.5 py-1.5 text-sm lg:hidden"
           >
-            Sign out
+            ☰
           </button>
+
+          <a
+            href={siteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="border-accent/40 text-accent hover:bg-accent-soft hidden items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors sm:inline-flex"
+          >
+            View live site ↗
+          </a>
+
+          <div className="ml-auto flex items-center gap-4">
+            <p className="text-fg-muted hidden text-sm sm:block">{user.email}</p>
+            <button
+              type="button"
+              onClick={() => {
+                void logout().then(() => {
+                  router.replace('/login');
+                });
+              }}
+              className="text-fg-muted hover:text-fg-strong text-sm underline underline-offset-2"
+            >
+              Sign out
+            </button>
+          </div>
         </header>
-        <main className="p-6">{children}</main>
+        <main className="p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

@@ -107,9 +107,13 @@ export function GigMap({ venues }: { venues: MapVenue[] }): React.JSX.Element {
               onMouseLeave={() => { setHovered(null); }}
               onFocus={() => { setHovered(venue.id); }}
               onBlur={() => { setHovered(null); }}
-              className="border-border hover-hover:hover:border-accent flex items-baseline justify-between gap-3 rounded-sm border px-4 py-3 transition-[border-color] duration-(--duration-fast)"
+              className="border-border hover-hover:hover:border-accent flex min-w-0 items-baseline justify-between gap-3 rounded-sm border px-4 py-3 transition-[border-color] duration-(--duration-fast)"
             >
-              <span className="text-fg-strong truncate text-sm font-semibold">{venue.name}</span>
+              {/* `truncate` on a flex child does nothing without `min-w-0` —
+                  a flex item's default min-width is its content's natural
+                  width, so a long venue name pushed the whole row (and with
+                  it the page) wider than the viewport instead of eliding. */}
+              <span className="text-fg-strong min-w-0 truncate text-sm font-semibold">{venue.name}</span>
               <span className="text-fg-muted shrink-0 font-mono text-xs uppercase">
                 {venue.city}
                 {venue.capacity !== null ? ` · ${String(venue.capacity)} cap` : ''}

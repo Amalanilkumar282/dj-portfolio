@@ -458,6 +458,23 @@ export const ENTITIES: EntityConfig[] = [
     ],
   },
   {
+    key: 'galleries',
+    label: 'Gallery',
+    pluralLabel: 'Galleries',
+    basePath: 'admin/galleries',
+    adminRoute: '/galleries',
+    permissionPrefix: 'gallery',
+    publishable: true,
+    paginated: true,
+    reorderable: true,
+    fields: [],
+    listColumns: [
+      { key: 'title', label: 'Title' },
+      { key: 'itemCount', label: 'Images' },
+      { key: 'status', label: 'Status' },
+    ],
+  },
+  {
     key: 'programs',
     label: 'Program',
     pluralLabel: 'Programs',

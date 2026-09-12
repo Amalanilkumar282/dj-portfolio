@@ -30,6 +30,10 @@ interface PersonaRow {
   sortIndex: number;
   heroMedia?: Parameters<typeof toMediaImage>[0];
   avatarMedia?: Parameters<typeof toMediaImage>[0];
+  bgVideoMedia?: { secureUrl: string } | null;
+  heroMediaId?: string | null;
+  avatarMediaId?: string | null;
+  bgVideoMediaId?: string | null;
   tagline?: string | null;
   bio?: string;
   bioShort?: string | null;
@@ -96,6 +100,7 @@ export function toPersonaDetail(row: PersonaRow): PersonaDetail {
     bpmRangeHigh: row.bpmRangeHigh ?? null,
     yearsActiveFrom: row.yearsActiveFrom ?? null,
     avatarImage: toMediaImage(row.avatarMedia),
+    bgVideoUrl: row.bgVideoMedia?.secureUrl ?? null,
     genres: (row.genres ?? []).map((link) => ({
       slug: link.genre.slug,
       name: link.genre.name,
@@ -132,5 +137,8 @@ export function toPersonaAdminDetail(row: PersonaRow): PersonaAdminDetail {
     sortIndex: row.sortIndex,
     createdAt: row.createdAt ?? new Date(0),
     updatedAt: row.updatedAt ?? new Date(0),
+    heroMediaId: row.heroMediaId ?? null,
+    avatarMediaId: row.avatarMediaId ?? null,
+    bgVideoMediaId: row.bgVideoMediaId ?? null,
   };
 }

@@ -136,8 +136,8 @@ export default async function PersonaPage({
         aria-labelledby="persona-title"
         className="relative isolate flex min-h-[88svh] items-end overflow-hidden pb-16"
       >
-        <div className="absolute inset-0 -z-10">
-          <StageBackdrop />
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <StageBackdrop videoUrl={persona.bgVideoUrl} />
         </div>
 
         <Container>

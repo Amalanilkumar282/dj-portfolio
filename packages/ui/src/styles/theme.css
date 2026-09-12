@@ -252,6 +252,17 @@
     color-scheme: dark;
     /* Stops layout shifting when a modal locks scroll — a permanent CLS win. */
     scrollbar-gutter: stable;
+    /*
+     * `document.scrollingElement` is `<html>`, not `<body>` — the
+     * `overflow-x: clip` on body below stops body's own content from
+     * scrolling the page sideways, but does nothing about `<html>` itself
+     * having room to scroll. Confirmed live: `window.scrollTo(1000, 0)`
+     * moved the viewport 61px right into completely empty space (a
+     * `document.elementFromPoint` there resolved to `<html>` itself, not
+     * any rendered element) even with the rule below in place. Both
+     * elements need it.
+     */
+    overflow-x: clip;
   }
 
   /* The legacy site set `maximum-scale: 1`, disabling pinch-zoom — a WCAG
@@ -264,6 +275,18 @@
     line-height: var(--text-body--line-height);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    /*
+     * A safety net, not the fix for any specific bug. A WebGL canvas
+     * briefly reports its pre-resize-observer size on first mount, an
+     * absolutely-positioned decorative element can be one rem off, a long
+     * untruncated string in a flex row can push wider than intended — any
+     * of those should be caught at its own source, but a single mistake
+     * anywhere on the site scrolling the *entire page* sideways is a much
+     * worse failure mode than that one element being clipped. This does
+     * not affect an element's own `overflow-x: auto` (the mobile channel
+     * rail's horizontal scroll still works) — only the document itself.
+     */
+    overflow-x: clip;
   }
 
   /*

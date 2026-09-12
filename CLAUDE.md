@@ -171,8 +171,21 @@ that assumes otherwise. Photography slots in later as enhancement.
 puts capable touch devices on the WebGL tier, where `motion.md` sent every
 coarse pointer to `light`. 3D scenes stay desktop-only regardless.
 
-**Nothing in this layer has been opened in a browser** — see STATUS.md gaps
-#17–18. That is the highest-value next action, not more code.
+**Nothing in this layer had been opened in a browser as of the previous
+session — it has been now.** A follow-up session installed a headless
+Chromium temporarily, found and fixed two deep, previously undetected
+structural bugs (Tailwind never scanned `packages/ui` for classes, so
+`Button`/`Chip` had zero padding; the strict CSP broke all client
+interactivity in `next dev` because Next's dev bundler needs `eval()`),
+then a further session did a real UX pass: rebuilt the admin shell and
+dashboard from a bare scaffold into one with live stat cards and a working
+mobile drawer, fixed a mobile-menu-never-closes bug and two real
+horizontal-scroll bugs on mobile, and — finding `Gallery`/`GalleryItem`
+and `Persona.bgVideoMediaId` already in the Prisma schema since Phase 1,
+entirely unused — built the missing Gallery feature (API module, admin
+screen, `/gallery` public pages) and wired the hero-video field through to
+a real `<video>` background. See STATUS.md's "Second UX/bug pass" section
+for the full account, including what was verified live versus reasoned.
 
 Still deferred: View Transitions, the custom cursor, `@dnd-kit`
 drag-and-drop (explicit move-up/down buttons are the actual required

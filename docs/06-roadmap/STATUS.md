@@ -7,7 +7,7 @@
 > honest "blocked" line is far more useful to the next session than an
 > optimistic tick.
 
-**Last updated:** 2026-09-12 (cinematic visual layer session)
+**Last updated:** 2026-09-13 (UX pass + Gallery/hero-video session)
 **Current phase:** The **cinematic visual layer** — Phase 10 done properly.
 Until this session `apps/web` was functionally complete and visually flat:
 no hero, no shader, no persona switcher, no 3D, and a play button that
@@ -1033,6 +1033,144 @@ stylesheet contains the `.font-display` base rule; and all sixteen key routes
 **Still unverified, and unchanged by this pass:** nobody has looked at the
 page. Whether the shader renders, the deck spins, the accent crossfades or a
 SoundCloud track plays is still unknown — see gaps #17–18.
+
+### Second UX/bug pass, plus a real Gallery feature and hero video (this session)
+
+The user reported the admin panel still looked unrevamped, one bug in the
+public mobile menu, mobile pages not fitting the screen, no visible gallery
+option, and asked for hero-video and profile-photo management from the
+admin. Each was investigated against the running app with a temporarily
+installed headless browser — the same discipline as the previous pass —
+and several turned out to be real, previously undetected bugs rather than
+missing polish.
+
+**"The admin panel revamp isn't reflected."** It wasn't — the previous
+session's admin changes were two hint lines on one form field, not a shell
+redesign, and a screenshot of the real dashboard confirmed a genuinely bare
+developer-scaffold UI: a plain sidebar of text links and one paragraph.
+Fixed properly this time:
+
+- `DashboardShell` rebuilt: an accent left-rail on the active nav item, a
+  "View live site ↗" link in the topbar, a working mobile drawer (the
+  sidebar collapses below `lg` and opens from a hamburger button — it did
+  not exist at all before), and the same visual language as the public
+  site's own token layer rather than an unstyled second design.
+- The dashboard home page rebuilt from one static paragraph into six live
+  stat cards (Personas/Tracks/Venues/Programs/Services/Testimonials, each a
+  real count fetched from the API, each linking straight to that list) plus
+  a "Quick actions" panel and a "Known gaps" note — the single highest-value
+  fix for "I don't know where a change will show up."
+
+**A real, separate bug found while wiring the hero-image round-trip:** the
+Persona edit form could never show an already-set hero/avatar image.
+`PersonaAdminDetail` (the admin read shape) only ever resolved
+`heroMediaId`/`avatarMediaId` to `heroImage`/`avatarImage` — the raw ids the
+form's dropdown selects *by* were never returned. Re-opening a persona that
+already had a hero image always showed the picker as "none selected", and
+saving again would have silently wiped it (the previous session's own
+`|| undefined` on those fields meant "no change" to the API, which
+coincidentally saved this from actually deleting anything — but only by
+accident). Fixed by adding the three raw ids to `PersonaAdminDetail`
+(admin-only; the public shape is unaffected) and switching the form's save
+payload to `|| null` so clearing a picker back to "none" actually clears it.
+
+**Mobile menu not closing after navigation — confirmed and fixed.** The
+header's mobile menu was a bare `<details>` disclosure with zero JS by
+design (motion.md's own budget reasoning) — but a bare `<details>` has no
+"close when a link inside is followed" behaviour, so every navigation left
+the panel open over the page until the visitor found "Menu" a second time.
+Extracted into `<MobileNav>`, a small client component whose only job is
+`ref.current.open = false` on each link's `onClick` — the smallest possible
+fix, and the one thing plain HTML genuinely cannot do here. Verified live:
+opening the menu, clicking "Music", and confirming the `<details>` closes
+and the URL changes.
+
+**Mobile pages not fitting the screen — two distinct real bugs, not one.**
+
+1. `gig-map.tsx`'s venue list had `truncate` on a flex child with no
+   `min-w-0` — a flex item's default min-width is its own content's natural
+   width, so `truncate` silently does nothing until that's set, and a long
+   venue name pushed the whole row (and the page) wider than the viewport.
+   One class fixes it; the file now carries a comment so the next person
+   who reaches for `truncate` in a flex row does not repeat it.
+2. The homepage and persona hero both showed exactly 46px of real,
+   confirmed horizontal scroll (not a visual glitch — `document
+   .elementFromPoint` at the scrolled-in position resolved to `<html>`
+   itself, meaning the extra space was empty, just scrollable). Root cause:
+   `document.scrollingElement` is `<html>`, and an `overflow-x: clip` was
+   only ever applied to `<body>` — added the same rule to `html`, and a live
+   check (`window.scrollTo(1000, 0)` then reading `window.scrollX`) went
+   from `61` to `0` on both the homepage and a persona page.
+
+**"I don't see a gallery option" — a real, working feature now exists,**
+not a placeholder. `Gallery`/`GalleryItem` Prisma models, RBAC permissions
+(`gallery:read/write/publish/delete`) and even the revalidation `TAG_MAP`
+entry had existed in the schema/seed **since Phase 1**, entirely unused —
+this session built the missing middle layer: a full `GalleriesModule`
+(public + admin controllers, service extending `BaseContentService`,
+repository, mapper — the exact same shape as every other publishable
+content type, so it needed no new architectural pattern), contracts
+(`GallerySummary`/`GalleryDetail`/`GalleryCreateInput`/…, an items array
+that is always a **full replace** rather than add/remove/reorder
+sub-endpoints — deliberately, because a gallery's items are in practice
+always re-ordered as a whole, never patched one at a time), an admin
+screen (`/galleries` list via the existing generic `EntityList` scaffold +
+a bespoke `GalleryForm` with the same ordered-picker pattern
+`PlaylistForm` already established: add/remove/move-up/move-down, plus a
+caption per image and a "set cover" action), and two public pages
+(`/gallery` index, `/gallery/[slug]` masonry detail) with "Gallery" added
+to the header nav. Zero galleries are seeded — no real photos exist in
+this repo (see CLAUDE.md) — so the index page's honest empty state
+("No galleries published yet") is what ships until the artist adds one.
+
+**Hero video and a way to manage it — `Persona.bgVideoMediaId` also
+already existed in the schema, unused.** Wired the same way: `bgVideoUrl`
+added to the public `PersonaDetail` read shape (resolved from the media
+asset's `secureUrl`), `bgVideoMediaId` added to the admin write schema,
+`MediaSelect` extended with a `mediaType` filter so the same picker
+component can offer videos instead of images, and `StageBackdrop` extended
+to render a real muted/looping/`playsInline` `<video>` over the generative
+field when a persona has one set — gated on `useCapability() !== 'static'`,
+so a reduced-motion or low-power visitor never gets an autoplaying video,
+only the field. No persona has a clip yet (no real video exists in this
+repo either), so every persona page today renders exactly as before —
+this only takes effect once the artist uploads one.
+
+### Verified
+
+- Every fix confirmed against the real running app (API + a scratch web
+  dev server on a clean cache), using a temporarily reinstalled headless
+  Chromium for screenshots and live DOM/scroll checks, removed afterward —
+  `apps/web/package.json` and `pnpm-lock.yaml` are unchanged.
+- The full Gallery flow round-tripped for real: logged in via
+  `/auth/login`, created a gallery via `POST /admin/galleries`, published
+  it, confirmed it appeared on `GET /galleries`, `GET
+  /galleries/:slug` and the live `/gallery` page, then deleted it — no
+  test data was left in the database.
+- `pnpm turbo lint typecheck build --filter='!@dj/db'` — 20/20 green.
+- Bundle budgets still hold: `/` 124 kB, `/[persona]` 127 kB (both well
+  under 145/155 kB), `/gallery` 111 kB and `/gallery/[slug]` 108 kB (both
+  under the 120 kB content-route budget).
+- The mobile-menu-closes and no-horizontal-scroll fixes were each verified
+  with a live, scripted check against the running page (not just code
+  review): `window.scrollX` after an attempted scroll, and the `<details>`
+  element's `open` property before and after a real link click.
+
+### Not verified / explicitly out of scope
+
+- No real device or screen reader was used for any of this — all
+  verification was a headless, mouse/keyboard-driven browser.
+- The Gallery admin form's image picker has no crop/focal-point UI (same
+  documented gap as every other `MediaSelect` use — see Group E's "next
+  pass" notes) and no drag-to-reorder (move-up/down buttons only, the
+  project's established accessible baseline, not a stand-in).
+- No gallery or hero-video content exists yet, by design — CLAUDE.md's
+  "never invent content" rule means this ships as working, empty
+  infrastructure for the artist to fill in, not backfilled with placeholder
+  media.
+- `/gallery` was not added to the sitemap generator in this pass — worth a
+  follow-up so a published gallery is discoverable to search engines, not
+  only from the header nav.
 
 ### User-reported bugs and UX pass (this session)
 

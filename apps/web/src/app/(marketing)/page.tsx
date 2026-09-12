@@ -181,7 +181,7 @@ export default async function HomePage(): Promise<React.JSX.Element> {
         aria-labelledby="hero-title"
         className="relative isolate flex min-h-svh items-end overflow-hidden pb-20"
       >
-        <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 -z-10 overflow-hidden">
           <StageBackdrop />
         </div>
 
