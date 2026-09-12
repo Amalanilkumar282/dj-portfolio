@@ -61,11 +61,17 @@ export default async function PersonaPage({
   params: Promise<Params>;
 }): Promise<React.JSX.Element> {
   const { persona: slug } = await params;
-  const [page, personaTracks] = await Promise.all([
-    getPersonaPage(slug),
-    getTracks({ personaSlug: slug }),
-  ]);
+
+  // Sequential, not Promise.all: `getTracks` validates `personaSlug` against
+  // the real slug format and throws on anything else (e.g. a stray
+  // `/favicon.ico` request falling through to this dynamic segment before
+  // any static file existed for it). Fetching it in parallel meant that
+  // throw could win the race before the `notFound()` below ever ran, so an
+  // unknown or malformed slug surfaced as an unhandled 422/500 instead of a
+  // clean 404.
+  const page = await getPersonaPage(slug);
   if (!page) notFound();
+  const personaTracks = await getTracks({ personaSlug: slug });
 
   const { persona, playlists, programs, venuesPlayed, releases } = page;
   const url = absoluteUrl(`/${slug}`);

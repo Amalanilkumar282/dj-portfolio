@@ -1034,6 +1034,65 @@ stylesheet contains the `.font-display` base rule; and all sixteen key routes
 page. Whether the shader renders, the deck spins, the accent crossfades or a
 SoundCloud track plays is still unknown — see gaps #17–18.
 
+### Two more bugs found from the user's own dev-server log (this session)
+
+The user ran `pnpm dev` and pasted the terminal output. Two real, reproducible
+bugs were in there under a lot of dev-mode noise:
+
+**1. The `felicitous-x-geetz` persona page 502'd on every request** — a real
+seeded SEO description was 161 characters against `SeoMetaSchema.description`'s
+`max(160)`, so `PersonaPageResponse` failed contract validation on every
+render. `zod`'s `.flatten()` keys `fieldErrors` by the top-level path segment
+only, so the console printed `fieldErrors: { persona: [...] }` for what was
+actually `persona.seo.description` two levels down — worth knowing next time
+a `contract_drift` log names an object field rather than the actual string
+field that overflowed.
+
+Fixed by trimming the real seed copy by one word (161 → 149 chars, meaning
+unchanged) in `packages/db/seed/data/personas.ts`, then re-running
+`pnpm --filter @dj/db exec tsx seed/index.ts` against the live database —
+persona seeding is `update`-based and idempotent, so this only corrected the
+one field, it did not reseed or duplicate anything else. (That same seed run
+also re-applies the pre-existing, `[DEMO]`-prefixed, faker-seeded synthetic
+events/inquiries dataset that `packages/db/seed/demo.ts` documents as
+"development only" — upsert-based on a fixed faker seed, so re-running is a
+no-op there too. Confirmed this did not add new rows.)
+
+**2. `/favicon.ico` crashed the `[persona]` dynamic route.** No real
+`favicon.ico` file exists anywhere in the repo (only the dynamic `icon.tsx`
+metadata route, referenced by a `<link>` tag). Browsers request
+`/favicon.ico` directly regardless of what the page's `<head>` says, and with
+no static file at that literal path the request fell through to
+`[persona]/page.tsx` with `slug = "favicon.ico"`. That page fetched
+`getPersonaPage` and `getTracks({ personaSlug })` **in parallel**
+(`Promise.all`) — and `getTracks` validates `personaSlug` against the real
+slug format and threw a 422 before the `!page → notFound()` check ever ran,
+surfacing as an unhandled server error instead of a clean 404.
+
+Two fixes: added a real `favicon.ico` route handler
+(`apps/web/src/app/favicon.ico/route.tsx`, same generated mark as `icon.tsx`)
+so the browser's automatic request is answered directly and never reaches the
+dynamic segment; and made the persona page's fetches sequential — fetch the
+page, `notFound()` if it's null, and only then fetch tracks — so **any**
+unknown or malformed persona slug degrades to a clean 404 rather than racing
+an unrelated validation error, not just this one case.
+
+### Verified
+
+Against a scratch dev server on a clean `.next` cache (port 3050, to avoid
+touching the user's own running dev server): `/favicon.ico` now returns a
+real 32x32 PNG with `content-type: image/png`; `/felicitous-x-geetz`,
+`/felicitous`, `/tnt` and `/trinitrocosmic` all return 200 with an empty error
+log (previously: `contract_drift`, `502`, `422`). `pnpm turbo lint typecheck
+build --filter='!@dj/db'` — 20/20 green.
+
+The `Cannot find module './vendor-chunks/tailwind-merge@2.6.1.js'` and
+`segment-explorer-node.js` errors in the user's log are stale dev-server
+cache corruption (a `.next` directory left running across a dependency/config
+change under it) — not a code bug. They cleared on a fresh
+`rm -rf .next && next dev`, which is the standing fix whenever they recur:
+stop the dev server, delete `apps/web/.next`, restart.
+
 ### Verified in this session
 
 - `pnpm turbo lint typecheck build --filter='!@dj/db'` — **20/20 green**,
