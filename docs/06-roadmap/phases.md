@@ -188,7 +188,7 @@ precomputed peaks, gallery and video lightboxes, custom video player.
 player survives **five navigations**; the lightbox passes keyboard, gesture and
 deep-link tests; `size-limit` gates enforced.
 
-## Phase 10 — Cinematic + signature motion ⬜
+## Phase 10 — Cinematic + signature motion ✅ (shipped; browser verification outstanding)
 
 `packages/motion`, `<MotionGate>`, channel switcher, shader backgrounds, 3D
 turntable, 3D gig globe, audio visualiser, scroll-driven reveals, Lenis, View
@@ -199,6 +199,18 @@ Transitions, command palette, grain.
 its documented fallback**; a forced `prefers-reduced-motion` run **and** a
 forced `saveData` run each render a complete, beautiful page with ≤60KB JS; INP
 ≤150ms; no budget regressions.
+
+**Status:** shipped in the visual-layer session — `packages/motion`, the
+three-tier gate, real fonts, the WebGL persona field, the channel switcher,
+the nine-act homepage, the persona pages, a procedural 3D deck, a projected
+gig map, scroll-driven reveals, and a player rebuilt on the SoundCloud
+Widget API. The generative direction was forced by there being **no photos,
+video or fonts in the repo at all**, and turned out to be the right one.
+Budgets measured green (`/` 123 kB, `/[persona]` 126 kB). **Still open:**
+View Transitions and the custom cursor, and — the important one — nothing
+in this layer has been observed in a real browser, so the `≤60KB JS` and
+`INP ≤150ms` halves of this exit criterion are reasoned rather than
+measured. See STATUS.md gaps #17–18.
 
 ## Phase 11 — Admin panel ⬜
 

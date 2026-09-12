@@ -39,7 +39,7 @@ const CSP = [
   // page, and that risk can't be caught by anything short of a real
   // browser (not available in this session). Tightening this to a nonce
   // is the very next hardening step, not something to guess at blind.
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://plausible.io",
+  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://plausible.io https://w.soundcloud.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://res.cloudinary.com",
   "font-src 'self' data:",
@@ -65,7 +65,7 @@ const config: NextConfig = {
   reactStrictMode: true,
 
   // Server Components may import the shared TypeScript packages directly.
-  transpilePackages: ['@dj/ui', '@dj/contracts', '@dj/utils'],
+  transpilePackages: ['@dj/ui', '@dj/contracts', '@dj/utils', '@dj/motion'],
 
   images: {
     formats: ['image/avif', 'image/webp'],

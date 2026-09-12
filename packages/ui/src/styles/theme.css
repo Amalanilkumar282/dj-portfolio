@@ -245,6 +245,23 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /*
+   * Drive the display face's variable axes.
+   *
+   * Anybody ships `wght 100-900` and `wdth 50%-150%`. A variable font with
+   * no axis set renders at 400/100% — so without this every heading on the
+   * site was a plain, narrow rendering of a face whose entire purpose is the
+   * wide brutalist weight this document asks for. The axes are the design.
+   *
+   * This sits in @layer base, so `font-bold`, `font-normal` and friends still
+   * override it per component. TNT swaps --font-display for JetBrains Mono,
+   * which has no width axis; font-stretch degrades to normal there.
+   */
+  .font-display {
+    font-weight: 800;
+    font-stretch: 125%;
+  }
+
   /* Dark outer ring so the focus indicator stays visible over photography. */
   :focus-visible {
     outline: 2px solid var(--color-focus);

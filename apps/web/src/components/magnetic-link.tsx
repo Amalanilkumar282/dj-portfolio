@@ -3,19 +3,16 @@
 import Link from 'next/link';
 import { useRef } from 'react';
 
-import { useCapability } from '../lib/motion';
-
-import { MotionGate } from './motion-gate';
+import { MotionGate, useCoarsePointer } from '@dj/motion';
 
 const MAX_OFFSET = 8;
 
 /**
- * §5.6 item 13. A subtle pointer-follow effect on the primary CTA — capped
- * at 8px, RAF-free (a plain `pointermove` handler is cheap enough at this
- * scale not to need coalescing). `<MotionGate>` swaps to a plain `<Link>`
- * under reduced motion or on a low-capability device; it is never mounted
- * on touch at all, since `(hover: hover) and (pointer: fine)` is the whole
- * point of a "magnetic" cursor effect.
+ * A pointer-follow CTA, capped at 8px (motion.md item 13).
+ *
+ * Gated on pointer type rather than raw capability: a magnetic cursor on a
+ * touch screen has no cursor to follow, however fast the device is. See
+ * ADR 0022 for why those two gates are separate.
  */
 function InteractiveMagneticLink(props: React.ComponentProps<typeof Link>): React.JSX.Element {
   const ref = useRef<HTMLAnchorElement>(null);
@@ -47,7 +44,13 @@ function InteractiveMagneticLink(props: React.ComponentProps<typeof Link>): Reac
 }
 
 export function MagneticLink(props: React.ComponentProps<typeof Link>): React.JSX.Element {
-  const { coarsePointer } = useCapability();
+  const coarsePointer = useCoarsePointer();
   if (coarsePointer) return <Link {...props} />;
-  return <MotionGate heavy={<InteractiveMagneticLink {...props} />} light={<Link {...props} />} />;
+
+  return (
+    <MotionGate
+      full={<InteractiveMagneticLink {...props} />}
+      static={<Link {...props} />}
+    />
+  );
 }

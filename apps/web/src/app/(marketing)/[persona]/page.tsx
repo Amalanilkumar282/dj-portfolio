@@ -2,18 +2,37 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { formatEventDateRange, stripMarkdown, truncate } from '@dj/utils';
+import { buttonClass, Chip } from '@dj/ui/primitives';
+import { stripMarkdown, truncate } from '@dj/utils';
 
+
+import { StageBackdrop } from '../../../components/cinematic/stage-backdrop';
+import { StageProvider } from '../../../components/cinematic/stage-context';
 import { CloudinaryImage } from '../../../components/cloudinary-image';
-import { Container, Section, SectionHeader } from '../../../components/container';
+import { Container, Section } from '../../../components/container';
+import { GigMap, type MapVenue } from '../../../components/home/gig-map';
+import { Marquee } from '../../../components/home/marquee';
+import { TrackWall, type WallTrack } from '../../../components/home/track-wall';
+import { MagneticLink } from '../../../components/magnetic-link';
 import { JsonLd, type JsonLdNode } from '../../../lib/json-ld';
 import { cloudinaryOgUrl, SIZES } from '../../../lib/media';
 import { absoluteUrl } from '../../../lib/site';
 import { getPersonaPage } from '../../../server/queries/personas';
+import { getTracks } from '../../../server/queries/tracks';
 
 interface Params {
   persona: string;
 }
+
+/**
+ * One channel, in full.
+ *
+ * The same act vocabulary as the homepage, tuned to a single persona. The
+ * layout above already sets `data-theme` and the CMS accent server-side, so
+ * the page arrives in its own colour with no flash and no client branching —
+ * TNT picks up its mono display face and 2px radii purely from the token
+ * layer.
+ */
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { persona: slug } = await params;
@@ -36,13 +55,57 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   };
 }
 
-export default async function PersonaPage({ params }: { params: Promise<Params> }): Promise<React.JSX.Element> {
+export default async function PersonaPage({
+  params,
+}: {
+  params: Promise<Params>;
+}): Promise<React.JSX.Element> {
   const { persona: slug } = await params;
-  const page = await getPersonaPage(slug);
+  const [page, personaTracks] = await Promise.all([
+    getPersonaPage(slug),
+    getTracks({ personaSlug: slug }),
+  ]);
   if (!page) notFound();
 
-  const { persona, featuredTracks, playlists, upcomingEvents, programs, venuesPlayed, releases } = page;
+  const { persona, playlists, programs, venuesPlayed, releases } = page;
   const url = absoluteUrl(`/${slug}`);
+
+  const wallTracks: WallTrack[] = personaTracks.map((track) => ({
+    id: track.id,
+    slug: track.slug,
+    title: track.title,
+    artistLabel: track.artistLabel,
+    bpm: track.bpm,
+    audioUrl: null,
+    soundcloudTrackId: track.soundcloudTrackId,
+    type: track.type,
+    musicalKey: track.musicalKey,
+    durationSec: track.durationSec,
+    personaSlug: track.personaSlug,
+    isFeatured: track.isFeatured,
+    playable: track.soundcloudTrackId !== null,
+  }));
+
+  const mapVenues: MapVenue[] = venuesPlayed
+    .filter(
+      (venue): venue is typeof venue & { latitude: number; longitude: number } =>
+        venue.latitude !== null && venue.longitude !== null,
+    )
+    .map((venue) => ({
+      id: venue.id,
+      slug: venue.slug,
+      name: venue.name,
+      city: venue.city,
+      state: venue.state,
+      latitude: venue.latitude,
+      longitude: venue.longitude,
+      capacity: venue.capacity,
+    }));
+
+  const bpmRange =
+    persona.bpmRangeLow !== null && persona.bpmRangeHigh !== null
+      ? `${String(persona.bpmRangeLow)}–${String(persona.bpmRangeHigh)} BPM`
+      : null;
 
   const graph: JsonLdNode[] = [
     {
@@ -58,11 +121,22 @@ export default async function PersonaPage({ params }: { params: Promise<Params> 
   ];
 
   return (
-    <>
-      <Section className="pt-20">
+    <StageProvider initialThemeKey={persona.key}>
+      {/* Hero */}
+      {/* `isolate` is load-bearing: a bare `relative` does not create a
+          stacking context, so the `-z-10` backdrop would escape to the root
+          and paint *behind* body's background - i.e. be invisible. */}
+      <section
+        aria-labelledby="persona-title"
+        className="relative isolate flex min-h-[88svh] items-end overflow-hidden pb-16"
+      >
+        <div className="absolute inset-0 -z-10">
+          <StageBackdrop />
+        </div>
+
         <Container>
           {persona.heroImage ? (
-            <div className="relative mb-8 aspect-video w-full overflow-hidden rounded-lg">
+            <div className="relative mb-10 aspect-video w-full overflow-hidden rounded-lg">
               <CloudinaryImage
                 image={persona.heroImage}
                 sizes={SIZES.heroFull}
@@ -72,103 +146,149 @@ export default async function PersonaPage({ params }: { params: Promise<Params> 
               />
             </div>
           ) : null}
-          <p className="text-eyebrow text-accent font-semibold uppercase">
+
+          <p className="text-eyebrow text-accent font-semibold tracking-(--text-eyebrow--letter-spacing) uppercase">
             {persona.homeCity ?? 'Bengaluru'}
+            {persona.primaryGenreLabel ? ` · ${persona.primaryGenreLabel}` : ''}
           </p>
-          <h1 className="font-display text-display text-fg-strong mt-4">{persona.stageName}</h1>
-          {persona.subtitle ? <p className="text-lead text-fg-secondary mt-4">{persona.subtitle}</p> : null}
-          <p className="text-fg-secondary mt-6 max-w-2xl whitespace-pre-line">{persona.bio}</p>
-          {persona.genres.length > 0 ? (
-            <ul className="mt-6 flex flex-wrap gap-2">
-              {persona.genres.map((genre) => (
-                <li
-                  key={genre.slug}
-                  className="rounded-full border border-border px-3 py-1 text-xs text-fg-secondary"
-                >
-                  {genre.name}
-                </li>
-              ))}
-            </ul>
+
+          <h1
+            id="persona-title"
+            className="font-display text-display text-fg-strong dj-rise-mask mt-4"
+          >
+            <span>{persona.stageName}</span>
+          </h1>
+
+          {persona.subtitle ? (
+            <p className="text-lead text-fg-secondary dj-reveal mt-6 max-w-xl">{persona.subtitle}</p>
           ) : null}
+
+          <dl className="text-fg-muted mt-10 flex flex-wrap gap-x-10 gap-y-4 font-mono text-xs uppercase">
+            {bpmRange ? <Fact label="Tempo" value={bpmRange} /> : null}
+            <Fact label="Tracks" value={String(personaTracks.length)} />
+            {programs.length > 0 ? (
+              <Fact label="Residencies" value={String(programs.length)} />
+            ) : null}
+            {persona.yearsActiveFrom !== null ? (
+              <Fact label="Since" value={String(persona.yearsActiveFrom)} />
+            ) : null}
+          </dl>
+
+          <div className="mt-10 flex flex-wrap gap-4">
+            <MagneticLink href="/book" className={buttonClass({ variant: 'solid', size: 'lg' })}>
+              Book {persona.stageName}
+            </MagneticLink>
+            <Link
+              href={`/${slug}/music`}
+              className={buttonClass({ variant: 'outline', size: 'lg' })}
+            >
+              Full discography
+            </Link>
+          </div>
+        </Container>
+      </section>
+
+      {/* The story */}
+      <Section aria-labelledby="bio-title">
+        <Container className="grid gap-12 lg:grid-cols-[1.2fr_1fr]">
+          <div>
+            <h2
+              id="bio-title"
+              className="font-display text-h2 text-fg-strong dj-reveal mb-6"
+            >
+              The sound
+            </h2>
+            <p className="text-fg-secondary text-lead whitespace-pre-line">{persona.bio}</p>
+          </div>
+
+          <div>
+            {persona.genres.length > 0 ? (
+              <ul className="flex flex-wrap gap-2">
+                {persona.genres.map((genre) => (
+                  <li key={genre.slug}>
+                    <Chip tone="accent" size="md">
+                      {genre.name}
+                    </Chip>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {persona.memberNames.length > 0 ? (
+              <p className="text-fg-muted mt-8 font-mono text-xs uppercase">
+                {persona.memberNames.join(' · ')}
+              </p>
+            ) : null}
+
+            {persona.socialLinks.length > 0 ? (
+              <ul className="mt-8 flex flex-wrap gap-3">
+                {persona.socialLinks.map((link) => (
+                  <li key={link.url}>
+                    <a
+                      href={link.url}
+                      rel="me noreferrer"
+                      target="_blank"
+                      className={buttonClass({ variant: 'ghost', size: 'sm' })}
+                    >
+                      {link.platform.toLowerCase()}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         </Container>
       </Section>
 
-      {featuredTracks.length > 0 ? (
-        <Section>
+      {/* Sound */}
+      {wallTracks.length > 0 ? (
+        <Section aria-labelledby="persona-sound-title" className="bg-surface/40">
           <Container>
-            <SectionHeader title="Music" />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {featuredTracks.map((track) => (
-                <Link
-                  key={track.id}
-                  href={`/music/${track.slug}`}
-                  className="rounded-md border border-border bg-surface p-5 hover:border-accent"
-                >
-                  <p className="text-fg-strong font-semibold">{track.title}</p>
-                </Link>
-              ))}
-            </div>
-            <Link href={`/${slug}/music`} className="text-accent mt-6 inline-block text-sm underline">
-              All music from {persona.stageName} →
-            </Link>
+            <h2
+              id="persona-sound-title"
+              className="font-display text-h2 text-fg-strong dj-reveal mb-10"
+            >
+              {personaTracks.length} tracks
+            </h2>
+            {/* No persona filter chips here: the whole wall is already one
+                channel, so the filter would have exactly one option. */}
+            <TrackWall tracks={wallTracks} personas={[]} />
           </Container>
         </Section>
       ) : null}
 
-      {playlists.length > 0 ? (
-        <Section className="bg-surface">
+      {/* Playlists and releases */}
+      {playlists.length + releases.length > 0 ? (
+        <Section aria-labelledby="collections-title">
           <Container>
-            <SectionHeader title="Playlists" />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <h2
+              id="collections-title"
+              className="font-display text-h2 text-fg-strong dj-reveal mb-10"
+            >
+              Sets and releases
+            </h2>
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {playlists.map((playlist) => (
-                <Link
-                  key={playlist.id}
-                  href={`/music/playlists/${playlist.slug}`}
-                  className="rounded-md border border-border bg-bg p-5 hover:border-accent"
-                >
-                  <p className="text-fg-strong font-semibold">{playlist.title}</p>
-                  <p className="text-fg-muted mt-1 text-sm">{playlist.trackCount} tracks</p>
-                </Link>
+                <li key={playlist.id}>
+                  <Link
+                    href={`/music/playlists/${playlist.slug}`}
+                    className="border-border hover-hover:hover:border-accent flex h-full flex-col rounded-md border p-6 transition-[border-color] duration-(--duration-fast)"
+                  >
+                    <p className="font-display text-h4 text-fg-strong">{playlist.title}</p>
+                    <p className="text-accent mt-auto pt-6 font-mono text-xs uppercase">
+                      Playlist · {String(playlist.trackCount)} tracks
+                    </p>
+                  </Link>
+                </li>
               ))}
-            </div>
-          </Container>
-        </Section>
-      ) : null}
-
-      {releases.length > 0 ? (
-        <Section>
-          <Container>
-            <SectionHeader title="Releases" />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {releases.map((release) => (
-                <Link
-                  key={release.id}
-                  href={`/music/albums/${release.slug}`}
-                  className="rounded-md border border-border bg-surface p-5 hover:border-accent"
-                >
-                  <p className="text-fg-strong font-semibold">{release.title}</p>
-                </Link>
-              ))}
-            </div>
-          </Container>
-        </Section>
-      ) : null}
-
-      {upcomingEvents.length > 0 ? (
-        <Section className="bg-surface">
-          <Container>
-            <SectionHeader title="Upcoming shows" />
-            <ul className="space-y-4">
-              {upcomingEvents.map((event) => (
-                <li key={event.id}>
+                <li key={release.id}>
                   <Link
-                    href={`/events/${event.slug}`}
-                    className="flex flex-wrap items-baseline justify-between gap-2 rounded-md border border-border bg-bg p-5 hover:border-accent"
+                    href={`/music/albums/${release.slug}`}
+                    className="border-border hover-hover:hover:border-accent flex h-full flex-col rounded-md border p-6 transition-[border-color] duration-(--duration-fast)"
                   >
-                    <span className="text-fg-strong font-semibold">{event.title}</span>
-                    <span className="text-fg-muted text-sm">
-                      {formatEventDateRange(event.startsAt, event.endsAt)}
-                    </span>
+                    <p className="font-display text-h4 text-fg-strong">{release.title}</p>
+                    <p className="text-accent mt-auto pt-6 font-mono text-xs uppercase">Release</p>
                   </Link>
                 </li>
               ))}
@@ -177,37 +297,31 @@ export default async function PersonaPage({ params }: { params: Promise<Params> 
         </Section>
       ) : null}
 
+      {/* Residencies */}
       {programs.length > 0 ? (
-        <Section>
+        <Section aria-labelledby="persona-programs-title" className="bg-surface/40">
           <Container>
-            <SectionHeader title="Residencies" />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <h2
+              id="persona-programs-title"
+              className="font-display text-h2 text-fg-strong dj-reveal mb-10"
+            >
+              Standing nights
+            </h2>
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {programs.map((program) => (
-                <Link
-                  key={program.id}
-                  href={`/programs/${program.slug}`}
-                  className="rounded-md border border-border bg-surface p-5 hover:border-accent"
-                >
-                  <p className="text-fg-strong font-semibold">{program.name}</p>
-                </Link>
-              ))}
-            </div>
-          </Container>
-        </Section>
-      ) : null}
-
-      {venuesPlayed.length > 0 ? (
-        <Section className="bg-surface">
-          <Container>
-            <SectionHeader title="Venues played" />
-            <ul className="flex flex-wrap gap-3">
-              {venuesPlayed.map((venue) => (
-                <li key={venue.id}>
+                <li key={program.id}>
                   <Link
-                    href={`/venues/${venue.slug}`}
-                    className="rounded-full border border-border px-4 py-2 text-sm text-fg-secondary hover:border-accent"
+                    href={`/programs/${program.slug}`}
+                    className="border-border hover-hover:hover:border-accent flex h-full flex-col rounded-md border p-6 transition-[border-color] duration-(--duration-fast)"
                   >
-                    {venue.name}, {venue.city}
+                    <p className="font-display text-h4 text-fg-strong">{program.name}</p>
+                    {program.subtitle ? (
+                      <p className="text-fg-muted mt-2 text-sm">{program.subtitle}</p>
+                    ) : null}
+                    <p className="text-accent mt-auto pt-6 font-mono text-xs uppercase">
+                      {program.cadence ?? 'Ongoing'}
+                      {program.venueName ? ` · ${program.venueName}` : ''}
+                    </p>
                   </Link>
                 </li>
               ))}
@@ -215,8 +329,62 @@ export default async function PersonaPage({ params }: { params: Promise<Params> 
           </Container>
         </Section>
       ) : null}
+
+      {/* Rooms played */}
+      {mapVenues.length > 0 ? (
+        <Section aria-labelledby="persona-venues-title">
+          <Container className="grid gap-12 lg:grid-cols-[1fr_1.1fr]">
+            <div>
+              <h2
+                id="persona-venues-title"
+                className="font-display text-h2 text-fg-strong dj-reveal mb-6"
+              >
+                Rooms played
+              </h2>
+              <p className="text-lead text-fg-secondary">
+                {mapVenues.length} venues across{' '}
+                {new Set(mapVenues.map((venue) => venue.city)).size} cities.
+              </p>
+            </div>
+            <GigMap venues={mapVenues} />
+          </Container>
+        </Section>
+      ) : null}
+
+      {persona.genres.length > 0 ? (
+        <Marquee items={persona.genres.map((genre) => genre.name)} className="py-8" />
+      ) : null}
+
+      {/* Book */}
+      <Section aria-labelledby="persona-book-title">
+        <Container className="text-center">
+          <h2
+            id="persona-book-title"
+            className="font-display text-h1 text-fg-strong mx-auto max-w-3xl"
+          >
+            Book {persona.stageName}.
+          </h2>
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
+            <MagneticLink href="/book" className={buttonClass({ variant: 'solid', size: 'lg' })}>
+              Start a booking
+            </MagneticLink>
+            <Link href="/" className={buttonClass({ variant: 'ghost', size: 'lg' })}>
+              Other channels
+            </Link>
+          </div>
+        </Container>
+      </Section>
 
       <JsonLd graph={graph} />
-    </>
+    </StageProvider>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: string }): React.JSX.Element {
+  return (
+    <div>
+      <dt className="opacity-60">{label}</dt>
+      <dd className="text-fg-strong font-display text-h4 mt-1">{value}</dd>
+    </div>
   );
 }

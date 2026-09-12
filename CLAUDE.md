@@ -45,7 +45,7 @@ without a developer.**
 | `apps/admin` | admin.djfelicitous.com | The CMS. **This is the product.**                   |
 | `apps/api`   | api.djfelicitous.com   | NestJS. Owns the database and business rules.       |
 
-## Current state (2026-09-12, Group F session)
+## Current state (2026-09-12, cinematic visual layer session)
 
 Groups A through F (all 13 phases) now have code written, each **scoped**
 rather than built to the masterplan's full literal breadth — see
@@ -134,16 +134,52 @@ until this session added it. All three fixed and re-verified live
 against the real database and real Cloudinary. See STATUS.md's Group E
 (both passes) and Group F sections for the full account of each.
 
-Phase 10 (motion) now also ships Lenis smooth scroll, a `⌘K` command
-palette (static routes + personas, not a full search index), and an audio
-visualizer wired to the mini player's real `<audio>` element (renders
-flat until a track has real audio — gap #16). Still deferred: shaders,
-the 3D turntable/gig-globe scenes, View Transitions, the custom cursor —
-all need real media assets (the 3D scenes also need a sourced GLTF model)
-to be more than placeholder content. Also still deferred: `@dnd-kit`
+**Phase 10 (motion) is now built out properly — the cinematic visual
+layer.** Before the visual-layer session `apps/web` was functionally
+complete and visually flat: no hero, no shader, no persona switcher, no 3D,
+and a play button that structurally never rendered because it gated on
+`audioUrl` while all 19 tracks are SoundCloud-only. Now shipped:
+`packages/motion` (the three-tier `'static' | 'light' | 'full'` gate the
+docs always specified — closing half of gap #9); real typography via
+`next/font/google`; a WebGL persona field with four blended shader
+variants; the channel switcher that repaints the whole viewport from CMS
+accent colours (the consumer `@property --color-accent` was registered
+for); a nine-act homepage; rebuilt persona pages; a procedural 3D CDJ with
+no model file; a 2.5D projected gig map; CSS scroll-driven reveals; and a
+player rebuilt on the **SoundCloud Widget API**, making the catalogue
+actually audible. Every technique has a *finished* fallback at the lower
+tiers, not a degraded one. Route budgets measured green (`/` 123 kB,
+`/[persona]` 126 kB).
+
+**Three rendering bugs were found only by serving the site**, none of
+which `tsc`, ESLint or the build could see, and two of which had been
+degrading every page in both apps: `cn()` was silently dropping classes
+(tailwind-merge did not know our custom `--text-*` scale, so it treated
+`text-lead` as a colour and deleted `text-on-accent` — every primary CTA
+rendered body-coloured text on an accent fill); the display font's
+`wght`/`wdth` variable axes were never driven, so an 11rem `<h1>` rendered
+at a plain 400/100%; and the hero backdrop depended on an unguaranteed
+stacking context. **If you add a `--text-*` token to theme.css, add it to
+`FONT_SIZES` in `packages/ui/src/lib/cn.ts` too** — otherwise that one size
+is silently dropped wherever it meets a text colour. See STATUS.md.
+
+**The generative direction was forced, and is load-bearing:** there are
+zero photos, zero video and zero font files in this repo. Do not plan work
+that assumes otherwise. Photography slots in later as enhancement.
+
+**One documented deviation:** [ADR 0022](docs/01-decisions/0022-webgl-tier-on-capable-touch-devices.md)
+puts capable touch devices on the WebGL tier, where `motion.md` sent every
+coarse pointer to `light`. 3D scenes stay desktop-only regardless.
+
+**Nothing in this layer has been opened in a browser** — see STATUS.md gaps
+#17–18. That is the highest-value next action, not more code.
+
+Still deferred: View Transitions, the custom cursor, `@dnd-kit`
 drag-and-drop (explicit move-up/down buttons are the actual required
 accessible baseline, not a stand-in), `react-easy-crop` cropping, and
-custom Tiptap embed nodes.
+custom Tiptap embed nodes. Also still shipped from earlier passes: Lenis
+smooth scroll and the `⌘K` command palette (static routes + personas, not a
+full search index).
 
 **Group F — Phase 12/13's codeable subset, plus closing Phase 11's last
 content-type gap.** A real CSP + standard security headers on both

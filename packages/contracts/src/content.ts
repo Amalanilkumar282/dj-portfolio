@@ -307,6 +307,12 @@ export const TrackSummary = z.object({
   artwork: MediaImageSchema.nullable(),
   personaSlug: Slug.nullable(),
   /**
+   * On the summary, not just the detail: the homepage track wall and every
+   * listing play button need a playable source without N detail round-trips.
+   * It is already selected by every track query, so this costs nothing.
+   */
+  soundcloudTrackId: z.string().nullable(),
+  /**
    * Hand-curated, NOT live platform figures.
    *
    * Phase 13 syncs the real counts. Until then these must never be presented
@@ -319,7 +325,6 @@ export type TrackSummary = z.infer<typeof TrackSummary>;
 
 export const TrackDetail = TrackSummary.extend({
   description: z.string().nullable(),
-  soundcloudTrackId: z.string().nullable(),
   embedUrl: z.string().nullable(),
   tags: z.array(z.string()),
   genres: z.array(GenreSummary),

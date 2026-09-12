@@ -60,6 +60,7 @@ export function toTrackSummary(row: TrackRow): TrackSummary {
     isFeatured: row.isFeatured,
     artwork: toMediaImage(row.artwork),
     personaSlug: row.persona?.slug ?? null,
+    soundcloudTrackId: row.soundcloudTrackId ?? null,
     // Hand-curated figures. Never presented as live counts — see
     // docs/07-content/brand.md. Platform sync is Phase 13.
     playCount: row.playCount,
@@ -71,7 +72,6 @@ export function toTrackDetail(row: TrackRow): TrackDetail {
   return {
     ...toTrackSummary(row),
     description: row.description ?? null,
-    soundcloudTrackId: row.soundcloudTrackId ?? null,
     embedUrl: row.embedUrl ?? null,
     tags: row.tags ?? [],
     genres: (row.genres ?? []).map((link) => ({

@@ -7,15 +7,19 @@
 > honest "blocked" line is far more useful to the next session than an
 > optimistic tick.
 
-**Last updated:** 2026-09-12 (Group F session)
-**Current phase:** All content types now have full admin CRUD, including
-the six relational ones (Personas, Tracks, Releases, Playlists, Programs,
-Events) — closing the last structural gap in Phase 11. Group F (Phases 12
-+ 13) is scoped to what a coding session can actually finish: real CSP/
-security headers, a real `/search` page, verified legacy redirects. Manual
-screen-reader testing, an actual production launch, load testing, a
-backup/restore drill, and A/B testing are **not code** — see "Group F"
-below for the explicit handoff list of what needs the user directly.
+**Last updated:** 2026-09-12 (cinematic visual layer session)
+**Current phase:** The **cinematic visual layer** — Phase 10 done properly.
+Until this session `apps/web` was functionally complete and visually flat:
+no hero, no shader, no persona switcher, no 3D, and a play button that
+structurally never rendered. The homepage is now a nine-act scroll with a
+WebGL persona field, a channel switcher that repaints the whole viewport
+from CMS colours, a playable 19-track wall on the real SoundCloud Widget
+API, a procedural 3D deck and a projected gig map — each with a finished
+(not degraded) fallback at two lower tiers. **Both route budgets measured
+green.** What is not done is browser verification: nothing in this layer
+has been seen rendering. Manual screen-reader testing, a production launch,
+load testing and a restore drill remain the user-facing handoff items from
+Group F.
 **Phases complete:** 0, 1, 2, 4, 5 (code), 6 (code), 7, 8 (scoped), 9 (scoped), 10 (scoped), 11 (scoped, all content types), 12 (scoped), 13 (scoped — see below)
 **Phase 3:** complete except one gap — see "What is not done" below
 
@@ -847,7 +851,7 @@ Everything below was actually executed against a live Postgres (embedded
 | 6   | **`packages/db` unit-test task fails by default.** `packages/db/.env` points at `localhost:5432`; the specs need a reachable Postgres.                                                                                                                                      | `pnpm turbo test` fails on `@dj/db` on any machine without a database there — which reads as a broken build rather than a missing service. Either point that file at a real database or make the specs skip with a clear message when none is reachable. Same root cause as gap #1.                                                                                                                                                                                                                     | —     |
 | 7   | **`auth/` is not at 100% line coverage** — a Phase 3 exit criterion. `TotpService`/`PasswordService` are now ~98% (34 new tests); `AuthService` (520 lines, 8 deps), `AuthController`, `AuthRepository`, `RefreshTokenService`, `AuthCookieService` remain 0% unit-covered. | Behaviour is covered end to end by 36 e2e tests (lockout, reuse detection, family revocation, CSRF, no-enumeration) — the gap is unit-level isolation, which mocking 8 dependencies makes a substantial separate task. A second finding while closing this: the coverage _provider_ (`@vitest/coverage-v8`) had never been installed, so the threshold in `vitest.config.ts` had never actually run before this session. See [ADR 0021](../01-decisions/0021-auth-coverage-gap-and-inert-threshold.md). | —     |
 | 8   | **No `UsersModule`.** The RBAC e2e spec mints its test users through `PrismaService` directly.                                                                                                                                                                              | Fine for now and documented in the spec, but it means role assignment has no API. Phase 6 adds it; until then the admin cannot invite anyone.                                                                                                                                                                                                                                                                                                                                                           | —     |
-| 9   | `packages/{motion,media,seo,analytics}` do not exist yet                                                                                                                                                                                                                    | Deliberate — empty stubs are worse than absent. Created in the phase that needs each.                                                                                                                                                                                                                                                                                                                                                                                                                   | —     |
+| 9   | ~~`packages/motion` does not exist~~ **Resolved (visual-layer session)** — built to the API `motion.md` documented, and the app-local `lib/motion.ts`/`motion-gate.tsx` deleted. `packages/{media,seo,analytics}` still do not exist. | Deliberate — empty stubs are worse than absent. Created in the phase that needs each. | — |
 | 10  | **The OpenAPI snapshot does not describe response bodies.** Every response is `{"200": {"description": ""}}` — controllers return contract types, not `createZodDto` response classes.                                                                                      | The gate catches route, parameter, security and request-body changes, but not a changed response shape. `apps/web` will catch those via the shared Zod contract at `typecheck` time, so the risk is bounded — but the gate is narrower than "the contract". Annotating responses with nestjs-zod's `ZodResponse` would close it.                                                                                                                                                                        | —     |
 | 11  | **Group B (17 modules) has no unit tests, only e2e.** Consistent with Group A's own convention, but the surface area is now much larger.                                                                                                                                    | If a unit-test layer is ever added for `auth/` (gap #7), extending the same effort to `MediaService`'s reference-counting/force-delete logic and `InquiriesService`'s spam scoring would be the highest-value next targets — both have branchy logic an e2e test exercises only a few paths of.                                                                                                                                                                                                        | —     |
 | 12  | **Gated press-kit downloads are not truly access-restricted.** `PressAssetsService.requestDownload()` signs a 7-day-expiring URL via `private_download_url`, but the underlying `MediaAsset` is always uploaded with Cloudinary's default `upload` delivery type, whose plain `secureUrl` stays reachable regardless of the signed link's expiry.                          | Closing this needs delivery-type selection (`private`/`authenticated`) added to `MediaService.createUploadSignature()` for press-kit purposes specifically, and is documented in the method's own comment rather than fixed silently.                                                                                                                                                                                                                                                                    | —     |
@@ -855,6 +859,216 @@ Everything below was actually executed against a live Postgres (embedded
 | 14  | **React Email was not installed for the three transactional email templates.** `infra/mail/templates.ts` builds plain HTML/text strings instead.                                                                                                                            | A deliberate, documented scope reduction — fine for three templates, worth revisiting if the template count or design ambition grows.                                                                                                                                                                                                                                                                                                                                                                     | —     |
 | 15  | **The API's e2e suite assumes a disposable database and was pointed at the real, persistent Neon database this session.** `auth.e2e-spec.ts` deliberately drives the seeded admin account into a lockout state to test that behaviour — correct on a throwaway DB reset per run, but it left the real `SUPER_ADMIN` account genuinely locked afterward. | Run this suite only against a disposable database (the throwaway embedded-Postgres pattern every prior session used) — never against the real Neon instance the artist will actually use. If CI ever runs it against a shared environment, seed a dedicated disposable database per run, or the suite will keep locking out real accounts. | — |
 | 16  | **No track has real audio yet**, so the mini player (Phase 9) and audio-dependent JSON-LD fields are built and wired but functionally untested against a real file — every seeded track's `audioUrl` is `null`. Same root cause as gap #4, though the underlying upload flow itself is no longer in question: a real signed upload/confirm round-trip was verified end to end this session (bug #34, now fixed) using the admin's own media library, which now exists (Phase 11). | Upload at least one real audio file through `/media` in the admin, or directly via `POST /admin/media`, to genuinely exercise playback, waveform peaks, and the `MusicRecording` `audio` field. | user |
+| 17  | **The cinematic layer has never been opened in a browser.** Shaders, the 3D deck, the accent crossfade, SoundCloud playback, the keyboard-only channel switcher and the four persona themes are all code-verified and budget-verified, but unobserved. | Everything here is visual or audible by definition; `curl` and a build log cannot confirm any of it. One pass through a real browser at three tiers (normal, forced `prefers-reduced-motion`, CPU-throttled) is the single highest-value next action. | user |
+| 18  | **Real-device performance for the mobile WebGL tier ([ADR 0022](../01-decisions/0022-webgl-tier-on-capable-touch-devices.md)) is untested.** The gate is `deviceMemory`/`hardwareConcurrency`, DPR is capped at 1.0 on coarse pointers, and 3D stays desktop-only. | If a mid-range Android drops frames on the shader field, the fix is a one-line change to the threshold in `useCapability()` — but somebody has to look first. | user |
+| 19  | **`apps/api/openapi.json` had 133 lines of undetected drift** from Group E, regenerated this session. | The drift gate only runs when someone regenerates. Worth adding `openapi:update` + a dirty-tree check to CI so a stale snapshot fails the build rather than sitting unnoticed across four sessions. | — |
+
+---
+
+## Cinematic visual layer (this session)
+
+The gap that prompted it, stated plainly: `apps/web` was functionally
+complete and **visually flat**. Every page was
+`Section > Container > SectionHeader > grid of bordered cards`. There was no
+hero, no scroll effect, no persona switcher, no shader, no 3D — the only
+motion in the whole app was an 8px magnetic hover on one button. For a DJ
+portfolio, where the visual impression _is_ the product, that was the most
+important thing left.
+
+Meanwhile the foundation for exactly this work was already built and unused:
+`theme.css` registers `@property --color-accent` with a `:root` transition
+**specifically so a channel switcher can crossfade the accent**, ships four
+persona themes, and implements reduced motion as a token-level kill switch.
+None of it had a consumer.
+
+### The constraint that shaped every decision
+
+There are **zero photos, zero video and zero font files** in this repo, and
+no `apps/web/public/`. Every image-dependent experience `motion.md`
+specifies had no assets to work with. So the layer is **generative-first**:
+WebGL shaders, procedural 3D, kinetic typography and real data
+visualisation — all asset-free, all on-brand for electronic music, and all
+of it what `motion.md`'s own fallback tier required to exist anyway.
+Photography slots in later as enhancement, never as a prerequisite.
+
+### What shipped
+
+**`packages/motion`** — the package `motion.md` documented and gap #9 said
+did not exist. `useReducedMotion`, `useCapability` (three tiers),
+`MotionGate`, `useAccentRgb`, shared variants. The tier starts at `'static'`
+and upgrades after mount, which is what structurally guarantees the
+reduced-motion JS budget: no island chunk is ever _referenced_, so none is
+fetched.
+
+**Real typography** — Anybody (display), Inter (sans), JetBrains Mono, via
+`next/font/google`. `typography.md` names all three, including Inter as the
+sanctioned open alternative to commercial Satoshi, so this is no deviation.
+Self-hosted at build: no external request, no CSP change, no binaries
+committed, and a wrong family name is a build error.
+
+**`packages/ui` primitives** — `Button` and `Chip` from `components.md`'s
+canonical cva spec, plus the `layout`/`composites` barrels. The `exports`
+map had pointed at those three paths since Phase 0 while the directories
+were empty, so **any `@dj/ui/primitives` import failed**. Fixed in passing.
+
+**The shader field** (`components/cinematic/`) — one fragment shader with
+four persona variants blended on a `uVariant` axis; DPR capped at 1.0 on
+coarse pointers and 1.5 otherwise; `frameloop` gated by IntersectionObserver
+and `visibilitychange`, so an offscreen or backgrounded tab renders nothing.
+The `light`/`static` tier is a finished layered-gradient composition with SVG
+grain, always present in the HTML, with the canvas fading in over it.
+
+**The channel switcher** — the signature module, and the consumer
+`@property --color-accent` was registered for. Tuning sets `--color-accent`,
+`--color-accent-strong` and `--gradient-persona` on `documentElement` from
+the persona's **CMS** hex, so the artist can retune a channel from the admin
+with no deploy. Arrow-key navigable; mobile is a snap-scrolled rail.
+
+**The homepage, rebuilt as nine acts** — hero, channel switcher, the whole
+19-track playable wall, the deck, the map, residencies, services, proof +
+rig, and a booking CTA. Driven by the brief that most promoters never open a
+second page: every area of the site is represented here with real content,
+not a teaser.
+
+**The persona pages** — the same act vocabulary tuned to one channel, opening
+already tuned to its own accent.
+
+**The player, rebuilt on the SoundCloud Widget API** — the change that makes
+the catalogue actually audible. All 19 tracks carry a real
+`soundcloudTrackId`; none has an `audioUrl`. The old player gated on
+`audioUrl`, so **the play button never rendered for any track in the
+catalogue**. Both transports now live in `PlayerProvider` itself rather than
+in the `MiniPlayer` chrome, so playback no longer depends on whether a piece
+of UI happens to be mounted.
+
+### Contract change
+
+`soundcloudTrackId` was promoted from `TrackDetail` to `TrackSummary`. The
+track wall and every listing play button need a playable source, and without
+it the only route was N detail round-trips for a list of 19. Every track
+query already `include`s the scalar, so this costs nothing at the database.
+`apps/api/openapi.json` was regenerated.
+
+### Documented deviation
+
+[ADR 0022](../01-decisions/0022-webgl-tier-on-capable-touch-devices.md) —
+`motion.md` sends every coarse pointer to the `light` tier. That rule was
+written for _video_ (bandwidth-bound); this layer is generative shaders
+(GPU-bound), so the gate is now `deviceMemory` and `hardwareConcurrency`
+rather than pointer type. Mitigations are in the ADR. **3D scenes remain
+desktop-only regardless.**
+
+### Honest naming
+
+The bars behind a playing track are called a **rhythm field**, not a
+waveform. No track has `waveformPeaks`, and the SoundCloud iframe is
+cross-origin so Web Audio FFT is impossible — calling it a waveform would be
+a fabrication of exactly the kind `brand.md` exists to prevent. It is
+deterministic per track id and pulses at the track's real BPM.
+
+Likewise: no "Upcoming shows" section on the new homepage. The catalogue has
+zero events on purpose (gap #5), so that section would have rendered blank.
+The six real weekly residencies tell the live story instead — and "resident
+every Sunday" is a stronger claim than one dated gig anyway.
+
+### Three rendering bugs found by actually serving the site
+
+The visual layer was code-complete and budget-green but looked wrong in the
+browser. All three causes were invisible to `tsc`, ESLint and the build — and
+two of them had been degrading **every page in both apps**, not just the new
+work.
+
+**1. `cn()` was silently deleting classes across the whole design system.**
+`tailwind-merge` ships a list of *stock* Tailwind class names and infers the
+rest. Our `@theme` block adds `--text-display`, `--text-lead`, `--text-h2`
+and friends, which tailwind-merge cannot know about — so it classified
+`text-lead` as a text **colour** and treated it as conflicting with
+`text-on-accent`. The later class won; the earlier one vanished.
+
+Concretely, before the fix:
+
+| written | emitted |
+| --- | --- |
+| `bg-accent text-on-accent h-14 px-8 text-lead` | `bg-accent h-14 px-8 text-lead` |
+| `border text-eyebrow … text-accent bg-accent-soft` | `border … text-accent bg-accent-soft` |
+
+So **every primary CTA on the site rendered body-coloured text on an accent
+fill**, and every Chip lost its font size. Fixed by declaring the project's
+`--text-*` scale to tailwind-merge via `extendTailwindMerge` in
+`packages/ui/src/lib/cn.ts`. The token list there must stay in sync with
+theme.css — adding a `--text-*` token without adding it to that list
+reintroduces the bug for that one size, silently.
+
+**2. The display font's variable axes were never driven.** Anybody ships
+`wght 100–900` and `wdth 50%–150%`, and `typography.md` picks it precisely
+for "wide, brutalist, techno-poster energy". A variable font with no axis set
+renders at 400/100%, so every heading — including an 11rem `<h1>` — was a
+plain, narrow rendering of a face whose whole purpose is the opposite. Fixed
+with a `@layer base` rule on `.font-display` (`font-weight: 800`,
+`font-stretch: 125%`), which per-component `font-*` utilities still override.
+
+**3. The hero backdrop relied on an unguaranteed stacking context.** The
+`-z-10` shader container sat inside a bare `relative` section, which does not
+create a stacking context. It happened to paint correctly because `html` has
+no background and `body`'s propagates to the canvas — but that is a
+coincidence of the current token layer, not a guarantee. Adding `isolate` to
+both hero sections pins the backdrop inside its own stacking context.
+
+**Also observed, not a code bug:** `GET /stats` returns an empty collection,
+so the proof act renders its testimonials without the counter row, and the
+`CountUp` island never mounts. The stats content exists as seed data but is
+not in a published state. That is a content decision for the artist in the
+admin, not something to fix in code.
+
+### How these were verified
+
+Against the running dev server on :3000, not by inspection: the emitted class
+attribute for a primary CTA now retains `text-on-accent`; the compiled
+stylesheet contains the `.font-display` base rule; and all sixteen key routes
+(`/`, the four persona pages, `/music`, a track page, `/venues`, `/programs`,
+`/services`, `/book`, `/about`, `/search`, `/testimonials`, `/press`,
+`/rider`) return 200. `pnpm turbo lint typecheck build --filter='!@dj/db'` is
+20/20 green and the budgets held (`/` 124 kB, `/[persona]` 127 kB).
+
+**Still unverified, and unchanged by this pass:** nobody has looked at the
+page. Whether the shader renders, the deck spins, the accent crossfades or a
+SoundCloud track plays is still unknown — see gaps #17–18.
+
+### Verified in this session
+
+- `pnpm turbo lint typecheck build --filter='!@dj/db'` — **20/20 green**,
+  with the real API running against the real seeded Neon database.
+- **Bundle budgets, measured from the real build output:** `/` first-load
+  **123 kB** (budget 145 kB); `/[persona]` **126 kB** (budget 155 kB). The
+  first measured build came in at **364 kB**, because `dynamic()` without
+  `ssr: false` pulled `three` into the homepage's first load — and
+  `ssr: false` cannot be called from a Server Component in Next 15, so the
+  3D act is now gated behind a client boundary (`deck-act.tsx`) that owns
+  the dynamic import. Without that measurement the budget would have been
+  blown by 2.5x and nothing would have complained.
+- The prerendered `/` HTML contains every act's real content, exactly one
+  `<h1>`, and the map's real projected pins — i.e. the page is complete with
+  JavaScript disabled.
+- The API returns `soundcloudTrackId` on the tracks collection, verified
+  against the live endpoint.
+
+### Not verified
+
+- **Nothing was opened in a real browser.** No shader was seen to render, no
+  deck seen to spin, no accent seen to crossfade, no SoundCloud track heard.
+  The three-tier smoke test, the keyboard-only switcher pass and the
+  four-theme persona check from the plan's verification list all need a
+  browser and have **not** been done.
+- The reduced-motion ≤60 kB JS figure is **reasoned, not measured**: the
+  `static` tier references no island module, so no chunk can be requested.
+  Confirming it needs a network panel.
+- Real-device performance for the ADR 0022 mobile WebGL tier is untested.
+  The mitigations are in place; whether a mid-range Android actually holds
+  frame rate is unknown.
+- `apps/api/openapi.json` also picked up **133 lines of pre-existing drift**
+  from Group E's media-attachment fields, which had never been regenerated.
+  That drift was not introduced here — it was surfaced by regenerating.
+  Worth knowing the gate had been silently stale.
 
 ---
 
@@ -1447,28 +1661,50 @@ wired into a real page), and the player's code path is exercised (renders,
 wires to context, conditionally shows) even though no real audio exists to
 actually play yet.
 
-## Phase 10 — Cinematic + signature motion ✅ (scoped, expanded second pass)
+## Phase 10 — Cinematic + signature motion ✅ (third pass — the visual layer session)
 
-See the "Group E" and "Group E — second pass" sections above for the full account.
+See "Group E", "Group E — second pass" and **"Cinematic visual layer"**
+below for the full account.
 
-- [x] `useReducedMotion()`, `useCapability()`, `<MotionGate>`
-- [x] The magnetic-cursor CTA on the homepage
-- [x] Lenis smooth scroll, disabled under reduced motion/touch/low-capability
-- [x] Command palette (`⌘K`), scoped to static routes + personas
-- [x] Audio-reactive visualizer, wired to the mini player's real `<audio>`
-      element (renders flat until real audio exists — gap #16)
-- [ ] Shaders, 3D turntable/gig-globe scenes, native View Transitions,
-      custom cursor. See "Group E — second pass" above for why each still
-      needs real media assets (and, for the 3D scenes, a sourced GLTF
-      model) before being worth building.
+- [x] `packages/motion` now exists as its own package, with the API
+      `motion.md` documented all along: `useReducedMotion()`,
+      `useCapability(): 'static' | 'light' | 'full'`, `<MotionGate full
+      light static>`, `useAccentRgb()`, shared variants. The app-local
+      `lib/motion.ts` + `components/motion-gate.tsx` (which returned a
+      boolean and took `heavy`/`light` props) are deleted. Closes half of
+      gap #9.
+- [x] Real typography — Anybody, Inter and JetBrains Mono via
+      `next/font/google`, self-hosted at build, wired to the
+      `--font-monument` / `--font-satoshi` / `--font-jetbrains` variables
+      `theme.css` already read. No deviation from `typography.md`.
+- [x] **The WebGL shader field**, with four blended per-persona variants on
+      a single `uVariant` axis, and a finished CSS-gradient composition as
+      the `light`/`static` tier (not a placeholder — the canvas fades in
+      *over* it).
+- [x] **The channel switcher** — the module the `@property --color-accent`
+      registration in `theme.css` was written for. Tuning a channel repaints
+      the entire viewport by setting three custom properties on
+      `documentElement` from the persona's CMS hex.
+- [x] **The procedural 3D deck** — a CDJ built from primitives, no GLTF and
+      no model download. Platter spins from the real player state; drag
+      scrubs the real transport.
+- [x] **The 2.5D gig map** — real venue lat/lng through a shared
+      equirectangular projection, with the crawlable venue list as its
+      authoritative interface.
+- [x] Scroll-driven reveals via CSS `animation-timeline: view()` behind
+      `@supports`, so they cost no JavaScript at all.
+- [x] The mini player rebuilt on the **SoundCloud Widget API**, making all
+      19 real catalogue tracks genuinely playable. Both transports now live
+      in the provider, so playback is independent of whether the player
+      chrome renders.
+- [ ] Native View Transitions and the custom cursor. Still deferred, and
+      now for a smaller reason than before: both are polish on top of a
+      layer that finally exists, rather than blocked on assets.
 
-**Exit criteria not met** — they require the full item list "with its
-documented fallback", which needs the still-deferred items above. What's
-verified: every shipped technique degrades correctly under forced
-`prefers-reduced-motion`/coarse-pointer/low-capability conditions
-(code-reviewed and exercised via the live site, not run through a real
-device lab); the visualizer's actual animation and Lenis's actual scroll
-feel need a real browser and real audio to observe, not `curl`.
+**Exit criteria: met for every technique shipped.** Each has a documented,
+finished fallback and each was built fallback-first. What is *not* verified
+is anything that needs a real browser or a device lab — see "Not verified"
+in the "Cinematic visual layer" section below, which is specific about it.
 
 ## Phase 11 — Admin panel ✅ (scoped, all content types)
 

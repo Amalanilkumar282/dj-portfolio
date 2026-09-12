@@ -214,6 +214,11 @@
             ],
             "type": "string"
           },
+          "flyerId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
           "isAllDay": {
             "type": "boolean"
           },
@@ -409,6 +414,11 @@
               "POSTPONED",
               "COMPLETED"
             ],
+            "type": "string"
+          },
+          "flyerId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
             "type": "string"
           },
           "isAllDay": {
@@ -1519,6 +1529,11 @@
             "pattern": "^#[0-9A-Fa-f]{6}$",
             "type": "string"
           },
+          "avatarMediaId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
           "bio": {
             "minLength": 1,
             "type": "string"
@@ -1561,6 +1576,11 @@
           "gradientCss": {
             "maxLength": 500,
             "nullable": true,
+            "type": "string"
+          },
+          "heroMediaId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
             "type": "string"
           },
           "homeCity": {
@@ -1665,6 +1685,11 @@
             "pattern": "^#[0-9A-Fa-f]{6}$",
             "type": "string"
           },
+          "avatarMediaId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
           "bio": {
             "minLength": 1,
             "type": "string"
@@ -1707,6 +1732,11 @@
           "gradientCss": {
             "maxLength": 500,
             "nullable": true,
+            "type": "string"
+          },
+          "heroMediaId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
             "type": "string"
           },
           "homeCity": {
@@ -1797,6 +1827,11 @@
       },
       "PlaylistCreateDto": {
         "properties": {
+          "coverId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
           "description": {
             "maxLength": 2000,
             "nullable": true,
@@ -1858,6 +1893,11 @@
       },
       "PlaylistUpdateDto": {
         "properties": {
+          "coverId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
           "description": {
             "maxLength": 2000,
             "nullable": true,
@@ -2235,6 +2275,11 @@
             "nullable": true,
             "type": "string"
           },
+          "heroId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
           "isOngoing": {
             "type": "boolean"
           },
@@ -2307,6 +2352,11 @@
           "description": {
             "maxLength": 4000,
             "nullable": true,
+            "type": "string"
+          },
+          "heroId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
             "type": "string"
           },
           "isOngoing": {
@@ -2448,6 +2498,11 @@
             "nullable": true,
             "type": "string"
           },
+          "coverId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
           "description": {
             "maxLength": 4000,
             "nullable": true,
@@ -2532,6 +2587,11 @@
           "catalogNumber": {
             "maxLength": 60,
             "nullable": true,
+            "type": "string"
+          },
+          "coverId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
             "type": "string"
           },
           "description": {
@@ -3474,6 +3534,16 @@
             "minLength": 1,
             "type": "string"
           },
+          "artworkId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "audioId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
           "bpm": {
             "exclusiveMaximum": false,
             "exclusiveMinimum": false,
@@ -3620,6 +3690,16 @@
           "artistLabel": {
             "maxLength": 200,
             "minLength": 1,
+            "type": "string"
+          },
+          "artworkId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "audioId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
             "type": "string"
           },
           "bpm": {
@@ -3975,6 +4055,59 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/admin/audit-log": {
+      "get": {
+        "operationId": "AuditAdminController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entityType",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "entityId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The audit trail, newest first, optionally filtered by entity",
+        "tags": [
+          "admin: audit"
+        ]
+      }
+    },
     "/api/v1/admin/brands": {
       "get": {
         "operationId": "BrandsAdminController_list_v1",

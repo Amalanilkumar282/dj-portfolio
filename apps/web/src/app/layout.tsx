@@ -5,6 +5,8 @@ import { ConsentBanner } from '../components/consent-banner';
 import { JsonLd, breadcrumbList } from '../lib/json-ld';
 import { SITE, absoluteUrl } from '../lib/site';
 
+import { fontVariables } from './fonts';
+
 import './globals.css';
 
 /**
@@ -67,7 +69,7 @@ const siteGraph = [
 
 export default function RootLayout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <html lang="en-IN">
+    <html lang="en-IN" className={fontVariables}>
       <body>
         <a
           href="#main"

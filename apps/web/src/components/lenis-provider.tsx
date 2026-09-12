@@ -3,28 +3,28 @@
 import Lenis from 'lenis';
 import { useEffect } from 'react';
 
-import { useCapability, useReducedMotion } from '../lib/motion';
+import { useCapability, useCoarsePointer } from '@dj/motion';
 
 /**
- * Smooth scroll (masterplan §5.6 item 9). Deliberately disabled — not
- * merely "less smooth" — under reduced motion, on touch (native momentum
- * scrolling is already better there), and on a low-`hardwareConcurrency`
- * device, matching the masterplan's own documented conditions exactly.
- * Native scroll is a complete, correct experience on its own; this is
- * additive.
+ * Smooth scroll (motion.md item 9).
+ *
+ * Off on touch because native momentum scrolling is genuinely better there,
+ * and off below the `full` tier because a scroll hijack on a slow device is
+ * the most obvious way to make a site feel broken. Native scroll is the
+ * complete experience; this is additive.
  */
 export function LenisProvider(): null {
-  const reducedMotion = useReducedMotion();
-  const { capable, coarsePointer } = useCapability();
+  const capability = useCapability();
+  const coarsePointer = useCoarsePointer();
 
   useEffect(() => {
-    if (reducedMotion || coarsePointer || !capable) return;
+    if (capability !== 'full' || coarsePointer) return;
 
     const lenis = new Lenis({ autoRaf: true });
     return () => {
       lenis.destroy();
     };
-  }, [reducedMotion, coarsePointer, capable]);
+  }, [capability, coarsePointer]);
 
   return null;
 }
