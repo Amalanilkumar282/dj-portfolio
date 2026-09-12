@@ -891,7 +891,7 @@ model Venue {
   seoMetaId String?  @unique
   seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
 
-  status      ContentStatus @default(PUBLISHED)
+  status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
   scheduledAt DateTime?
   sortIndex   Int           @default(0)
@@ -1190,7 +1190,7 @@ model Brand {
 
   personas PersonaBrand[]
 
-  status      ContentStatus @default(PUBLISHED)
+  status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
   scheduledAt DateTime?
   sortIndex   Int           @default(0)

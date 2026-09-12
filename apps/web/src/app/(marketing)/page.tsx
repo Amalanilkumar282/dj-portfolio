@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { formatEventDateRange } from '@dj/utils';
 
 import { Container, Section, SectionHeader } from '../../components/container';
+import { MagneticLink } from '../../components/magnetic-link';
 import { JsonLd, type JsonLdNode } from '../../lib/json-ld';
 import { absoluteUrl, personaThemeName, SITE } from '../../lib/site';
 import { getUpcomingEvents } from '../../server/queries/events';
@@ -76,12 +77,12 @@ export default async function HomePage(): Promise<React.JSX.Element> {
           <h1 className="font-display text-display text-fg-strong mt-4 max-w-4xl">DJ Felicitous</h1>
           <p className="text-lead text-fg-secondary mt-6 max-w-xl">{SITE.defaultDescription}</p>
           <div className="mt-8 flex flex-wrap gap-4">
-            <Link
+            <MagneticLink
               href="/book"
               className="bg-accent text-on-accent rounded-full px-6 py-3 text-sm font-semibold"
             >
               Book an event
-            </Link>
+            </MagneticLink>
             <Link
               href="/music"
               className="border-border text-fg-strong rounded-full border px-6 py-3 text-sm font-semibold"

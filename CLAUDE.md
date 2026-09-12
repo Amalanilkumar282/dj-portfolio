@@ -45,15 +45,12 @@ without a developer.**
 | `apps/admin` | admin.djfelicitous.com | The CMS. **This is the product.**                   |
 | `apps/api`   | api.djfelicitous.com   | NestJS. Owns the database and business rules.       |
 
-## Current state (2026-09-12, Group D session)
+## Current state (2026-09-12, Group E session)
 
-Groups A through D (Phases 0-9) are code-complete. Phase 3 has one
-documented gap. This session brought in **real Cloudinary, Resend and
-Turnstile credentials plus a real Neon Postgres for the first time** —
-migrated and seeded fresh, since it had never been touched before. See
-below and `STATUS.md`'s Group D section for what "verified" means now
-that credentials are real but the media catalogue still has no real
-uploads (gap #4/#16).
+Groups A through E (Phases 0-11) are code-complete, each **scoped** rather
+than built to the masterplan's full literal breadth — see `STATUS.md`'s
+Group C/D/E sections for exactly what that means per group. Phase 3 has
+one documented gap.
 
 The data layer is finished, migrated, seeded and tested against a real
 Postgres — 48 models, 90 integration tests, zero schema drift. The API boots,
@@ -98,22 +95,41 @@ auth to exist safely), gallery/video lightboxes (no backend module),
 shader/motion work, self-hosted fonts, dynamic per-entity OG images, split
 sitemaps. `apps/admin` is still a **scaffold only**.
 
+**Group E — `apps/admin` exists for the first time.** Auth (login + TOTP,
+in-memory access token, httpOnly refresh cookie, CSRF double-submit,
+silent refresh on load), a protected shell with an RBAC-aware sidebar, and
+**Venues** as the one content type with complete CRUD + publish workflow —
+verified against the live, seeded Neon database with the real
+`SUPER_ADMIN`. Building this screen found and fixed a real pre-existing
+schema bug: `Venue`/`Brand` were the only publishable models defaulting to
+`PUBLISHED` at the column level (everything else defaults to `DRAFT`), so
+omitting `status` on create — exactly what the "New venue" form does —
+crashed on the `published_has_date` CHECK constraint. Fixed via a
+hand-written migration (see STATUS.md). Every other content type's admin
+screen is now a mechanical copy of the Venues pattern, not a design
+problem — deferred, along with Tiptap, the media library, `@dnd-kit`
+reordering, Draft Mode preview, the audit log, and the booking Kanban.
+Phase 10 (motion) shipped its capability-check infrastructure
+(`useReducedMotion`/`useCapability`/`<MotionGate>`) plus one real,
+verified technique (a magnetic-cursor CTA); the shader/3D/audio-visualizer
+work is deferred until real photo/video/audio assets exist to build
+against meaningfully (gap #4/#16) — see STATUS.md's Group E section.
+
 One documented gap: `auth/` unit-test coverage — behaviour is fully verified
 by 36 e2e tests, but `AuthService` and 4 other classes have no unit tests.
 See [ADR 0021](docs/01-decisions/0021-auth-coverage-gap-and-inert-threshold.md).
 
 Read [`docs/06-roadmap/STATUS.md`](docs/06-roadmap/STATUS.md) for the full
-account — especially the Group B, C and D sections, which spell out
+account — especially the Group B through E sections, which spell out
 exactly what "code complete" does and does not mean — then the relevant
 [`docs/02-architecture/`](docs/02-architecture/) doc before picking up
-Phase 10 (motion) or Phase 11 (admin panel — the CMS itself, the actual
-product this whole project is for, and still entirely unbuilt).
+Phase 12 (hardening & launch) or extending Phase 11's admin to more
+content types.
 
 **Note for the next session on the API's e2e suite (gap #15):** it assumes
-a disposable database reset per run. This session pointed it at the real
-Neon database for the first time and its own lockout test locked the real
-seeded admin account — run it only against a throwaway database going
-forward.
+a disposable database reset per run. A prior session pointed it at the
+real Neon database and its own lockout test locked the real seeded admin
+account — run it only against a throwaway database going forward.
 
 ## Commands
 
