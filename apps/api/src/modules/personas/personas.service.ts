@@ -56,6 +56,8 @@ interface PersonaScalarWrite {
   bpmRangeLow?: number | null;
   bpmRangeHigh?: number | null;
   yearsActiveFrom?: number | null;
+  heroMediaId?: string | null;
+  avatarMediaId?: string | null;
   sortIndex?: number;
   status?: ContentStatus;
   publishedAt?: Date;
@@ -301,6 +303,8 @@ export class PersonasService extends BaseContentService<PersonaRowBase> {
     assign('bpmRangeLow');
     assign('bpmRangeHigh');
     assign('yearsActiveFrom');
+    assign('heroMediaId');
+    assign('avatarMediaId');
     assign('sortIndex');
     assign('scheduledAt');
 

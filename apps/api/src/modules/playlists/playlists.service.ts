@@ -26,6 +26,7 @@ interface PlaylistScalarWrite {
   description?: string | null;
   personaId?: string | null;
   isFeatured?: boolean;
+  coverId?: string | null;
   sortIndex?: number;
   status?: ContentStatus;
   publishedAt?: Date;
@@ -224,6 +225,7 @@ export class PlaylistsService extends BaseContentService<PlaylistRowBase> {
 
     assign('description');
     assign('isFeatured');
+    assign('coverId');
     assign('sortIndex');
     assign('scheduledAt');
 

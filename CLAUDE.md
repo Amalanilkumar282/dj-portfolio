@@ -45,12 +45,16 @@ without a developer.**
 | `apps/admin` | admin.djfelicitous.com | The CMS. **This is the product.**                   |
 | `apps/api`   | api.djfelicitous.com   | NestJS. Owns the database and business rules.       |
 
-## Current state (2026-09-12, Group E session)
+## Current state (2026-09-12, Group F session)
 
-Groups A through E (Phases 0-11) are code-complete, each **scoped** rather
-than built to the masterplan's full literal breadth — see `STATUS.md`'s
-Group C/D/E sections for exactly what that means per group. Phase 3 has
-one documented gap.
+Groups A through F (all 13 phases) now have code written, each **scoped**
+rather than built to the masterplan's full literal breadth — see
+`STATUS.md`'s Group C through F sections for exactly what that means per
+group. Phase 3 has one documented gap. **Development is code-complete in
+the sense that every phase has been worked; it is not "launched" — Group
+F's own account includes an explicit handoff list of what needs the user
+directly (screen-reader testing, a Sentry account, an actual deployment,
+load testing, a restore drill, real per-location content), not more code.**
 
 The data layer is finished, migrated, seeded and tested against a real
 Postgres — 48 models, 90 integration tests, zero schema drift. The API boots,
@@ -98,26 +102,37 @@ sitemaps. `apps/admin` is still a **scaffold only**.
 **Group E — `apps/admin` is now a real, broad admin panel.** Auth (login +
 TOTP, in-memory access token, httpOnly refresh cookie, CSRF double-submit,
 silent refresh on load), a protected shell with an RBAC-aware sidebar, and
-**12 content types with full CRUD + publish workflow** — Venues (bespoke)
-plus a config-driven generic scaffold (`lib/entity-config.ts`) covering
-Genres/Tags/Stats/Redirects/Testimonials/Services/FAQs/Experience/Brands/
-Gear/Press assets. StaticPages and Posts get a real Tiptap v3 editor.
-Settings (the singleton), a real media library, Draft Mode preview links,
-an audit log viewer, and a booking Kanban all exist and are live-verified
-against the real, seeded Neon database.
+**18 content types with full CRUD + publish workflow** — Venues, Personas,
+Tracks, Releases, Playlists, Programs and Events (each with bespoke
+relation pickers — genres, persona/venue/program dropdowns, a track-order
+picker, a lineup builder) plus a config-driven generic scaffold
+(`lib/entity-config.ts`) covering Genres/Tags/Stats/Redirects/
+Testimonials/Services/FAQs/Experience/Brands/Gear/Press assets.
+StaticPages and Posts get a real Tiptap v3 editor. Settings (the
+singleton), a real media library, Draft Mode preview links, an audit log
+viewer, and a booking Kanban all exist and are live-verified against the
+real, seeded Neon database. Two structural gaps remain, deliberately not
+guessed at: Track↔Release membership and Persona social links both need a
+contract change (a new write schema) before they can be set — see
+STATUS.md's Group F section.
 
-**The most consequential bug of the project so far** was found building
-the media library: `MediaService.createUploadSignature()` signed a params
-object including `resource_type`, but Cloudinary's own signature
-verification excludes it — every real upload, through any client, had
-been failing with `Invalid Signature` since Group B, undetected because
-verification only ever checked that a signature was *computed*, never
-that Cloudinary would accept it. Fixed, then re-verified live: a real
-file uploaded → confirmed → listed → deleted, the full cycle, for the
-first time. A second, smaller schema bug (`Venue`/`Brand` defaulting to
-`PUBLISHED` instead of `DRAFT`) was found and fixed the same way, via the
-"New venue" form actually being used. See STATUS.md's Group E sections
-(both passes) for the full account of each.
+**Three real bugs were found and fixed by actually building the admin,
+not by inspection.** `MediaService.createUploadSignature()` signed a
+params object including `resource_type`, which Cloudinary's own
+signature verification excludes — every real upload, through any client,
+had been failing with `Invalid Signature` since Group B, undetected
+because verification only ever checked that a signature was *computed*,
+never that Cloudinary would accept it. `Venue`/`Brand` defaulted their
+`status` column to `PUBLISHED` instead of `DRAFT` like every other
+publishable model, crashing the "New venue" form the instant it omitted
+`status`. And none of the six relational content types had a write path
+for their own media-attachment fields (`artworkId`, `coverId`, `heroId`,
+`flyerId`, `heroMediaId`/`avatarMediaId`) — the columns and read-side
+mapping existed, but the create/update contracts never exposed them, so
+setting a track's artwork was structurally impossible for any client
+until this session added it. All three fixed and re-verified live
+against the real database and real Cloudinary. See STATUS.md's Group E
+(both passes) and Group F sections for the full account of each.
 
 Phase 10 (motion) now also ships Lenis smooth scroll, a `⌘K` command
 palette (static routes + personas, not a full search index), and an audio
@@ -125,23 +140,35 @@ visualizer wired to the mini player's real `<audio>` element (renders
 flat until a track has real audio — gap #16). Still deferred: shaders,
 the 3D turntable/gig-globe scenes, View Transitions, the custom cursor —
 all need real media assets (the 3D scenes also need a sourced GLTF model)
-to be more than placeholder content. Also still deferred in Phase 11: CRUD
-for the six relational content types (Personas/Tracks/Releases/Playlists/
-Programs/Events — each needs media/relation pickers a generic form can't
-represent), `@dnd-kit` drag-and-drop (explicit move-up/down buttons are
-the actual required accessible baseline, not a stand-in), `react-easy-crop`
-cropping, and custom Tiptap embed nodes.
+to be more than placeholder content. Also still deferred: `@dnd-kit`
+drag-and-drop (explicit move-up/down buttons are the actual required
+accessible baseline, not a stand-in), `react-easy-crop` cropping, and
+custom Tiptap embed nodes.
+
+**Group F — Phase 12/13's codeable subset, plus closing Phase 11's last
+content-type gap.** A real CSP + standard security headers on both
+`apps/web` and `apps/admin` (documented `unsafe-inline` on `script-src`,
+pending a real-browser-verified nonce rollout — Next's App Router injects
+inline hydration scripts with no nonce by default, and this session can't
+verify hydration wouldn't break without a real browser); legacy 301
+redirects re-verified live; a real `/search` page querying actual content
+(no fabricated results, and explicitly not the location-landing-page or
+i18n work, both of which need real per-location/per-language content from
+the user, not more code — see STATUS.md). **Development is now coded
+through every phase; it has not been hardened, load-tested, screen-reader
+audited, or launched — those are the explicit handoff items in STATUS.md's
+Group F section, not gaps in scope.**
 
 One documented gap: `auth/` unit-test coverage — behaviour is fully verified
 by 36 e2e tests, but `AuthService` and 4 other classes have no unit tests.
 See [ADR 0021](docs/01-decisions/0021-auth-coverage-gap-and-inert-threshold.md).
 
 Read [`docs/06-roadmap/STATUS.md`](docs/06-roadmap/STATUS.md) for the full
-account — especially the Group B through E sections, which spell out
+account — especially the Group B through F sections, which spell out
 exactly what "code complete" does and does not mean — then the relevant
 [`docs/02-architecture/`](docs/02-architecture/) doc before picking up
-Phase 12 (hardening & launch) or extending Phase 11's admin to more
-content types.
+any of Group F's handoff items or the Track↔Release/social-links
+contract gap.
 
 **Note for the next session on the API's e2e suite (gap #15):** it assumes
 a disposable database reset per run. A prior session pointed it at the

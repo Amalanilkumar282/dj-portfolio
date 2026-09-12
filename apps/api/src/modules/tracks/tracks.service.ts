@@ -35,6 +35,8 @@ interface TrackScalarWrite {
   isFeatured?: boolean;
   soundcloudTrackId?: string | null;
   tags?: string[];
+  artworkId?: string | null;
+  audioId?: string | null;
   sortIndex?: number;
   status?: ContentStatus;
   publishedAt?: Date;
@@ -251,6 +253,8 @@ export class TracksService extends BaseContentService<TrackRowBase> {
     assign('isFeatured');
     assign('soundcloudTrackId');
     assign('tags');
+    assign('artworkId');
+    assign('audioId');
     assign('sortIndex');
     assign('scheduledAt');
 

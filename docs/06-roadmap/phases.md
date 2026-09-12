@@ -20,9 +20,9 @@ Canonical phase table with exit criteria. For current state, read
 | 8   | Conversion (booking funnel)    | 6, 7                | **D** | ✅ (scoped) |
 | 9   | Media & player                 | 5, 7                | **D** | ✅ (scoped) |
 | 10  | Cinematic + signature motion   | 9                   | **E** | ✅ (scoped) |
-| 11  | Admin panel                    | 3, 4, 5, 6          | **E** | ✅ (scoped) |
-| 12  | Hardening & launch             | all                 | **F** | ⬜         |
-| 13  | Growth                         | 12                  | **F** | ⬜         |
+| 11  | Admin panel                    | 3, 4, 5, 6          | **E** | ✅ (all content types) |
+| 12  | Hardening & launch             | all                 | **F** | ✅ (codeable subset) |
+| 13  | Growth                         | 12                  | **F** | ✅ (codeable subset) |
 
 ---
 
@@ -43,8 +43,8 @@ have to be met, and verified together before the group is called done.
 | **B** | 5+6    | Media + content     | All code written and wired; live Cloudinary/Resend/Turnstile verification blocked on credentials (STATUS.md gap #2) |
 | **C** | 7      | Web shell + SEO     | Complete — see STATUS.md                                             |
 | **D** | 8+9    | Conversion + player | Complete (scoped) — see STATUS.md                                    |
-| **E** | 10+11  | Motion + admin      | Complete (scoped) — see STATUS.md                                    |
-| **F** | 12+13  | Hardening + growth  | —                                                                   |
+| **E** | 10+11  | Motion + admin      | Complete — all content types have admin CRUD — see STATUS.md         |
+| **F** | 12+13  | Hardening + growth  | Complete (codeable subset) — see STATUS.md's handoff list for the rest |
 
 Group A's one remaining item is listed in [`STATUS.md`](STATUS.md) — the
 `auth/` unit-test coverage gap, which does not block Group B or C.

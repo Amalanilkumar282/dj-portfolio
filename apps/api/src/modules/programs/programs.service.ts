@@ -31,6 +31,7 @@ interface ProgramScalarWrite {
   residencyFrom?: Date | null;
   residencyTo?: Date | null;
   isOngoing?: boolean;
+  heroId?: string | null;
   sortIndex?: number;
   status?: ContentStatus;
   publishedAt?: Date;
@@ -232,6 +233,7 @@ export class ProgramsService extends BaseContentService<ProgramRowBase> {
     assign('residencyFrom');
     assign('residencyTo');
     assign('isOngoing');
+    assign('heroId');
     assign('sortIndex');
     assign('scheduledAt');
 

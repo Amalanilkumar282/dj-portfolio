@@ -20,10 +20,21 @@ interface NavGroup {
 const NAV_GROUPS: NavGroup[] = [
   { label: '', items: [{ href: '/', label: 'Dashboard' }] },
   {
-    label: 'Content',
+    label: 'Music & shows',
     items: [
+      { href: '/personas', label: 'Personas', permission: 'persona:read' },
+      { href: '/tracks', label: 'Tracks', permission: 'track:read' },
+      { href: '/releases', label: 'Releases', permission: 'release:read' },
+      { href: '/playlists', label: 'Playlists', permission: 'playlist:read' },
+      { href: '/programs', label: 'Programs', permission: 'program:read' },
+      { href: '/events', label: 'Events', permission: 'event:read' },
       { href: '/venues', label: 'Venues', permission: 'venue:read' },
       { href: '/genres', label: 'Genres', permission: 'genre:read' },
+    ],
+  },
+  {
+    label: 'Content',
+    items: [
       { href: '/testimonials', label: 'Testimonials', permission: 'testimonial:read' },
       { href: '/services', label: 'Services', permission: 'service:read' },
       { href: '/faqs', label: 'FAQs', permission: 'faq:read' },

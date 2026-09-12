@@ -32,6 +32,7 @@ interface ReleaseScalarWrite {
   description?: string | null;
   releaseDate?: Date | null;
   isFeatured?: boolean;
+  coverId?: string | null;
   sortIndex?: number;
   status?: ContentStatus;
   publishedAt?: Date;
@@ -235,6 +236,7 @@ export class ReleasesService extends BaseContentService<ReleaseRowBase> {
     assign('description');
     assign('releaseDate');
     assign('isFeatured');
+    assign('coverId');
     assign('sortIndex');
     assign('scheduledAt');
 

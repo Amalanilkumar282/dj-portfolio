@@ -58,6 +58,7 @@ interface EventScalarWrite {
   ageRestriction?: string | null;
   isFeatured?: boolean;
   attendanceEstimate?: number | null;
+  flyerId?: string | null;
   sortIndex?: number;
   currency?: Currency;
   status?: ContentStatus;
@@ -308,6 +309,7 @@ export class EventsService extends BaseContentService<EventRowBase> {
     assign('ageRestriction');
     assign('isFeatured');
     assign('attendanceEstimate');
+    assign('flyerId');
     assign('sortIndex');
     assign('scheduledAt');
 

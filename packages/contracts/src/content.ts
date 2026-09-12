@@ -159,6 +159,8 @@ const PersonaCreateBase = inputObject({
   bpmRangeHigh: z.number().int().min(60).max(300).nullish(),
   yearsActiveFrom: z.number().int().min(1990).max(2100).nullish(),
   genreSlugs: z.array(Slug).max(30).optional(),
+  heroMediaId: Id.nullish(),
+  avatarMediaId: Id.nullish(),
   ...PublishableInput,
 });
 
@@ -348,6 +350,8 @@ export const TrackCreateInput = inputObject({
     .array(inputObject({ platform: StreamPlatformSchema, url: z.string().url() }))
     .max(9)
     .optional(),
+  artworkId: Id.nullish(),
+  audioId: Id.nullish(),
   ...PublishableInput,
 });
 export type TrackCreateInput = z.infer<typeof TrackCreateInput>;
@@ -405,6 +409,7 @@ export const PlaylistCreateInput = inputObject({
   isFeatured: z.boolean().optional(),
   /** Ordered. Position in the array becomes the fractional sort index. */
   trackIds: z.array(Id).max(200).optional(),
+  coverId: Id.nullish(),
   ...PublishableInput,
 });
 export type PlaylistCreateInput = z.infer<typeof PlaylistCreateInput>;
@@ -470,6 +475,7 @@ export const ReleaseCreateInput = inputObject({
   description: z.string().max(4000).nullish(),
   releaseDate: z.coerce.date().nullish(),
   isFeatured: z.boolean().optional(),
+  coverId: Id.nullish(),
   ...PublishableInput,
 });
 export type ReleaseCreateInput = z.infer<typeof ReleaseCreateInput>;
@@ -657,6 +663,7 @@ const EventCreateBase = inputObject({
   ageRestriction: z.string().max(20).nullish(),
   isFeatured: z.boolean().optional(),
   attendanceEstimate: z.number().int().min(0).nullish(),
+  flyerId: Id.nullish(),
   lineup: z
     .array(
       inputObject({
@@ -756,6 +763,7 @@ export const ProgramCreateInput = inputObject({
   residencyFrom: z.coerce.date().nullish(),
   residencyTo: z.coerce.date().nullish(),
   isOngoing: z.boolean().optional(),
+  heroId: Id.nullish(),
   ...PublishableInput,
 });
 export type ProgramCreateInput = z.infer<typeof ProgramCreateInput>;
