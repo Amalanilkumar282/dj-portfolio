@@ -4,8 +4,10 @@ import { notFound } from 'next/navigation';
 
 import { formatEventDateRange, stripMarkdown, truncate } from '@dj/utils';
 
+import { CloudinaryImage } from '../../../components/cloudinary-image';
 import { Container, Section, SectionHeader } from '../../../components/container';
 import { JsonLd, type JsonLdNode } from '../../../lib/json-ld';
+import { cloudinaryOgUrl, SIZES } from '../../../lib/media';
 import { absoluteUrl } from '../../../lib/site';
 import { getPersonaPage } from '../../../server/queries/personas';
 
@@ -26,7 +28,11 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     title: `${persona.stageName} — ${persona.primaryGenreLabel ?? 'DJ'}`,
     description,
     alternates: { canonical: url },
-    openGraph: { url, type: 'profile', images: persona.heroImage ? [{ url: persona.heroImage.publicId }] : undefined },
+    openGraph: {
+      url,
+      type: 'profile',
+      images: persona.heroImage ? [{ url: cloudinaryOgUrl(persona.heroImage.publicId) }] : undefined,
+    },
   };
 }
 
@@ -55,6 +61,17 @@ export default async function PersonaPage({ params }: { params: Promise<Params> 
     <>
       <Section className="pt-20">
         <Container>
+          {persona.heroImage ? (
+            <div className="relative mb-8 aspect-video w-full overflow-hidden rounded-lg">
+              <CloudinaryImage
+                image={persona.heroImage}
+                sizes={SIZES.heroFull}
+                priority
+                fill
+                className="object-cover"
+              />
+            </div>
+          ) : null}
           <p className="text-eyebrow text-accent font-semibold uppercase">
             {persona.homeCity ?? 'Bengaluru'}
           </p>

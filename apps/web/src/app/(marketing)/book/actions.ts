@@ -45,11 +45,15 @@ export async function submitInquiry(_prevState: BookFormState, formData: FormDat
         budgetMax: budgetRaw ? Number(budgetRaw) : undefined,
         message: emptyToUndefined(formData.get('message')),
         website: emptyToUndefined(formData.get('website')),
-        // Turnstile is unconfigured (placeholder credentials) in every
-        // non-production environment today, so verification is skipped —
-        // see TurnstileService. Once a real site key exists, replace this
-        // with the actual widget token from a client-side Turnstile leaf.
-        turnstileToken: 'unconfigured',
+        // Cloudflare's script injects this hidden input itself (see
+        // TurnstileWidget) once a real site key is configured. The literal
+        // fallback only matters when the widget renders nothing (no site
+        // key) — `TurnstileService.verify()` never inspects the token value
+        // in that case, since a placeholder *secret* key skips verification
+        // outright. If the secret is real but the token is missing/invalid,
+        // Cloudflare genuinely rejects it — which is the correct failure
+        // mode for a misconfigured pairing, not something to paper over here.
+        turnstileToken: emptyToUndefined(formData.get('cf-turnstile-response')) ?? 'unconfigured',
       },
       BookingInquiryPublicResult,
     );

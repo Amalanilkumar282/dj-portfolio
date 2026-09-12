@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { secondsToDuration } from '@dj/utils';
 
 import { Container, Section } from '../../../../components/container';
+import { PlayButton } from '../../../../components/player/play-button';
 import { JsonLd, type JsonLdNode } from '../../../../lib/json-ld';
 import { absoluteUrl } from '../../../../lib/site';
 import { getTrack } from '../../../../server/queries/tracks';
@@ -70,6 +71,13 @@ export default async function TrackPage({ params }: { params: Promise<Params> })
           ) : null}
         </dl>
         {track.description ? <p className="text-fg-secondary mt-6 whitespace-pre-line">{track.description}</p> : null}
+        {track.audioUrl ? (
+          <div className="mt-8">
+            <PlayButton
+              track={{ id: track.id, title: track.title, artistLabel: track.artistLabel, audioUrl: track.audioUrl }}
+            />
+          </div>
+        ) : null}
         {track.embedUrl ? (
           <div className="mt-8 overflow-hidden rounded-md border border-border">
             <iframe

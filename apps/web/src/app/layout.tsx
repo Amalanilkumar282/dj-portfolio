@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 
+import { AnalyticsScript } from '../components/analytics-script';
+import { ConsentBanner } from '../components/consent-banner';
 import { JsonLd, breadcrumbList } from '../lib/json-ld';
 import { SITE, absoluteUrl } from '../lib/site';
 
@@ -74,7 +76,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
           Skip to content
         </a>
         {children}
+        <ConsentBanner />
         <JsonLd graph={siteGraph} />
+        <AnalyticsScript />
       </body>
     </html>
   );

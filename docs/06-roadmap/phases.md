@@ -16,9 +16,9 @@ Canonical phase table with exit criteria. For current state, read
 | 4   | Core content CRUD              | 3                   | **A** | ✅         |
 | 5   | Media pipeline                 | 4 + Cloudinary keys | **B** | ✅ (code) / ⬜ (live) |
 | 6   | Remaining content + engagement | 4 + Resend keys     | **B** | ✅ (code) / ⬜ (live) |
-| 7   | Web shell + data + SEO core    | 4                   | **C** | ⬜         |
-| 8   | Conversion (booking funnel)    | 6, 7                | **D** | ⬜         |
-| 9   | Media & player                 | 5, 7                | **D** | ⬜         |
+| 7   | Web shell + data + SEO core    | 4                   | **C** | ✅         |
+| 8   | Conversion (booking funnel)    | 6, 7                | **D** | ✅ (scoped) |
+| 9   | Media & player                 | 5, 7                | **D** | ✅ (scoped) |
 | 10  | Cinematic + signature motion   | 9                   | **E** | ⬜         |
 | 11  | Admin panel                    | 3, 4, 5, 6          | **E** | ⬜         |
 | 12  | Hardening & launch             | all                 | **F** | ⬜         |
@@ -41,8 +41,8 @@ have to be met, and verified together before the group is called done.
 | ----- | ------ | ------------------- | ------------------------------------------------------------------- |
 | **A** | 2+3+4  | Backend foundation  | 2 and 4 done; 3 has one documented gap (auth unit coverage)         |
 | **B** | 5+6    | Media + content     | All code written and wired; live Cloudinary/Resend/Turnstile verification blocked on credentials (STATUS.md gap #2) |
-| **C** | 7      | Web shell + SEO     | Needs Group A complete                                              |
-| **D** | 8+9    | Conversion + player | —                                                                   |
+| **C** | 7      | Web shell + SEO     | Complete — see STATUS.md                                             |
+| **D** | 8+9    | Conversion + player | Complete (scoped) — see STATUS.md                                    |
 | **E** | 10+11  | Motion + admin      | —                                                                   |
 | **F** | 12+13  | Hardening + growth  | —                                                                   |
 

@@ -27,12 +27,16 @@ const config: NextConfig = {
   transpilePackages: ['@dj/ui', '@dj/contracts', '@dj/utils'],
 
   images: {
-    // Phase 9 swaps this for the Cloudinary loader. Declared now so no image
-    // is ever added with the default loader by accident.
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [360, 414, 640, 768, 1024, 1280, 1536, 1920, 2560],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 31_536_000,
+    // Cloudinary already does format/quality negotiation and resizing at the
+    // edge; Next's built-in image endpoint would just re-do that work and
+    // add a second hop. `<CloudinaryImage>` is the only sanctioned way to
+    // render a `MediaImage` — see docs/02-architecture/frontend.md §5.7.
+    loader: 'custom',
+    loaderFile: './src/lib/cloudinary-loader.ts',
   },
 
   // Phase 7 enables incremental PPR on /, /[persona] and /events.

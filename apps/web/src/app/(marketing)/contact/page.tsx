@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { Container, Section, SectionHeader } from '../../../components/container';
+import { TrackedLink } from '../../../components/tracked-link';
 import { absoluteUrl } from '../../../lib/site';
 import { getSettings } from '../../../server/queries/settings';
 
@@ -29,27 +30,33 @@ export default async function ContactPage(): Promise<React.JSX.Element> {
             Submit a booking enquiry
           </Link>
           {settings.whatsappNumber ? (
-            <a
+            <TrackedLink
+              event="whatsapp_click"
               href={`https://wa.me/${settings.whatsappNumber.replace(/[^\d]/g, '')}`}
               rel="noopener noreferrer"
               target="_blank"
               className="rounded-full border border-border px-6 py-3 text-center text-sm font-semibold text-fg-strong"
             >
               Message on WhatsApp
-            </a>
+            </TrackedLink>
           ) : null}
           {settings.bookingEmail ?? settings.contactEmail ? (
-            <a
+            <TrackedLink
+              event="email_click"
               href={`mailto:${settings.bookingEmail ?? settings.contactEmail}`}
               className="text-accent text-center text-sm underline"
             >
               {settings.bookingEmail ?? settings.contactEmail}
-            </a>
+            </TrackedLink>
           ) : null}
           {settings.contactPhone ? (
-            <a href={`tel:${settings.contactPhone}`} className="text-accent text-center text-sm underline">
+            <TrackedLink
+              event="phone_click"
+              href={`tel:${settings.contactPhone}`}
+              className="text-accent text-center text-sm underline"
+            >
               {settings.contactPhone}
-            </a>
+            </TrackedLink>
           ) : null}
         </div>
         {settings.serviceAreaText ? (

@@ -45,11 +45,15 @@ without a developer.**
 | `apps/admin` | admin.djfelicitous.com | The CMS. **This is the product.**                   |
 | `apps/api`   | api.djfelicitous.com   | NestJS. Owns the database and business rules.       |
 
-## Current state (2026-09-11, Group C session)
+## Current state (2026-09-12, Group D session)
 
-Groups A, B and C (Phases 0-7) are code-complete. Phase 3 has one documented
-gap; Phases 5 and 6's credential-dependent paths (Cloudinary, Resend,
-Turnstile) are written and wired but not live-verified — see below.
+Groups A through D (Phases 0-9) are code-complete. Phase 3 has one
+documented gap. This session brought in **real Cloudinary, Resend and
+Turnstile credentials plus a real Neon Postgres for the first time** —
+migrated and seeded fresh, since it had never been touched before. See
+below and `STATUS.md`'s Group D section for what "verified" means now
+that credentials are real but the media catalogue still has no real
+uploads (gap #4/#16).
 
 The data layer is finished, migrated, seeded and tested against a real
 Postgres — 48 models, 90 integration tests, zero schema drift. The API boots,
@@ -80,22 +84,36 @@ in Phase 2. Gallery and Video are deliberately out of scope for Phase 6 —
 the full public route tree from `docs/02-architecture/frontend.md`, a
 server-only Zod-validated data layer (`server/queries/*`, `React.cache()`-
 wrapped), `generateMetadata` + a JSON-LD `@graph` on every route, robots/
-sitemap/manifest/feeds, and the HMAC-verified `/api/revalidate` webhook —
-built and verified end to end against a live API instance. Deferred to
-later phases: the live Cloudinary image loader, mini player/lightbox (also
-blocked on Gallery/Video, never built), shader/motion work, self-hosted
-fonts, dynamic per-entity OG images, split sitemaps, and booking-funnel UX
-polish. `apps/admin` is still a **scaffold only**.
+sitemap/manifest/feeds, and the HMAC-verified `/api/revalidate` webhook.
+
+**Group D — Conversion + Media & player, scoped:** the real Turnstile
+widget wired into `/book` (fixing a bug this session's own credential swap
+would otherwise have caused — see STATUS.md), consent-gated analytics
+event firing, the Cloudinary image loader + `<CloudinaryImage>` (fixing a
+latent OG-image URL bug in passing), and a mini player built as the
+masterplan's own documented fallback tier (plain `<audio>`, not
+wavesurfer.js) — functionally wired but untested against real audio, since
+no track has one yet. Deferred: the admin enquiry inbox (needs Phase 11's
+auth to exist safely), gallery/video lightboxes (no backend module),
+shader/motion work, self-hosted fonts, dynamic per-entity OG images, split
+sitemaps. `apps/admin` is still a **scaffold only**.
 
 One documented gap: `auth/` unit-test coverage — behaviour is fully verified
 by 36 e2e tests, but `AuthService` and 4 other classes have no unit tests.
 See [ADR 0021](docs/01-decisions/0021-auth-coverage-gap-and-inert-threshold.md).
 
 Read [`docs/06-roadmap/STATUS.md`](docs/06-roadmap/STATUS.md) for the full
-account — especially the Group B and Group C sections, which spell out
+account — especially the Group B, C and D sections, which spell out
 exactly what "code complete" does and does not mean — then the relevant
 [`docs/02-architecture/`](docs/02-architecture/) doc before picking up
-Phase 8 (booking funnel) or Phase 11 (admin panel).
+Phase 10 (motion) or Phase 11 (admin panel — the CMS itself, the actual
+product this whole project is for, and still entirely unbuilt).
+
+**Note for the next session on the API's e2e suite (gap #15):** it assumes
+a disposable database reset per run. This session pointed it at the real
+Neon database for the first time and its own lockout test locked the real
+seeded admin account — run it only against a throwaway database going
+forward.
 
 ## Commands
 

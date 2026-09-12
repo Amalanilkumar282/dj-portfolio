@@ -1,6 +1,9 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
+
+import { TurnstileWidget } from '../../../components/turnstile-widget';
+import { track } from '../../../lib/analytics';
 
 import { submitInquiry, type BookFormState } from './actions';
 
@@ -22,6 +25,10 @@ const initialState: BookFormState = {};
  */
 export function BookForm(): React.JSX.Element {
   const [state, formAction, pending] = useActionState(submitInquiry, initialState);
+
+  useEffect(() => {
+    track('booking_started');
+  }, []);
 
   return (
     <form action={formAction} className="mt-8 space-y-5">
@@ -145,6 +152,8 @@ export function BookForm(): React.JSX.Element {
           className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg-strong"
         />
       </div>
+
+      <TurnstileWidget />
 
       {state.error ? (
         <p role="alert" className="text-danger text-sm">

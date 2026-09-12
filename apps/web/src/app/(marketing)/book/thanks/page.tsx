@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { Container, Section } from '../../../../components/container';
+import { TrackEvent } from '../../../../components/track-event';
 
 export const metadata: Metadata = {
   title: 'Enquiry received',
@@ -27,6 +28,7 @@ export default async function BookThanksPage({
           Back to home
         </Link>
       </Container>
+      <TrackEvent event="booking_submitted" />
     </Section>
   );
 }

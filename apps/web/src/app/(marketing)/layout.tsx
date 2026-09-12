@@ -1,11 +1,12 @@
 import { Footer } from '../../components/footer';
 import { Header } from '../../components/header';
+import { MiniPlayer } from '../../components/player/mini-player';
+import { PlayerProvider } from '../../components/player/player-context';
 
 /**
- * Header + main + footer. No mini player yet — it belongs above the route
- * slot so App Router never unmounts it across navigations, but it needs the
- * media catalogue's playback state (Phase 9) to be worth adding; a player
- * with nothing safely streamable yet is worse than none. See STATUS.md.
+ * Header + main + footer, wrapped in `<PlayerProvider>` so playback state
+ * survives every navigation within this route group — the provider and the
+ * `<MiniPlayer>` it renders live above `{children}`, not inside it.
  */
 export default function MarketingLayout({
   children,
@@ -13,10 +14,11 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <>
+    <PlayerProvider>
       <Header />
       <main id="main">{children}</main>
       <Footer />
-    </>
+      <MiniPlayer />
+    </PlayerProvider>
   );
 }
