@@ -1,4 +1,5 @@
 import { CommandPalette } from '../../components/command-palette';
+import { ContactDock } from '../../components/contact-dock';
 import { Footer } from '../../components/footer';
 import { Header } from '../../components/header';
 import { LenisProvider } from '../../components/lenis-provider';
@@ -24,6 +25,7 @@ export default async function MarketingLayout({
       <main id="main">{children}</main>
       <Footer />
       <MiniPlayer />
+      <ContactDock />
       <LenisProvider />
       <CommandPalette personas={personas.map((p) => ({ slug: p.slug, stageName: p.stageName }))} />
     </PlayerProvider>

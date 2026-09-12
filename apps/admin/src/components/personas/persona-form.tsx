@@ -270,8 +270,22 @@ export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
             ))}
           </div>
         </div>
-        <MediaSelect label="Hero image" value={heroMediaId} onChange={setHeroMediaId} />
-        <MediaSelect label="Avatar image" value={avatarMediaId} onChange={setAvatarMediaId} />
+        <MediaSelect
+          label="Hero image"
+          value={heroMediaId}
+          onChange={setHeroMediaId}
+          hint={
+            slug
+              ? `Shows at the top of djfelicitous.com/${slug} — currently a generated colour background if left empty.`
+              : 'Shows at the top of this persona’s public page — currently a generated colour background if left empty.'
+          }
+        />
+        <MediaSelect
+          label="Avatar image"
+          value={avatarMediaId}
+          onChange={setAvatarMediaId}
+          hint="A small square photo used in listings and cards that reference this persona (e.g. the channel switcher on the homepage)."
+        />
         <div className="flex gap-6">
           <label className="flex items-center gap-2 text-sm text-fg-strong">
             <input

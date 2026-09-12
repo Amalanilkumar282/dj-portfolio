@@ -1,7 +1,12 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import { usePlayer } from './player-context';
 import { RhythmField } from './rhythm-field';
+
+/** Real height of the bar below, kept as one constant rather than measured. */
+const DOCK_CLEARANCE_PX = 88;
 
 /**
  * The persistent transport bar.
@@ -20,6 +25,19 @@ import { RhythmField } from './rhythm-field';
  */
 export function MiniPlayer(): React.JSX.Element | null {
   const { current, isPlaying, progress, durationMs, toggle, close, seek } = usePlayer();
+
+  // The WhatsApp/call dock (`<ContactDock>`) reads this to lift itself clear
+  // of the transport bar rather than sitting underneath it — set here,
+  // beside the one component that actually knows whether the bar is on
+  // screen, instead of teaching the dock to guess.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (current) root.style.setProperty('--dock-clearance', `${String(DOCK_CLEARANCE_PX)}px`);
+    else root.style.removeProperty('--dock-clearance');
+    return () => {
+      root.style.removeProperty('--dock-clearance');
+    };
+  }, [current]);
 
   if (!current) return null;
 

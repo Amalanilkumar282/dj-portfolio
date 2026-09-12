@@ -157,7 +157,7 @@ export default function ShaderCanvas({
     <div ref={containerRef} className="absolute inset-0" aria-hidden="true">
       <Canvas
         // ADR 0022: capped hard on touch, where fill rate is the constraint.
-        dpr={coarsePointer ? 1 : [1, 1.5]}
+        dpr={coarsePointer ? 1 : [1, 1.25]}
         frameloop={visible ? 'always' : 'never'}
         gl={{ antialias: false, alpha: false, powerPreference: 'low-power' }}
         style={{ position: 'absolute', inset: 0 }}

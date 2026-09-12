@@ -1034,6 +1034,150 @@ stylesheet contains the `.font-display` base rule; and all sixteen key routes
 page. Whether the shader renders, the deck spins, the accent crossfades or a
 SoundCloud track plays is still unknown — see gaps #17–18.
 
+### User-reported bugs and UX pass (this session)
+
+The user tested the running site directly and reported eleven issues. Each
+was investigated against the real running app (a headless Chromium was
+installed temporarily for this — screenshots and DOM/computed-style
+inspection, not guesswork) rather than assumed. Two were deep, previously
+undetected structural bugs; the rest were real, scoped fixes.
+
+**1. Button text overflowing its pill everywhere — root cause, not a
+symptom.** Tailwind v4 only auto-scans for candidate classes downward from
+the compiling app's own source tree (`apps/web/src`, `apps/admin/src`).
+`packages/ui` is a sibling package outside both trees, so any utility class
+that appeared *only* inside a `@dj/ui` component — `Button`'s `h-14 px-8`,
+`h-9`, `Chip`'s padding — was never generated into the compiled CSS. No
+error, no warning: the component still rendered the class name in its
+`className` attribute, so the DOM looked correct, but the browser had no
+rule to apply. The result was a solid-colour pill sized to its text with
+zero padding and the wrong height, so text touched or ran past the edge —
+confirmed by measuring the live computed style (`padding: 0px`, `height:
+33px` instead of `56px`) before the fix, and `padding: 0 32px`, `height:
+56px` after. Fixed with one `@source '../';` line in
+`packages/ui/src/styles/theme.css`, the single file both apps import — so
+both inherit correct scanning, not just `apps/web`.
+
+**2. Tracks could not be played — a dev-mode-only CSP bug, verified by
+instrumenting the actual click.** `next.config.ts`'s CSP had no
+`unsafe-eval` in `script-src`, which is correct hardening for a production
+build — but `next dev`'s webpack bundler wraps every module in `eval()`
+under its dev source-map devtool. With no `unsafe-eval`, that `eval()`
+throws a CSP violation on every module evaluation, silently breaking
+hydration: the server-rendered HTML paints fine, so the page *looks*
+complete, but no client component ever finishes attaching its event
+handlers. A play button's `onClick` never fired — confirmed directly by
+adding a temporary `console.log` inside it and observing zero output despite
+a real, successful Playwright click. Fixed by adding `'unsafe-eval'` to
+`script-src` **only when `NODE_ENV !== 'production'`** — the production CSP
+is unchanged and still carries no `unsafe-eval` (verified by evaluating the
+config line with `NODE_ENV=production`). This almost certainly also
+explains why other interactive pieces (the channel switcher, the deck) felt
+inert during manual testing — the fix should restore all of them at once
+rather than needing one-by-one chasing.
+
+**3. Admin UX.** A full redesign is out of scope for a single pass and
+would be irresponsible to rush — but the specific, named complaint ("I
+don't know where a change will show up") was addressed at its two highest-
+traffic points: `MediaSelect` now takes an optional `hint` line and shows a
+plain "none" placeholder box instead of nothing when empty, and the
+Persona form's Hero/Avatar image fields now say exactly where each shows up
+publicly (e.g. "Shows at the top of djfelicitous.com/felicitous — currently
+a generated colour background if left empty"). Every entity form already
+had a "Preview" link to its live page (`persona-form.tsx`'s existing
+`previewUrl` call) — that pattern is the right one to extend to the other
+entity forms as a follow-up, not something to reinvent.
+
+**4. API sweep.** Every public collection endpoint (`personas`, `venues`,
+`tracks`, `releases`, `playlists`, `programs`, `genres`, `services`,
+`testimonials`, `brands`, `stats`, `faqs`, `gear`, `experience`, `settings`,
+`redirects`, `sitemap`, `tags`, `posts`, `press-kit`) returns 200 against
+the live API. One endpoint I initially guessed the wrong path for
+(`/static-pages` — the real route is `/pages/:slug`) is not a bug; no
+`StaticPage` rows are seeded, which is a content gap, not a code one.
+
+**5. Galleries/posters/videos, and whether a hero video can be uploaded —
+scoped, not implemented.** Per `STATUS.md`, Gallery and Video have been a
+deliberately out-of-scope content type since Phase 6 — no schema, no API
+module, no admin UI exists for either. Adding one now means a real Prisma
+migration against the live database plus a new API module plus new admin
+screens plus new public rendering; that is a phase of work in its own
+right, not a fix to slot into this pass safely. The admin **can** already
+attach a static hero *image* to a persona (`MediaSelect` on the Persona
+form, now with a clearer hint — see #3) — there is no hero **video** field
+today. Recommend scoping "Gallery + Video content types" as its own
+next-phase item with a written plan, rather than guessing at a schema here.
+
+**6. Font too big.** `--text-display` was `clamp(3.5rem, 1rem + 11vw,
+11rem)` — 176px at its max, and on a real mobile viewport (390px) the
+headline alone filled the screen (confirmed by screenshot). Combined with
+the `.font-display` weight/stretch rule added the previous session
+(`font-weight: 800; font-stretch: 125%`), the effect compounded. Reduced
+the whole `--text-h4` through `--text-display` scale roughly 25–40% at
+every step, and dialled the stretch back to 112%. Still the largest thing
+on the page — no longer competing with legibility.
+
+**7. "Nothing 3D except the map, and everything is laggy."** The 3D deck
+*is* there (`components/home/deck-scene.tsx`, real WebGL confirmed via
+console — a `THREE.Clock` deprecation notice and GPU driver messages only
+fire when a real WebGL context is active) but sits below the fold on a
+`hidden lg:block` section, so it is easy to miss on a first scroll,
+compounding with #2 above making it unresponsive to drag. Reduced the DPR
+ceiling on both the shader field and the deck from `1.5` to `1.25` — a
+~30% cut in GPU pixel count on both canvases — as the safe, verifiable
+improvement available without a real device to profile against.
+
+**8/9. WhatsApp and phone call are the actual preferred contact channels.**
+Added `<ContactDock>` — a persistent, fixed WhatsApp + call button pair on
+every marketing page, using the CMS's existing `whatsappNumber`/
+`contactPhone` settings fields (no new schema). It coordinates with two
+other fixed-position elements it did not know about at first: the mini
+player (via the pre-existing `--dock-clearance` custom property pattern)
+and the cookie consent banner, which it initially overlapped — caught by
+screenshot, fixed by having the consent banner measure and publish its own
+real height via `ResizeObserver` (a guessed constant would have drifted
+whenever the notice wrapped a different number of lines).
+
+**10. Branding presence.** The header wordmark went from `text-lg` to
+`text-xl`/`sm:text-2xl` with the "Felicitous" half in the live accent
+colour, so it reads as a mark rather than plain page-title text.
+
+**11. Placeholders for missing media.** Considered adding a generic
+"Photo coming soon" panel to the persona hero, but the site's existing
+generative shader/gradient backdrop already fills that role by design —
+that was the whole premise of the earlier visual-layer work, and stacking
+a second placeholder on top of it would look redundant, not better. Scoped
+the actual placeholder work to where a slot silently disappeared with no
+indication it existed: the admin's `MediaSelect`, covered under #3.
+
+### Verified
+
+- Every fix confirmed against the **actual running app** via a temporarily
+  installed headless Chromium (screenshots + computed styles), not by
+  reading code and assuming: the button padding/height before and after,
+  the click handler literally not firing before the CSP fix and firing
+  after, the consent-banner/dock overlap before and after.
+- `pnpm turbo lint typecheck build --filter='!@dj/db'` — 20/20 green.
+- Bundle budgets still hold: `/` 124 kB (145 budget), `/[persona]` 127 kB
+  (155 budget).
+- Production CSP re-verified to carry no `unsafe-eval` (evaluated the
+  config line with `NODE_ENV=production` set).
+- All 8 spot-checked routes (`/`, all four persona pages, `/music`,
+  `/favicon.ico`, `/book`) return 200 on a clean rebuild.
+- The temporary Playwright install and every scratch screenshot/inspection
+  script used for this pass were removed before committing —
+  `apps/web/package.json` and `pnpm-lock.yaml` are back to their prior
+  state.
+
+### Not verified
+
+- No real mobile device or low-end GPU was used for #7 — the DPR cut is a
+  safe, reasoned improvement, not a profiled one.
+- Gallery/Video (#5) remains entirely unbuilt, by design, pending a
+  scoping decision from the user.
+- The broader admin UX pass (#3) touched two fields on one entity form as
+  a demonstrated pattern; the other ~20 entity forms were not touched.
+
 ### Two more bugs found from the user's own dev-server log (this session)
 
 The user ran `pnpm dev` and pasted the terminal output. Two real, reproducible

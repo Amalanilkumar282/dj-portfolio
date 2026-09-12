@@ -18,6 +18,22 @@
 
 @import 'tailwindcss';
 
+/*
+ * Tailwind v4 auto-scans for candidate classes only downward from wherever
+ * the compiling app's own CSS entrypoint lives — i.e. `apps/web/src` and
+ * `apps/admin/src`. `packages/ui` is a sibling package outside either tree,
+ * so any class that appears *only* inside a `@dj/ui` component (Button's
+ * `h-14 px-8`, Chip's `px-2.5 py-1`, …) was silently never generated: no
+ * error, no warning, just an absent utility. The component still rendered
+ * the class name in its `className` attribute, so the DOM looked correct
+ * while the browser had no CSS rule to apply — a solid-colour pill with no
+ * padding or height, sized to its text with nothing to spare, so text
+ * visually touched or ran past the edge. `@source` tells the scanner to
+ * also read this package. Any other consumed workspace package that renders
+ * className strings needs the same line added here.
+ */
+@source '../';
+
 @custom-variant hover-hover (@media (hover: hover) and (pointer: fine));
 @custom-variant motion-ok (@media (prefers-reduced-motion: no-preference));
 
@@ -88,14 +104,19 @@
   --text-body--line-height: 1.65;
   --text-lead: 1.25rem;
   --text-lead--line-height: 1.55;
-  --text-h4: clamp(1.25rem, 1rem + 1vw, 1.5rem);
-  --text-h3: clamp(1.5rem, 1.1rem + 1.6vw, 2rem);
-  --text-h2: clamp(2rem, 1.4rem + 2.8vw, 3.25rem);
-  --text-h1: clamp(2.75rem, 1.6rem + 5vw, 5rem);
-  /* The cinematic aesthetic depends on genuinely large, tight display type. */
-  --text-display: clamp(3.5rem, 1rem + 11vw, 11rem);
-  --text-display--line-height: 0.85;
-  --text-display--letter-spacing: -0.03em;
+  --text-h4: clamp(1.2rem, 1rem + 0.8vw, 1.4rem);
+  --text-h3: clamp(1.4rem, 1.1rem + 1.2vw, 1.85rem);
+  --text-h2: clamp(1.75rem, 1.3rem + 2vw, 2.75rem);
+  --text-h1: clamp(2.25rem, 1.5rem + 3.5vw, 4rem);
+  /*
+   * Toned down from an earlier clamp(3.5rem, 1rem + 11vw, 11rem) — 11rem
+   * (176px), combined with the 800/125% weight+stretch below, read as
+   * oversized on real devices, most visibly on the mobile hero where the
+   * headline alone filled the screen. Still the largest thing on the page.
+   */
+  --text-display: clamp(2.5rem, 1.2rem + 7vw, 6.5rem);
+  --text-display--line-height: 0.92;
+  --text-display--letter-spacing: -0.02em;
 
   /* ── Spacing ─────────────────────────────────────────────────────────── */
   --spacing: 0.25rem;
@@ -259,7 +280,7 @@
    */
   .font-display {
     font-weight: 800;
-    font-stretch: 125%;
+    font-stretch: 112%;
   }
 
   /* Dark outer ring so the focus indicator stays visible over photography. */

@@ -159,7 +159,7 @@ export default function DeckScene(): React.JSX.Element {
       className="relative aspect-[4/3] w-full cursor-ew-resize"
     >
       <Canvas
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
         frameloop={visible ? 'always' : 'never'}
         camera={{ position: [0, 2.6, 4.2], fov: 42 }}
         gl={{ antialias: true, alpha: true }}

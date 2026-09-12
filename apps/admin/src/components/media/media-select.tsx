@@ -22,10 +22,19 @@ export function MediaSelect({
   label,
   value,
   onChange,
+  hint,
 }: {
   label: string;
   value: string;
   onChange: (id: string) => void;
+  /**
+   * One line saying exactly where this field shows up on the public site —
+   * "Where will my change show up?" is the single most common question a
+   * non-technical editor asks of any CMS field, and the honest answer is
+   * usually "it depends what kind of field this is" unless the field itself
+   * says so.
+   */
+  hint?: string;
 }): React.JSX.Element {
   const { request } = useAuth();
   const [assets, setAssets] = useState<MediaRow[]>([]);
@@ -46,11 +55,21 @@ export function MediaSelect({
   return (
     <div>
       <label className="text-fg-strong text-sm font-medium">{label}</label>
+      {hint ? <p className="text-fg-muted mt-0.5 text-xs">{hint}</p> : null}
       <div className="mt-1 flex items-center gap-3">
         {selected?.resourceType === 'IMAGE' ? (
           // eslint-disable-next-line @next/next/no-img-element -- a thumbnail from a live Cloudinary URL for a plain picker, not a public-site `MediaImage`
           <img src={selected.secureUrl} alt="" className="h-10 w-10 rounded object-cover" />
-        ) : null}
+        ) : (
+          // The empty state: nothing selected does not mean nothing to see
+          // here — it means the public site currently falls back to a
+          // generated colour field in this slot (see the `ShaderField`/
+          // gradient backdrop that runs behind every hero). Saying so here
+          // prevents "why is my page blank" support questions.
+          <div className="text-fg-muted flex h-10 w-10 shrink-0 items-center justify-center rounded border border-dashed border-border text-[10px] leading-tight">
+            none
+          </div>
+        )}
         <select
           value={value}
           onChange={(event) => {

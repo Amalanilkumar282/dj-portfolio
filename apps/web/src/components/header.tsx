@@ -23,8 +23,11 @@ export async function Header(): Promise<React.JSX.Element> {
   return (
     <header className="border-border bg-bg/80 sticky top-0 z-40 border-b backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-(--spacing-gutter) py-4">
-        <Link href="/" className="font-display text-fg-strong text-lg tracking-tight">
-          DJ Felicitous
+        <Link
+          href="/"
+          className="font-display text-fg-strong shrink-0 text-xl tracking-tight sm:text-2xl"
+        >
+          DJ <span className="text-accent">Felicitous</span>
         </Link>
 
         <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">

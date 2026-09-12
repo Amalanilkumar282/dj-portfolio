@@ -39,7 +39,18 @@ const CSP = [
   // page, and that risk can't be caught by anything short of a real
   // browser (not available in this session). Tightening this to a nonce
   // is the very next hardening step, not something to guess at blind.
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://plausible.io https://w.soundcloud.com",
+  //
+  // 'unsafe-eval' is added ONLY outside production. `next dev`'s webpack
+  // bundler wraps every module in `eval()` under its dev-mode source-map
+  // devtool — with a strict script-src this doesn't merely lose source
+  // maps, it silently breaks every client component: hydration throws on
+  // load, so no onClick ever attaches and the page looks complete (the
+  // server-rendered HTML is unaffected) while being entirely inert. A
+  // production build's client bundle never calls eval, so the
+  // production CSP stays exactly as strict as before.
+  `script-src 'self' 'unsafe-inline'${
+    process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'"
+  } https://challenges.cloudflare.com https://plausible.io https://w.soundcloud.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://res.cloudinary.com",
   "font-src 'self' data:",
