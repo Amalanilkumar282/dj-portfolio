@@ -50,12 +50,17 @@ export class MediaService {
    */
   createUploadSignature(input: MediaUploadSignatureInput): MediaUploadSignatureResult {
     const folder = this.folderFor(input);
-    const resourceType = CLOUDINARY_RESOURCE_TYPE[input.resourceType];
 
-    const params: Record<string, string | number | boolean> = {
-      folder,
-      resource_type: resourceType,
-    };
+    // `resource_type` is deliberately NOT included here. Cloudinary's own
+    // signature verification excludes `resource_type` (along with `file`,
+    // `api_key` and `cloud_name`) from the string it hashes — it is a URL
+    // path segment, not a signed param. Including it here computed a
+    // signature Cloudinary would never match, so every real upload failed
+    // with "Invalid Signature" — caught by actually driving one through
+    // the admin media library (Group E), not by the local signing test
+    // that shipped with Phase 5, which only checked the signature was
+    // *computed*, never that Cloudinary would accept it.
+    const params: Record<string, string | number | boolean> = { folder };
 
     // Derivatives are generated asynchronously only for images: eagerly
     // transcoding video/audio on every upload would be slow and mostly

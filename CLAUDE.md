@@ -95,25 +95,42 @@ auth to exist safely), gallery/video lightboxes (no backend module),
 shader/motion work, self-hosted fonts, dynamic per-entity OG images, split
 sitemaps. `apps/admin` is still a **scaffold only**.
 
-**Group E — `apps/admin` exists for the first time.** Auth (login + TOTP,
-in-memory access token, httpOnly refresh cookie, CSRF double-submit,
+**Group E — `apps/admin` is now a real, broad admin panel.** Auth (login +
+TOTP, in-memory access token, httpOnly refresh cookie, CSRF double-submit,
 silent refresh on load), a protected shell with an RBAC-aware sidebar, and
-**Venues** as the one content type with complete CRUD + publish workflow —
-verified against the live, seeded Neon database with the real
-`SUPER_ADMIN`. Building this screen found and fixed a real pre-existing
-schema bug: `Venue`/`Brand` were the only publishable models defaulting to
-`PUBLISHED` at the column level (everything else defaults to `DRAFT`), so
-omitting `status` on create — exactly what the "New venue" form does —
-crashed on the `published_has_date` CHECK constraint. Fixed via a
-hand-written migration (see STATUS.md). Every other content type's admin
-screen is now a mechanical copy of the Venues pattern, not a design
-problem — deferred, along with Tiptap, the media library, `@dnd-kit`
-reordering, Draft Mode preview, the audit log, and the booking Kanban.
-Phase 10 (motion) shipped its capability-check infrastructure
-(`useReducedMotion`/`useCapability`/`<MotionGate>`) plus one real,
-verified technique (a magnetic-cursor CTA); the shader/3D/audio-visualizer
-work is deferred until real photo/video/audio assets exist to build
-against meaningfully (gap #4/#16) — see STATUS.md's Group E section.
+**12 content types with full CRUD + publish workflow** — Venues (bespoke)
+plus a config-driven generic scaffold (`lib/entity-config.ts`) covering
+Genres/Tags/Stats/Redirects/Testimonials/Services/FAQs/Experience/Brands/
+Gear/Press assets. StaticPages and Posts get a real Tiptap v3 editor.
+Settings (the singleton), a real media library, Draft Mode preview links,
+an audit log viewer, and a booking Kanban all exist and are live-verified
+against the real, seeded Neon database.
+
+**The most consequential bug of the project so far** was found building
+the media library: `MediaService.createUploadSignature()` signed a params
+object including `resource_type`, but Cloudinary's own signature
+verification excludes it — every real upload, through any client, had
+been failing with `Invalid Signature` since Group B, undetected because
+verification only ever checked that a signature was *computed*, never
+that Cloudinary would accept it. Fixed, then re-verified live: a real
+file uploaded → confirmed → listed → deleted, the full cycle, for the
+first time. A second, smaller schema bug (`Venue`/`Brand` defaulting to
+`PUBLISHED` instead of `DRAFT`) was found and fixed the same way, via the
+"New venue" form actually being used. See STATUS.md's Group E sections
+(both passes) for the full account of each.
+
+Phase 10 (motion) now also ships Lenis smooth scroll, a `⌘K` command
+palette (static routes + personas, not a full search index), and an audio
+visualizer wired to the mini player's real `<audio>` element (renders
+flat until a track has real audio — gap #16). Still deferred: shaders,
+the 3D turntable/gig-globe scenes, View Transitions, the custom cursor —
+all need real media assets (the 3D scenes also need a sourced GLTF model)
+to be more than placeholder content. Also still deferred in Phase 11: CRUD
+for the six relational content types (Personas/Tracks/Releases/Playlists/
+Programs/Events — each needs media/relation pickers a generic form can't
+represent), `@dnd-kit` drag-and-drop (explicit move-up/down buttons are
+the actual required accessible baseline, not a stand-in), `react-easy-crop`
+cropping, and custom Tiptap embed nodes.
 
 One documented gap: `auth/` unit-test coverage — behaviour is fully verified
 by 36 e2e tests, but `AuthService` and 4 other classes have no unit tests.

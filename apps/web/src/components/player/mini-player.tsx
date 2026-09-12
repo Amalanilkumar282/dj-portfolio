@@ -1,5 +1,6 @@
 'use client';
 
+import { AudioVisualizer } from './audio-visualizer';
 import { usePlayer } from './player-context';
 
 /**
@@ -21,7 +22,14 @@ export function MiniPlayer(): React.JSX.Element | null {
       className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-4 border-t border-border bg-surface px-4 py-3"
     >
       {/* eslint-disable-next-line jsx-a11y/media-has-caption -- instrumental DJ mixes/tracks, no dialogue to caption; the accessible interface is the visible transport controls below, not the element itself */}
-      <audio ref={audioRef} src={current.audioUrl} autoPlay onEnded={close} className="hidden" />
+      <audio
+        ref={audioRef}
+        src={current.audioUrl}
+        crossOrigin="anonymous"
+        autoPlay
+        onEnded={close}
+        className="hidden"
+      />
       <button
         type="button"
         onClick={toggle}
@@ -34,6 +42,7 @@ export function MiniPlayer(): React.JSX.Element | null {
         <p className="text-fg-strong truncate text-sm font-semibold">{current.title}</p>
         <p className="text-fg-muted truncate text-xs">{current.artistLabel}</p>
       </div>
+      <AudioVisualizer audioRef={audioRef} isPlaying={isPlaying} />
       <button
         type="button"
         onClick={close}

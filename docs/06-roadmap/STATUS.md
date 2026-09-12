@@ -7,13 +7,15 @@
 > honest "blocked" line is far more useful to the next session than an
 > optimistic tick.
 
-**Last updated:** 2026-09-12 (Group E session)
-**Current phase:** Group E (Phases 10 + 11 — Motion, Admin panel) — **the
-admin panel exists for the first time and a real content type (Venues) can
-be created, edited, published and deleted through it**; see "Group E" below
-for exact scope, a real schema bug found and fixed via the admin's own
-create form, and what remains deferred to Phase 11's next pass
-**Phases complete:** 0, 1, 2, 4, 5 (code), 6 (code), 7, 8 (scoped), 9 (scoped), 10 (scoped), 11 (scoped — see below)
+**Last updated:** 2026-09-12 (Group E session, second pass)
+**Current phase:** Group E (Phases 10 + 11) is now built out much further:
+**every taxonomy/simple content type has full CRUD, plus a working media
+library, audit log, booking Kanban, and Tiptap-powered rich text editing.
+Building the media library found and fixed a real, previously-unverified
+bug that made every live Cloudinary upload fail with "Invalid Signature".**
+See "Group E — second pass" below for the full account and what's still
+genuinely missing (relational content types, drag-and-drop, crop UI, 3D/shaders)
+**Phases complete:** 0, 1, 2, 4, 5 (code), 6 (code), 7, 8 (scoped), 9 (scoped), 10 (scoped, expanded), 11 (scoped, expanded — see below)
 **Phase 3:** complete except one gap — see "What is not done" below
 
 ---
@@ -481,6 +483,138 @@ design problem.
   shipping the one technique that could be built and genuinely verified
   this session.
 
+### Group E — second pass: the rest of Phase 11, plus Lenis/command palette/audio visualizer
+
+The user asked for both "next passes" in full — every remaining Phase 11
+item and the still-buildable half of Phase 10 (the shader/3D/audio-visual
+work stays deferred for the same asset-dependency reason as the first
+pass; nothing changed there). This is the largest single addition of the
+project so far, and it found the single most consequential bug of any
+session: **the media pipeline had never actually completed a live upload
+before this pass**, despite being "code complete" since Group B.
+
+**The bug, in full:** `MediaService.createUploadSignature()` signed a
+params object that included `resource_type` alongside `folder`/`eager`/
+`eager_async`/`timestamp`. Cloudinary's own signature verification
+**excludes** `resource_type` from what it hashes (along with `file`,
+`api_key` and `cloud_name` — it is a URL path segment, not a signed
+field), so the server computed a signature over one string and Cloudinary
+verified a different one. Every real upload — through any client, not
+just this admin — would have failed with `Invalid Signature` the moment
+someone tried it against a real account. Group B's own verification never
+caught this because it only checked that a signature was *computed*
+(pure local math, no network call); Group D didn't either, because no
+client actually exercised the admin upload flow before this pass. Found
+by building the actual media library screen and driving a real upload
+through it end to end, confirmed by reproducing Cloudinary's own error
+message (`String to sign - 'eager=...&eager_async=true&folder=...&timestamp=...'`
+— visibly missing `resource_type`) before fixing `media.service.ts` to
+stop including it. **Re-verified after the fix**: a real 68-byte PNG
+uploaded to Cloudinary, confirmed via `POST admin/media`, appeared in
+`GET admin/media`, and was deleted cleanly — the full signed-upload →
+confirm → list → delete cycle, live, for the first time in this project's
+history.
+
+**Phase 11, the rest of it:**
+- **A config-driven generic CRUD scaffold** (`lib/entity-config.ts`,
+  `components/generic/{entity-list,entity-form}.tsx`) generalises the
+  Venues screen from the first pass to every taxonomy/simple-content
+  model: Genres, Tags, Stats, Redirects, Testimonials, Services, FAQs,
+  Experience, Brands, Gear, Press assets — 11 content types, each added
+  as a ~15-line config object plus three thin page wrappers, not a new
+  screen. Reorder is exposed as explicit "Move up"/"Move down" buttons
+  (calling the existing `PATCH .../reorder` route) rather than
+  drag-and-drop — this is also the literal required accessible
+  alternative under WCAG 2.5.7, not a lesser stand-in for it.
+- **StaticPages and Posts** get a real Tiptap v3 editor
+  (`@tiptap/react` + `@tiptap/starter-kit` + `@tiptap/extension-link`,
+  no custom embed nodes) instead of the generic scalar form, since their
+  content is genuinely rich text — every node/mark it can produce is
+  already handled by `apps/web`'s existing `RichText` renderer, so content
+  written here round-trips correctly on the public site today.
+- **Settings** — the one singleton screen, `GET`/`PATCH admin/settings`,
+  covering the fields an admin touches day to day (contact info,
+  WhatsApp, maintenance mode); the rest of the field surface (default SEO,
+  accent color, other feature flags) is a config addition to the same
+  form, not a new screen.
+- **The media library** (`components/media/media-library.tsx`) — signed
+  direct browser → Cloudinary upload, confirm, list, delete. No crop UI
+  (`react-easy-crop`) this pass; the focal point exists in the API
+  already but has no input in this form yet — a documented, honest gap
+  rather than a half-built cropper.
+- **Draft Mode live preview** — a "Preview live →" link on Venues and
+  StaticPages, opening `apps/web`'s existing `/api/draft` route in a new
+  tab. `NEXT_PUBLIC_PREVIEW_TOKEN` is deliberately exposed to the admin's
+  browser bundle (matching `apps/web`'s `PREVIEW_TOKEN`) — only admin
+  users should ever construct one of these links, and they are exactly
+  the population this token is meant to admit.
+- **The audit log** — genuinely new backend work, not just a frontend
+  screen: `modules/audit` had a working `AuditService.record()`/`list()`
+  since Phase 2/3 but **no controller ever exposed it**, despite the
+  `auditLog:read` permission existing in RBAC since the beginning. Added
+  `AuditAdminController` (`GET admin/audit-log`, cursor-paginated,
+  optional `entityType`/`entityId` filter) — a small, necessary backend
+  addition to support a frontend feature that had no way to exist without
+  it, the same pattern as fixing the Cloudinary signing bug above.
+- **The booking Kanban** (`components/inquiries/inquiry-kanban.tsx`) — six
+  columns (New/Contacted/Quoted/Negotiating/Booked/Lost), each card with a
+  "Move to…" select calling the existing `PATCH admin/inquiries/:id`
+  route, rather than drag-and-drop (same reasoning as reorder above).
+  `SPAM`/`ARCHIVED` inquiries are deliberately not shown as columns —
+  they are the "handled, out of the pipeline" states.
+- **Deferred, unchanged from the first pass**: Personas, Tracks, Releases,
+  Playlists, Programs, Events — each needs relation/media pickers
+  (artwork, genres, lineup, track ordering) a generic scalar form cannot
+  represent; a form that silently can't set a track's audio would be
+  actively misleading, not merely incomplete.
+- **Deferred, newly identified this pass**: `@dnd-kit` drag-and-drop
+  (the move-up/down buttons are the required accessible baseline, not a
+  placeholder for it), `react-easy-crop` cropping, custom Tiptap embed
+  nodes (`TrackEmbed`/`PlaylistEmbed`/etc.), TanStack Query (the
+  fetch-and-`useState` approach used throughout is adequate for one
+  screen at a time; revisit if optimistic updates or cross-list
+  invalidation become a real need).
+
+**Phase 10, the rest of the buildable half:**
+- **Lenis smooth scroll** (`components/lenis-provider.tsx`) — disabled
+  under reduced motion, on a coarse (touch) pointer, and on a
+  low-capability device, matching the masterplan's own documented
+  conditions; native scroll is the complete fallback, not a degraded one.
+- **A command palette** (`⌘K`/`Ctrl+K`, `components/command-palette.tsx`,
+  using `cmdk`) — scoped to static routes plus personas, not a full
+  content search index. `/api/search-index` (fuzzy search across
+  tracks/events/posts) is explicitly deferred: it needs its own endpoint
+  and query strategy, a materially bigger piece than wiring up `cmdk`.
+- **An audio-reactive visualizer** (`components/player/audio-visualizer.tsx`)
+  — a genuine Web Audio `AnalyserNode` (fftSize 512) wired to the mini
+  player's real `<audio>` element, drawn on one 2D canvas, RAF-driven,
+  never autoplays anything on its own. Renders flat right now because no
+  track has real audio yet (gap #16) — that is silence being drawn
+  correctly, not a bug; it will react the moment a real track plays.
+- **Still deferred, unchanged**: shaders, the 3D turntable/gig-globe
+  scenes, native View Transitions, the custom cursor — all still need
+  real photo/video assets (turntable/globe also need a sourced GLTF
+  model) to be more than placeholder content, per the first pass's
+  reasoning.
+
+**Verified, beyond the media pipeline fix above:**
+- `pnpm turbo lint typecheck build --filter='!@dj/db'` — **18/18 tasks
+  pass**, `apps/admin` now builds **37 routes** (up from 8).
+- Every new admin route smoke-tested live (all `200`): all 11 generic
+  CRUD list screens, Settings, Media library, Bookings, Audit log.
+- Live create/delete round-trips against the real database for a
+  Testimonial, a Tag, and a StaticPage (with real Tiptap JSON content),
+  each cleaned up afterward.
+- The audit log endpoint returns real rows for those creates, including
+  actor email and timestamp.
+- `apps/web`'s home page, a persona page, and `/book` all still render
+  correctly with Lenis/command-palette/mini-player-visualizer mounted.
+- **Not verified**: an actual person pressing `⌘K` and navigating via
+  keyboard in a real browser (the component logic was reviewed, not
+  driven through a browser); the visualizer actually animating (needs
+  real audio, gap #16); Lenis's actual scroll feel (needs a real browser,
+  not `curl`).
+
 ---
 
 ## Verified in this session
@@ -597,7 +731,7 @@ Everything below was actually executed against a live Postgres (embedded
 | 13  | **EPK regeneration is manual-only.** The masterplan wants it debounced-automatic on a persona bio/stats/photo change; only `POST /admin/press-kit/epk/:personaKey/regenerate` exists.                                                                                       | Low priority until the admin panel (Phase 11) exists to trigger it from a save action anyway.                                                                                                                                                                                                                                                                                                                                                                                                              | —     |
 | 14  | **React Email was not installed for the three transactional email templates.** `infra/mail/templates.ts` builds plain HTML/text strings instead.                                                                                                                            | A deliberate, documented scope reduction — fine for three templates, worth revisiting if the template count or design ambition grows.                                                                                                                                                                                                                                                                                                                                                                     | —     |
 | 15  | **The API's e2e suite assumes a disposable database and was pointed at the real, persistent Neon database this session.** `auth.e2e-spec.ts` deliberately drives the seeded admin account into a lockout state to test that behaviour — correct on a throwaway DB reset per run, but it left the real `SUPER_ADMIN` account genuinely locked afterward. | Run this suite only against a disposable database (the throwaway embedded-Postgres pattern every prior session used) — never against the real Neon instance the artist will actually use. If CI ever runs it against a shared environment, seed a dedicated disposable database per run, or the suite will keep locking out real accounts. | — |
-| 16  | **No track has real audio yet**, so the mini player (Phase 9) and audio-dependent JSON-LD fields are built and wired but functionally untested against a real file — every seeded track's `audioUrl` is `null`. Same root cause as gap #4 (no real media has ever been uploaded through the confirmed-working signing flow). | Upload at least one real audio file through the admin (once Phase 11 exists) or directly via `POST /admin/media` to genuinely exercise playback, waveform peaks, and the `MusicRecording` `audio` field. | user |
+| 16  | **No track has real audio yet**, so the mini player (Phase 9) and audio-dependent JSON-LD fields are built and wired but functionally untested against a real file — every seeded track's `audioUrl` is `null`. Same root cause as gap #4, though the underlying upload flow itself is no longer in question: a real signed upload/confirm round-trip was verified end to end this session (bug #34, now fixed) using the admin's own media library, which now exists (Phase 11). | Upload at least one real audio file through `/media` in the admin, or directly via `POST /admin/media`, to genuinely exercise playback, waveform peaks, and the `MusicRecording` `audio` field. | user |
 
 ---
 
@@ -1046,6 +1180,29 @@ exported member 'PrismaClient'` and four other exports, which reads like
     the omitted-field path — worth grepping for every time a new
     publishable model is added.**
 
+34. **Every real Cloudinary upload has failed with `Invalid Signature`
+    since Phase 5/Group B — the media pipeline has never actually
+    completed a live upload before this session.**
+    `MediaService.createUploadSignature()` signed a params object
+    including `resource_type` alongside `folder`/`eager`/`eager_async`/
+    `timestamp`, but Cloudinary's own signature verification **excludes**
+    `resource_type` (it is a URL path segment, not a signed field, same as
+    `file`/`api_key`/`cloud_name`) — so the server signed one string and
+    Cloudinary verified a different one, and no real upload could ever
+    have succeeded against a real account. Group B's own verification
+    only checked that a signature was *computed* (pure local math, no
+    network call) and never actually drove one through Cloudinary; this
+    session's admin media library did, for the first time, and got
+    Cloudinary's own error back showing the exact string it hashed —
+    visibly missing `resource_type`. Fixed by removing it from the signed
+    params in `media.service.ts`. **Re-verified live end to end**: a real
+    file uploaded to Cloudinary, confirmed via `POST admin/media`, listed
+    via `GET admin/media`, deleted cleanly. **A signature that is merely
+    "computed correctly" proves nothing — only a live round trip against
+    the real third-party service proves a signed-upload flow actually
+    works**, the same lesson as the earlier `ApiError`/response-shape
+    bugs that pure typecheck/lint couldn't have caught.
+
 ---
 
 ## Phase 7 — Web shell + data + SEO core ✅ (code) / ⬜ (credential-dependent SEO validation)
@@ -1139,48 +1296,60 @@ wired into a real page), and the player's code path is exercised (renders,
 wires to context, conditionally shows) even though no real audio exists to
 actually play yet.
 
-## Phase 10 — Cinematic + signature motion ✅ (scoped)
+## Phase 10 — Cinematic + signature motion ✅ (scoped, expanded second pass)
 
-See the "Group E" section above for the full account.
+See the "Group E" and "Group E — second pass" sections above for the full account.
 
 - [x] `useReducedMotion()`, `useCapability()`, `<MotionGate>`
-- [x] One real technique: the magnetic-cursor CTA on the homepage
-- [ ] Every other item in `docs/03-design-system/motion.md`'s list — shaders,
-      3D turntable/gig-globe, audio visualizer, Lenis, command palette,
-      View Transitions, custom cursor. See "Group E" above for why each was
-      deferred rather than stubbed.
+- [x] The magnetic-cursor CTA on the homepage
+- [x] Lenis smooth scroll, disabled under reduced motion/touch/low-capability
+- [x] Command palette (`⌘K`), scoped to static routes + personas
+- [x] Audio-reactive visualizer, wired to the mini player's real `<audio>`
+      element (renders flat until real audio exists — gap #16)
+- [ ] Shaders, 3D turntable/gig-globe scenes, native View Transitions,
+      custom cursor. See "Group E — second pass" above for why each still
+      needs real media assets (and, for the 3D scenes, a sourced GLTF
+      model) before being worth building.
 
 **Exit criteria not met** — they require the full item list "with its
-documented fallback", which needs the deferred items above. What's
-verified: the one shipped technique degrades correctly under forced
-`prefers-reduced-motion` and on a simulated low-capability/coarse-pointer
-device (code-reviewed, not run through a real device lab).
+documented fallback", which needs the still-deferred items above. What's
+verified: every shipped technique degrades correctly under forced
+`prefers-reduced-motion`/coarse-pointer/low-capability conditions
+(code-reviewed and exercised via the live site, not run through a real
+device lab); the visualizer's actual animation and Lenis's actual scroll
+feel need a real browser and real audio to observe, not `curl`.
 
-## Phase 11 — Admin panel ✅ (scoped)
+## Phase 11 — Admin panel ✅ (scoped, expanded second pass)
 
-See the "Group E" section above for the full account.
+See the "Group E" and "Group E — second pass" sections above for the full account.
 
 - [x] Login (email/password + TOTP), session via memory access token +
       httpOnly refresh cookie + CSRF double-submit, silent refresh on load
 - [x] Protected shell, RBAC-aware sidebar (`can()` hides ungranted actions)
-- [x] Venues: full list/create/edit/publish/unpublish/delete, verified
-      against the live, seeded Neon database with the real `SUPER_ADMIN`
-- [x] A real schema bug found and fixed via this screen (see "Group E")
-- [ ] CRUD for every other content type — the Venues pattern is proven and
-      ready to copy, but not yet copied to Personas/Tracks/Events/Releases/
-      Playlists/Programs/Testimonials/Services/Brands/Stats/FAQ/Gear/
-      Experience/StaticPages/Settings/Redirects/PressAssets/Posts
-- [ ] Tiptap rich-text editor, media library (upload/crop/focal-point),
-      `@dnd-kit` reordering, Draft Mode live preview, audit-log viewer,
-      booking-inquiry Kanban, `⌘K`, TanStack Query
+- [x] Full CRUD + publish workflow for **12 content types**: Venues (bespoke)
+      plus Genres, Tags, Stats, Redirects, Testimonials, Services, FAQs,
+      Experience, Brands, Gear, Press assets (generic config-driven scaffold)
+- [x] StaticPages and Posts, with a real Tiptap v3 rich-text editor
+- [x] Settings (the singleton), Media library (real signed upload → confirm
+      → list → delete, live-verified against Cloudinary), Draft Mode
+      preview links, Audit log viewer, Booking Kanban
+- [x] **A real, previously-unverified media-pipeline bug found and fixed**
+      via the media library screen — see "Group E — second pass" and bug #34
+- [ ] CRUD for the six relational content types — Personas, Tracks,
+      Releases, Playlists, Programs, Events — deliberately not built without
+      their media/relation pickers (artwork, genres, lineup, track
+      ordering); a scalar-only form for these would be actively misleading
+- [ ] `@dnd-kit` drag-and-drop (explicit move-up/down buttons are the
+      required accessible baseline, not a stand-in for it), `react-easy-crop`
+      cropping, custom Tiptap embed nodes, TanStack Query
 
 **Exit criteria not met** — "the artist publishes a new track, event,
-playlist and gallery set end to end with no developer involved" needs
-those content types' admin screens, which don't exist yet. What's
-verified: the exact same mechanism (auth, permission gating, publish
-workflow round-trip) that every other content type's screen will reuse,
-proven end to end against real data, real credentials, and a real
-database for the first time this session.
+playlist and gallery set end to end with no developer involved" still
+needs those six content types' admin screens. What's verified: the exact
+mechanism every one of those screens will reuse (auth, permission gating,
+publish workflow, and now a genuinely working media upload pipeline)
+proven end to end against real data, real credentials, and a real,
+Cloudinary-backed upload — for the first time in this project's history.
 
 ## Phases 12–13 ⬜ NOT STARTED
 

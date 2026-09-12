@@ -5,9 +5,11 @@ import { useEffect, useState } from 'react';
 
 import { ApiError } from '../../lib/api-client';
 import { useAuth } from '../../lib/auth-context';
+import { previewUrl } from '../../lib/preview';
 
 interface VenueDetail {
   id: string;
+  slug: string;
   name: string;
   city: string;
   state: string | null;
@@ -34,6 +36,7 @@ export function VenueForm({ id }: { id?: string }): React.JSX.Element {
   const { request } = useAuth();
   const router = useRouter();
   const [values, setValues] = useState<FormValues>(EMPTY);
+  const [slug, setSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(Boolean(id));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +45,7 @@ export function VenueForm({ id }: { id?: string }): React.JSX.Element {
     if (!id) return;
     request<VenueDetail>(`admin/venues/${id}`)
       .then((venue) => {
+        setSlug(venue.slug);
         setValues({
           name: venue.name,
           city: venue.city,
@@ -104,9 +108,18 @@ export function VenueForm({ id }: { id?: string }): React.JSX.Element {
 
   if (loading) return <p className="text-fg-muted text-sm">Loading…</p>;
 
+  const preview = slug ? previewUrl(`/venues/${slug}`) : null;
+
   return (
     <div className="max-w-lg">
-      <h1 className="font-display text-h2 text-fg-strong">{id ? 'Edit venue' : 'New venue'}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-h2 text-fg-strong">{id ? 'Edit venue' : 'New venue'}</h1>
+        {preview ? (
+          <a href={preview} target="_blank" rel="noopener noreferrer" className="text-accent text-sm underline">
+            Preview live →
+          </a>
+        ) : null}
+      </div>
       <form
         onSubmit={(event) => {
           void onSubmit(event);
