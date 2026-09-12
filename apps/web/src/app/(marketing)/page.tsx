@@ -182,7 +182,7 @@ export default async function HomePage(): Promise<React.JSX.Element> {
         className="relative isolate flex min-h-svh items-end overflow-hidden pb-20"
       >
         <div className="absolute inset-0 -z-10 overflow-hidden">
-          <StageBackdrop />
+          <StageBackdrop videoUrl={settings.homeHeroVideoUrl} />
         </div>
 
         <Container>

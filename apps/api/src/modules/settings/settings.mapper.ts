@@ -6,6 +6,7 @@ interface SettingsRow {
   siteName: string;
   siteTagline: string | null;
   logo: MediaAssetRow | null;
+  homeHeroVideoMedia: { secureUrl: string } | null;
   contactEmail: string;
   bookingEmail: string | null;
   contactPhone: string | null;
@@ -29,6 +30,7 @@ interface SettingsRow {
   maintenanceMode: boolean;
   responseTimePromise: string | null;
   updatedAt: Date;
+  homeHeroVideoMediaId: string | null;
 }
 
 export function toSettingsDetail(row: SettingsRow): SiteSettingsDetail {
@@ -36,6 +38,7 @@ export function toSettingsDetail(row: SettingsRow): SiteSettingsDetail {
     siteName: row.siteName,
     siteTagline: row.siteTagline,
     logo: toMediaImage(row.logo),
+    homeHeroVideoUrl: row.homeHeroVideoMedia?.secureUrl ?? null,
     contactEmail: row.contactEmail,
     bookingEmail: row.bookingEmail,
     contactPhone: row.contactPhone,
@@ -62,5 +65,9 @@ export function toSettingsDetail(row: SettingsRow): SiteSettingsDetail {
 }
 
 export function toSettingsAdminDetail(row: SettingsRow): SiteSettingsAdminDetail {
-  return { ...toSettingsDetail(row), updatedAt: row.updatedAt };
+  return {
+    ...toSettingsDetail(row),
+    updatedAt: row.updatedAt,
+    homeHeroVideoMediaId: row.homeHeroVideoMediaId,
+  };
 }

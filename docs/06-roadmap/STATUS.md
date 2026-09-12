@@ -7,7 +7,7 @@
 > honest "blocked" line is far more useful to the next session than an
 > optimistic tick.
 
-**Last updated:** 2026-09-13 (UX pass + Gallery/hero-video session)
+**Last updated:** 2026-09-13 (homepage hero video session)
 **Current phase:** The **cinematic visual layer** — Phase 10 done properly.
 Until this session `apps/web` was functionally complete and visually flat:
 no hero, no shader, no persona switcher, no 3D, and a play button that
@@ -1033,6 +1033,64 @@ stylesheet contains the `.font-display` base rule; and all sixteen key routes
 **Still unverified, and unchanged by this pass:** nobody has looked at the
 page. Whether the shader renders, the deck spins, the accent crossfades or a
 SoundCloud track plays is still unknown — see gaps #17–18.
+
+### Homepage hero background video (this session)
+
+Follow-up to the persona hero-video work: the user asked whether the
+**homepage** hero could get the same background-video treatment as a
+persona page, since it couldn't — the homepage isn't tuned to one persona
+(it cycles through all four via the channel switcher), so there was no
+natural field to hang a video off.
+
+Unlike `Persona.bgVideoMediaId` and `Gallery`/`GalleryItem`, this one
+genuinely needed a new column — `SiteSettings` had no equivalent field.
+Added `homeHeroVideoMediaId` (nullable, `onDelete: SetNull`, matching the
+existing `logoId`/`defaultOgImageId` pattern exactly) and wired it end to
+end: `homeHeroVideoUrl` on the public `SiteSettingsDetail` read shape,
+`homeHeroVideoMediaId` (raw id) on the admin-only `SiteSettingsAdminDetail`
+— learning directly from this session's earlier Persona fix, both the read
+*and* write shapes got the raw id from the start, so the Settings form
+never had the "can't see what's already selected" bug in the first place.
+`MediaSelect` (already extended with a `mediaType` filter for the Gallery
+work) is now used a second time, on the Settings screen, to pick a video.
+The homepage's `<StageBackdrop>` takes the same `videoUrl` prop the persona
+pages already use.
+
+**The migration itself needed care.** `prisma migrate dev` refused to run:
+it detected the real database's `searchVector` column on `posts` (added by
+`post-migrate.sql`, deliberately outside Prisma's migration history per
+ADR 0015) as "drift" and asked to **reset the database** to resolve it —
+exactly the destructive path CLAUDE.md forbids. Instead: wrote the
+migration SQL by hand (one `ALTER TABLE ... ADD COLUMN` plus the matching
+foreign key, copied from the equivalent `logoId` migration for byte-for-byte
+consistency), applied it directly with `prisma db execute` (which runs raw
+SQL with no drift check), and recorded it via `prisma migrate resolve
+--applied` so migration history stays accurate for the next session. Then
+`prisma migrate diff` was run against the live database to confirm the
+*only* remaining difference is that same, expected `searchVector` column —
+nothing else drifted, and no data was touched.
+
+### Verified
+
+- `prisma migrate diff` against the live database shows only the one
+  known, documented difference (`posts.searchVector`) — the new column
+  and its foreign key are exactly what the schema declares.
+- `GET /settings` and `GET /admin/settings` both confirmed live, returning
+  `homeHeroVideoUrl: null` / `homeHeroVideoMediaId: null` as expected (no
+  clip uploaded yet).
+- `PATCH /admin/settings` with `homeHeroVideoMediaId: null` confirmed to
+  return 200 with the full settings row unchanged otherwise — the write
+  path round-trips.
+- `pnpm turbo lint typecheck build --filter='!@dj/db'` — 20/20 green.
+- `apps/api/openapi.json` regenerated — it had never been updated for the
+  Gallery module added earlier this session either, so this also closes
+  that gap.
+
+### Not verified
+
+- No real video has been uploaded, so the actual `<video>` background has
+  not been seen rendering on the homepage — same honest caveat as the
+  persona hero-video work.
 
 ### Second UX/bug pass, plus a real Gallery feature and hero video (this session)
 

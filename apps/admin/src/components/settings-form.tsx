@@ -4,9 +4,12 @@ import { useEffect, useState } from 'react';
 
 import { useAuth } from '../lib/auth-context';
 
+import { MediaSelect } from './media/media-select';
+
 interface SettingsDetail {
   siteName: string;
   siteTagline: string | null;
+  homeHeroVideoMediaId: string | null;
   contactEmail: string;
   bookingEmail: string | null;
   contactPhone: string | null;
@@ -27,6 +30,7 @@ type Values = Record<keyof Omit<SettingsDetail, 'maintenanceMode' | 'bookingForm
 const EMPTY: Values = {
   siteName: '',
   siteTagline: '',
+  homeHeroVideoMediaId: '',
   contactEmail: '',
   bookingEmail: '',
   contactPhone: '',
@@ -62,6 +66,7 @@ export function SettingsForm(): React.JSX.Element {
         setValues({
           siteName: settings.siteName,
           siteTagline: settings.siteTagline ?? '',
+          homeHeroVideoMediaId: settings.homeHeroVideoMediaId ?? '',
           contactEmail: settings.contactEmail,
           bookingEmail: settings.bookingEmail ?? '',
           contactPhone: settings.contactPhone ?? '',
@@ -97,6 +102,7 @@ export function SettingsForm(): React.JSX.Element {
         body: {
           siteName: values.siteName,
           siteTagline: values.siteTagline || undefined,
+          homeHeroVideoMediaId: values.homeHeroVideoMediaId || null,
           contactEmail: values.contactEmail,
           bookingEmail: values.bookingEmail || undefined,
           contactPhone: values.contactPhone || undefined,
@@ -157,6 +163,16 @@ export function SettingsForm(): React.JSX.Element {
             />
           </div>
         ))}
+
+        <MediaSelect
+          label="Homepage hero background video"
+          value={values.homeHeroVideoMediaId}
+          onChange={(value) => {
+            setField('homeHeroVideoMediaId', value);
+          }}
+          mediaType="VIDEO"
+          hint="An optional looping, muted background clip for the homepage hero — upload an MP4 on the Media library page first, then pick it here. Leave empty to keep the generated colour background. The homepage isn't tied to one persona, so this is the one place to set it (a persona's own page uses that persona's own hero video field instead)."
+        />
 
         <div className="flex items-center gap-2">
           <input

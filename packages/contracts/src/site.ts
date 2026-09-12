@@ -81,6 +81,8 @@ export const SiteSettingsDetail = z.object({
   siteName: z.string(),
   siteTagline: z.string().nullable(),
   logo: MediaImageSchema.nullable(),
+  /** An optional looping muted clip behind the homepage hero. */
+  homeHeroVideoUrl: z.string().nullable(),
   contactEmail: z.string(),
   bookingEmail: z.string().nullable(),
   contactPhone: z.string().nullable(),
@@ -108,6 +110,8 @@ export type SiteSettingsDetail = z.infer<typeof SiteSettingsDetail>;
 
 export const SiteSettingsAdminDetail = SiteSettingsDetail.extend({
   updatedAt: z.coerce.date(),
+  /** Raw id, admin-only — see PersonaAdminDetail's identical comment for why. */
+  homeHeroVideoMediaId: Id.nullable(),
 });
 export type SiteSettingsAdminDetail = z.infer<typeof SiteSettingsAdminDetail>;
 
@@ -119,6 +123,7 @@ export const SiteSettingsUpdateInput = inputObject({
   siteName: z.string().min(1).max(120).optional(),
   siteTagline: z.string().max(200).nullish(),
   logoId: Id.nullish(),
+  homeHeroVideoMediaId: Id.nullish(),
   contactEmail: z.string().email().optional(),
   bookingEmail: z.string().email().nullish(),
   contactPhone: z.string().max(20).nullish(),

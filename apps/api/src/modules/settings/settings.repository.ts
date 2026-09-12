@@ -6,6 +6,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 const INCLUDE = {
   logo: { select: MEDIA_IMAGE_SELECT },
   defaultOgImage: { select: MEDIA_IMAGE_SELECT },
+  homeHeroVideoMedia: { select: { secureUrl: true } },
 } as const;
 
 const SINGLETON_ID = 'singleton';
@@ -15,6 +16,7 @@ export interface SettingsUpdateData {
   siteName?: string;
   siteTagline?: string | null;
   logoId?: string | null;
+  homeHeroVideoMediaId?: string | null;
   contactEmail?: string;
   bookingEmail?: string | null;
   contactPhone?: string | null;
