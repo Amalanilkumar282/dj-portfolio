@@ -1,0 +1,17 @@
+# Keeps the Docker build context small and avoids leaking local secrets or
+# stale build output into the image. apps/api/Dockerfile still explicitly
+# COPYs only what it needs, but this stops Docker from even reading these
+# directories off disk while assembling the context.
+
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/.turbo
+.git
+.env
+.env.local
+**/.env
+**/.env.local
+*.log

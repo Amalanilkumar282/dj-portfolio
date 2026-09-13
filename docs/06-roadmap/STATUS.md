@@ -7,7 +7,7 @@
 > honest "blocked" line is far more useful to the next session than an
 > optimistic tick.
 
-**Last updated:** 2026-09-13 (homepage hero video session)
+**Last updated:** 2026-09-13 (deploy-readiness session)
 **Current phase:** The **cinematic visual layer** — Phase 10 done properly.
 Until this session `apps/web` was functionally complete and visually flat:
 no hero, no shader, no persona switcher, no 3D, and a play button that
@@ -1033,6 +1033,78 @@ stylesheet contains the `.font-display` base rule; and all sixteen key routes
 **Still unverified, and unchanged by this pass:** nobody has looked at the
 page. Whether the shader renders, the deck spins, the accent crossfades or a
 SoundCloud track plays is still unknown — see gaps #17–18.
+
+### Deploy-readiness pass (this session)
+
+The user asked for a full analysis of whether the app is ready to deploy.
+Ran the actual gates rather than assuming: `pnpm turbo lint typecheck
+build --filter='!@dj/db'` (20/20 green, against the live API), and
+`pnpm check:env` — which is exactly the check meant to catch "works
+locally, fails to boot in production." It failed, for a real reason.
+
+**Two real gaps found and fixed:**
+
+1. **`apps/admin/.env.example` was missing two variables the code actually
+   reads** (`NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_PREVIEW_TOKEN` — both used
+   by `lib/preview.ts` for the "Preview"/"View live site" links added
+   earlier this week). Deploying admin without knowing these exist would
+   have silently broken those links with no error. Documented both, with
+   the reasoning for why the token is intentionally `NEXT_PUBLIC_` in this
+   one app (it's a shared secret with `apps/web`'s Draft Mode route, and
+   admin already sits behind auth — see `lib/preview.ts`'s own comment).
+   `check-env.ts` flags any `NEXT_PUBLIC_*` variable that looks like a
+   secret as an error by design; added one named, commented exception for
+   this specific, deliberate case rather than weakening the rule.
+
+2. **`apps/api/Dockerfile` did not exist.** `docs/05-operations/
+   deployment.md` describes a Docker-based deploy and the pre-deploy
+   migration command in detail, but there was no actual Dockerfile in the
+   repo — building the API into a container was structurally impossible.
+   Wrote a monorepo-aware multi-stage one (install at the workspace root →
+   `prisma generate` → `turbo build --filter=@dj/api` → copy only the
+   built output and prod dependencies into a slim runtime layer), plus a
+   root `.dockerignore`. **Not build-tested** — Docker is not installed on
+   this machine (a standing constraint noted elsewhere in this file) — but
+   every path it `COPY`s was verified to exist, and every command in it is
+   one already confirmed to work outside a container this session.
+
+### Verified
+
+- `pnpm turbo lint typecheck build --filter='!@dj/db'` — 20/20 green,
+  with the real API running.
+- `pnpm check:env` — clean after the fix.
+- `prisma migrate diff` against the live database — no drift beyond the
+  one documented, expected exception (`posts.searchVector`, outside
+  Prisma's migration history by design — ADR 0015).
+
+### Not verified — the honest gap list before a real production launch
+
+This was true before this session and remains true — nothing here is new,
+but it is the direct answer to "are we good to deploy":
+
+- **The API's Dockerfile has never actually been built or run.** Confirm
+  this on the first real deploy attempt, or locally if Docker ever becomes
+  available on a dev machine.
+- No screen-reader pass, no load test, no restore drill (Group F's
+  standing handoff list).
+- Cloudinary/Resend/Turnstile real end-to-end sends are configured but not
+  exhaustively exercised in production conditions.
+- Nothing in the cinematic visual layer has been seen in a real browser on
+  a real device (a headless Chromium confirmed specific fixes; that is not
+  the same as a device lab).
+- No content exists yet for Gallery or either hero-video field — that's
+  correct and intentional (no real photos/video exist to seed), but it
+  means a first deploy will look exactly as it does locally: generative
+  backgrounds only, no galleries listed.
+
+**Bottom line:** the codebase is in a genuinely deployable state — every
+gate that can be checked without paid infrastructure passes, and the two
+real gaps that would have caused a broken or impossible deploy are fixed.
+What's *not* verified is what only a real deploy can verify (the
+Dockerfile actually building, TLS, real email/SMS delivery in production,
+device-level rendering) — those are exercised for the first time during
+the deploy itself, per the existing runbook in `docs/05-operations/
+deployment.md`.
 
 ### Homepage hero background video (this session)
 
