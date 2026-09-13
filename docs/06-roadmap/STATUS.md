@@ -1034,6 +1034,45 @@ stylesheet contains the `.font-display` base rule; and all sixteen key routes
 page. Whether the shader renders, the deck spins, the accent crossfades or a
 SoundCloud track plays is still unknown — see gaps #17–18.
 
+### "SWAGGER_ENABLED must be false in production" despite being set to false
+
+Reported from a real Render deploy: the API crashed at boot with `Error:
+SWAGGER_ENABLED must be false in production` even though the user had
+set `SWAGGER_ENABLED=false` in Render's Environment tab. Confirmed real
+and traced to a schema bug, not a Render misconfiguration.
+
+**Root cause.** `SWAGGER_ENABLED: z.coerce.boolean().default(false)` looks
+like it parses the string `"false"` into the boolean `false`, but
+`z.coerce.boolean()` actually runs the raw value through JavaScript's own
+`Boolean(x)` — which is `true` for *any* non-empty string, including the
+literal text `"false"`. Every environment variable a host like Render
+injects arrives as a string, so `SWAGGER_ENABLED=false` coerced to `true`
+regardless of intent, and `validateEnv()`'s own production guard (`if
+(NODE_ENV === 'production' && SWAGGER_ENABLED) throw`) fired on every
+single boot. Confirmed directly: `node -e "console.log(Boolean('false'))"`
+prints `true`.
+
+**Fix.** Replaced `z.coerce.boolean()` with a real string parser
+(`booleanFromEnv` in `env.schema.ts`) that lowercases/trims the value and
+only treats `'true'`/`'1'` as true — everything else, including `'false'`,
+`'0'` and unset, is false. An unrecognised value (e.g. a typo like `"flase"`)
+now fails validation loudly at boot instead of silently misparsing,
+consistent with this file's own stated philosophy ("Boot fails on invalid
+config, deliberately"). Searched the rest of the repo for the same
+`z.coerce.boolean()` pattern — this was the only occurrence.
+
+### Verified
+
+- Reproduced the exact reported failure first: booted the built API with
+  `NODE_ENV=production SWAGGER_ENABLED=false` before the fix — confirmed
+  it throws the reported error.
+- Applied the fix, rebuilt, and re-ran the identical command — the API
+  now boots cleanly in `[production]` mode, `/health` returns 200, and
+  `/api/docs` correctly 404s (Swagger genuinely disabled, not just not
+  crashing).
+- `pnpm --filter @dj/api exec tsc --noEmit` — clean.
+- `pnpm turbo lint typecheck build --filter='!@dj/db'` — 20/20 green.
+
 ### Admin session lost on every page refresh — real bug, confirmed and fixed
 
 The user reported that reloading any admin page bounced them back to

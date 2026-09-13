@@ -1,6 +1,25 @@
 import { z } from 'zod';
 
 /**
+ * A real string -> boolean parser for env vars.
+ *
+ * `z.coerce.boolean()` looks like it does this already, but it does not: it
+ * runs the raw string through JavaScript's `Boolean(x)`, which is true for
+ * *any* non-empty string — including the literal text `"false"`. Every
+ * environment variable arrives as a string, so `SWAGGER_ENABLED=false` in a
+ * real deploy's dashboard coerced to `true` regardless of intent, and the
+ * production guard below rejected it every single boot. Confirmed live: a
+ * Render deploy with `SWAGGER_ENABLED=false` set in the dashboard still
+ * failed with "SWAGGER_ENABLED must be false in production."
+ */
+const booleanFromEnv = z
+  .string()
+  .default('false')
+  .transform((value) => value.trim().toLowerCase())
+  .pipe(z.enum(['true', 'false', '1', '0', '']))
+  .transform((value) => value === 'true' || value === '1');
+
+/**
  * Environment schema — the runtime source of truth for API configuration.
  *
  * Boot **fails** on invalid config, deliberately. A container that starts
@@ -20,7 +39,7 @@ export const envSchema = z.object({
   API_PUBLIC_URL: z.string().url(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   /** Must be false in production. */
-  SWAGGER_ENABLED: z.coerce.boolean().default(false),
+  SWAGGER_ENABLED: booleanFromEnv,
 
   // ── database ───────────────────────────────────────────────────────────
   /** Pooled. Neon -pooler endpoint with pgbouncer=true. See ADR 0005. */
