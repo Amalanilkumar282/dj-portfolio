@@ -19,6 +19,68 @@ jobs:
   verify:
     name: Lint, typecheck, build
     runs-on: ubuntu-latest
+    # apps/web and apps/admin are 100% CMS-driven (see CLAUDE.md) — every
+    # page fetches real content at build time via Next.js static
+    # generation, which means `next build` needs a live, reachable API,
+    # not just compiled TypeScript. Without this service this job could
+    # lint and typecheck cleanly and still fail at the build step with
+    # `ECONNREFUSED` on every static page, because nothing was listening
+    # on API_INTERNAL_URL.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: djf
+          POSTGRES_PASSWORD: djf
+          POSTGRES_DB: djf
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U djf -d djf"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://djf:djf@localhost:5432/djf?schema=public
+      DIRECT_URL: postgresql://djf:djf@localhost:5432/djf?schema=public
+      # ── apps/api — every value below is a placeholder matching the
+      # patterns CloudinaryService/MailService/TurnstileService already
+      # treat as "not configured" (see CLAUDE.md's "actual placeholder
+      # values" note) so those integrations skip real network calls
+      # instead of erroring, while still satisfying env.schema.ts's Zod
+      # validation so the API actually boots.
+      NODE_ENV: production
+      API_PUBLIC_URL: http://localhost:4111
+      PORT: '4111'
+      JWT_ACCESS_SECRET: ci-only-access-secret-at-least-48-characters-long-000000
+      JWT_REFRESH_SECRET: ci-only-refresh-secret-at-least-48-characters-long-00000
+      COOKIE_SECRET: ci-only-cookie-secret-32-bytes-000000000000
+      TOTP_ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3001
+      CLOUDINARY_CLOUD_NAME: ci-test
+      CLOUDINARY_API_KEY: ci-test
+      CLOUDINARY_API_SECRET: test
+      RESEND_API_KEY: re_test
+      MAIL_FROM: bookings@djfelicitous.com
+      BOOKING_NOTIFY_TO: bookings@djfelicitous.com
+      WEB_BASE_URL: http://localhost:3000
+      REVALIDATE_SECRET: ci-only-revalidate-secret-32-bytes-0000000000
+      API_KEY: ci-only-api-key-32-bytes-0000000000000000
+      PREVIEW_TOKEN: ci-only-preview-token-32-bytes-00000000000
+      TURNSTILE_SECRET_KEY: test
+      ANALYTICS_HASH_SALT: ci-only-salt-16b
+      # ── apps/web / apps/admin — must match the apps/api values above
+      # exactly (REVALIDATE_SECRET, API_KEY, PREVIEW_TOKEN) or the two
+      # sides reject each other's requests.
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_ADMIN_URL: http://localhost:3001
+      NEXT_PUBLIC_API_URL: http://localhost:4111/api/v1
+      NEXT_PUBLIC_PREVIEW_TOKEN: ci-only-preview-token-32-bytes-00000000000
+      API_INTERNAL_URL: http://localhost:4111/api/v1
+      NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ci-test
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ci-test
+      CLOUDINARY_UPLOAD_PRESET: djf-signed
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,7 +112,36 @@ jobs:
       - name: Typecheck
         run: pnpm turbo typecheck --filter='...[origin/main]'
 
+      - name: Migrate and seed the throwaway database
+        # Real content, not an empty schema — a page that renders "no
+        # testimonials yet" during build hides an entirely different class
+        # of bug than one that 404s because the persona it needs doesn't
+        # exist. Mirrors what a real first deploy does (see
+        # deployment.md's pre-deploy command).
+        run: |
+          pnpm db:migrate:deploy
+          pnpm --filter @dj/db seed:system
+          pnpm --filter @dj/db seed:content
+
+      - name: Build and start the API
+        run: |
+          pnpm --filter @dj/api build
+          node --enable-source-maps apps/api/dist/main.js &
+          echo "Waiting for /health/ready..."
+          for i in $(seq 1 30); do
+            if curl --fail -s http://localhost:4111/health/ready > /dev/null; then
+              echo "API is up."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API never became healthy." >&2
+          exit 1
+
       - name: Build
+        # Runs every app, including apps/api again — turbo caches that one
+        # (nothing changed since the step above built it), so this mainly
+        # builds apps/web and apps/admin against the live API started above.
         run: pnpm turbo build
 
   database:

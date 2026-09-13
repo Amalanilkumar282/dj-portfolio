@@ -7,7 +7,7 @@
 > honest "blocked" line is far more useful to the next session than an
 > optimistic tick.
 
-**Last updated:** 2026-09-13 (deploy-readiness session)
+**Last updated:** 2026-09-13 (CI fixes session)
 **Current phase:** The **cinematic visual layer** — Phase 10 done properly.
 Until this session `apps/web` was functionally complete and visually flat:
 no hero, no shader, no persona switcher, no 3D, and a play button that
@@ -1033,6 +1033,103 @@ stylesheet contains the `.font-display` base rule; and all sixteen key routes
 **Still unverified, and unchanged by this pass:** nobody has looked at the
 page. Whether the shader renders, the deck spins, the accent crossfades or a
 SoundCloud track plays is still unknown — see gaps #17–18.
+
+### CI failures fixed (this session)
+
+The first real push to `main` (merging `visual-layer`) showed 3 of 4 CI
+jobs red: "Lint, typecheck, build", "Database — migrations, seeds,
+integration tests", "Dependency audit". `gh` CLI wasn't available in this
+session, so every failure was reproduced and diagnosed locally instead —
+building against the real API, not guessed at from the job names.
+
+**1. "Lint, typecheck, build" — a real, structural CI gap, not a code bug.**
+`apps/web` and `apps/admin` are 100% CMS-driven (CLAUDE.md's own central
+requirement): every page fetches real content from the API at build time
+via Next.js static generation. The `verify` job installed, linted and
+typechecked fine, then hit `ECONNREFUSED` on every static page during
+`next build` — because nothing in that job ever started the API. This
+was invisible locally all session because a real API happened to already
+be running in the background for manual testing; CI has no such thing
+unless the workflow provisions it. Fixed by giving the `verify` job its
+own Postgres service (mirroring the `database` job), migrating and
+seeding it, building and starting `apps/api` in the background with a
+health-check wait loop, and only then running `pnpm turbo build`.
+Verified directly: reproduced the exact failure locally with no API
+running, then reproduced the fix by starting the API first and re-running
+the same build — clean both times.
+
+**2. "Dependency audit" — real, current high/critical CVEs in transitive
+dependencies**, none of them anything this codebase calls directly:
+`multer` (pulled in by `@nestjs/platform-express`; uploads go straight to
+Cloudinary from the browser, multer is never used — see
+media-pipeline.md), and `vitest`/`vite`/`postcss`/`undici`/`deepmerge-ts`
+(all test/build toolchain). Fixed with `pnpm-workspace.yaml`'s `overrides`
+map, forcing each to its patched version. One mistake caught before it
+shipped: the first attempt used an open-ended `vitest: '>=3.2.6'`, which
+pnpm resolved to `5.0.0` — three major versions past what this codebase
+has ever run against. Narrowed to `>=3.2.6 <4.0.0` (resolves to `3.2.7`),
+then actually ran `packages/db`'s real integration test suite against it
+to confirm nothing broke, rather than trusting the version bump alone.
+`pnpm audit --audit-level=high` now reports zero high/critical (down from
+10 high + 1 critical).
+
+**3. "Database — migrations, seeds, integration tests" — investigated
+thoroughly; the one failure found was local database pollution, not a
+reproducible CI bug.** Since this job runs against a brand-new, empty
+Postgres container every time, the only way to check it faithfully
+without Docker (not installed on this machine) was to provision a genuine
+scratch database on the real Neon project and run the *exact* command the
+job runs: `prisma migrate diff --from-migrations ./prisma/migrations
+--to-schema-datamodel ./prisma/schema.prisma --shadow-database-url ...
+--exit-code`. Result: **"No difference detected"** — the migration history
+(including the hand-written `add_home_hero_video` migration from the
+previous session) applies cleanly to a fresh database with zero drift.
+Running `pnpm --filter @dj/db test` next failed on one assertion
+("expected 0 to be greater than 0") — traced to a leftover
+`test-playlist-e2e` row with no tracks, left behind by a previous e2e run
+against the real dev database that didn't clean up after itself (exactly
+the failure mode `testing.md`'s "leave seeded content exactly as they
+found it" rule exists to prevent). Confirmed this is **not** a seed-script
+bug: all four real playlists had correct track counts throughout. Deleted
+the stray row; the full suite is back to 90/90 passing. Since this
+specific pollution cannot exist in CI's always-fresh container, **the
+actual GitHub Actions run may have failed for a different reason** — every
+avenue checkable without `gh` CLI or Docker access has been exhausted
+(migration drift, seed correctness, Postgres extension/config parity, the
+Prisma client). If this job is still red after the push, the next step is
+pasting the actual job log, not further local guessing.
+
+**4. "Secret scan" — was already green, untouched.**
+
+### Verified
+
+- Reproduced and fixed the build-order gap: confirmed the exact
+  `ECONNREFUSED` failure locally with no API running, then confirmed a
+  clean build with the API up and healthy.
+- `pnpm audit --audit-level=high` — 0 high/critical (was 10 high + 1
+  critical).
+- `pnpm --filter @dj/db test` — 90/90 passing (was 89/90, after removing
+  stray local test data).
+- `prisma migrate diff` against a genuine scratch database on the real
+  Neon project, using the exact CI command — "No difference detected."
+- `pnpm turbo lint typecheck build --filter='!@dj/db'` — 20/20 green, with
+  the API running.
+- `pnpm check:env` — clean.
+- The updated `.github/workflows/ci.yml` was validated for YAML syntax
+  (not run through GitHub Actions itself, since this session has no way to
+  trigger or observe an actual Actions run).
+
+### Not verified
+
+- **The actual GitHub Actions run has not been re-triggered or observed
+  from this session** — `gh` CLI is unavailable and there is no web
+  access. The push that includes these fixes needs to be watched in the
+  Actions tab to confirm the "Lint, typecheck, build" and "Dependency
+  audit" jobs go green, and to see whether "Database" was really explained
+  by local pollution or needs a further look with real log output.
+- Docker is still not installed on this machine, so the new
+  `apps/api/Dockerfile` remains unbuilt/untested (unchanged from the
+  previous session's gap).
 
 ### Deploy-readiness pass (this session)
 

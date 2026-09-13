@@ -2,6 +2,35 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+# ── Security overrides ──────────────────────────────────────────────────────
+#
+# Forces patched versions of transitive dependencies flagged by
+# `pnpm audit --audit-level=high` in CI (the "Dependency audit" job). None
+# of these are direct dependencies of any app: multer is pulled in by
+# @nestjs/platform-express and never used directly (uploads go straight to
+# Cloudinary from the browser — see media-pipeline.md); vitest, vite,
+# postcss, undici and deepmerge-ts are all pulled in by the test/build
+# toolchain. Overriding a transitive dependency's version is safe here
+# rather than a real upgrade decision, since nothing in this codebase calls
+# any of these directly.
+#
+# Re-run `pnpm audit --audit-level=high` after any dependency bump, and
+# prune an entry here once the direct dependency that pulled it in has
+# moved past the vulnerable range on its own.
+overrides:
+  multer: '>=2.3.0'
+  # Capped below 4.0.0 deliberately: the codebase is written and tested
+  # against vitest 2.x's config/API shape, and an unbounded ">=3.2.6"
+  # resolves to whatever is newest — it actually picked 5.0.0 the first
+  # time this was tried, three major versions past what anything here has
+  # ever run against. This takes the smallest jump that clears the
+  # advisory (3.2.6) without adding an untested major version on top.
+  vitest: '>=3.2.6 <4.0.0'
+  vite: '>=6.4.3'
+  postcss: '>=8.5.18'
+  undici: '>=6.27.0'
+  deepmerge-ts: '>=8.0.0'
+
 # ── Install-script policy ───────────────────────────────────────────────────
 #
 # A postinstall script is arbitrary code execution at install time, so this is
