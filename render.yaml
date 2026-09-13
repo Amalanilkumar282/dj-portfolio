@@ -1,0 +1,79 @@
+# Render "Blueprint" — makes the API's deploy configuration an explicit,
+# reviewable file instead of dashboard clicks a person can get wrong.
+#
+# This exists because of a real, observed failure: a service created
+# through Render's dashboard defaulted to Render's native Node buildpack
+# (paths like /opt/render/project/src/...) instead of apps/api/Dockerfile,
+# which meant `prisma generate` never ran before `packages/db`'s TypeScript
+# build tried to import types from `@prisma/client` — the exact "stale/
+# ungenerated Prisma client" failure mode CLAUDE.md's own conventions
+# section warns about, just hit at deploy time instead of during local dev.
+#
+# To use this: in the Render dashboard, "New +" -> "Blueprint", point it at
+# this repo. Render reads this file and creates the service correctly
+# configured below — no dashboard fields to get wrong. If a service was
+# already created by hand, either delete it and recreate via Blueprint, or
+# go to that service's Settings -> Build & Deploy and set Runtime to
+# "Docker", Dockerfile Path to "apps/api/Dockerfile", Docker Build Context
+# Directory to ".".
+#
+# See docs/05-operations/deployment.md.
+
+services:
+  - type: web
+    name: dj-felicitous-api
+    runtime: docker
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: .
+    region: singapore
+    plan: free
+    healthCheckPath: /health/ready
+    envVars:
+      # Real values are set once in the Render dashboard (Environment tab)
+      # after the first deploy — never committed here. This list exists so
+      # a reviewer can see at a glance which variables the service expects;
+      # see apps/api/.env.example for what each one means.
+      - key: NODE_ENV
+        value: production
+      - key: SWAGGER_ENABLED
+        value: 'false'
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: COOKIE_SECRET
+        sync: false
+      - key: TOTP_ENCRYPTION_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: BOOKING_NOTIFY_TO
+        sync: false
+      - key: WEB_BASE_URL
+        sync: false
+      - key: API_PUBLIC_URL
+        sync: false
+      - key: REVALIDATE_SECRET
+        sync: false
+      - key: API_KEY
+        sync: false
+      - key: PREVIEW_TOKEN
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      - key: ANALYTICS_HASH_SALT
+        sync: false
