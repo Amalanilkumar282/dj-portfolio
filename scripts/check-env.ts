@@ -34,6 +34,20 @@ const PLATFORM_PROVIDED = new Set([
 /** Substrings that must never appear in a NEXT_PUBLIC_ variable name. */
 const SECRET_MARKERS = ['SECRET', 'PASSWORD', 'PRIVATE', 'TOKEN', 'API_KEY'];
 
+/**
+ * Named, deliberate exceptions to the rule above — narrowed on purpose
+ * rather than disabled, per CLAUDE.md's own convention for a rule that is
+ * right in general but wrong for one specific case.
+ *
+ * `NEXT_PUBLIC_PREVIEW_TOKEN` (apps/admin only) really is client-visible by
+ * design: it has to be embedded in the admin bundle so a signed-in editor's
+ * browser can build a "Preview"/"View live site" link into apps/web's Draft
+ * Mode route. Its blast radius if leaked is "see draft content early," not
+ * anything destructive, and admin itself sits behind auth — see
+ * apps/admin/src/lib/preview.ts.
+ */
+const NEXT_PUBLIC_SECRET_EXCEPTIONS = new Set(['NEXT_PUBLIC_PREVIEW_TOKEN']);
+
 const errors: string[] = [];
 const warnings: string[] = [];
 
@@ -123,7 +137,11 @@ function checkNextApp(app: string): void {
 
   // A secret behind NEXT_PUBLIC_ is shipped to every visitor's browser.
   for (const key of exampleKeys) {
-    if (key.startsWith('NEXT_PUBLIC_') && SECRET_MARKERS.some((s) => key.includes(s))) {
+    if (
+      key.startsWith('NEXT_PUBLIC_') &&
+      SECRET_MARKERS.some((s) => key.includes(s)) &&
+      !NEXT_PUBLIC_SECRET_EXCEPTIONS.has(key)
+    ) {
       errors.push(
         `apps/${app}: ${key} looks like a secret but is NEXT_PUBLIC_ — it would be exposed to the browser`,
       );

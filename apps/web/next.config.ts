@@ -20,19 +20,75 @@ const legacyRedirects = [
   { source: '/collaborate', destination: '/contact', permanent: true },
 ];
 
+/**
+ * A real Content-Security-Policy, not the full nonce-based one the
+ * masterplan describes for Phase 12 — a per-request nonce needs
+ * middleware wiring through every inline script (including Next's own
+ * hydration payload), which is a dedicated task in its own right, not a
+ * header-list addition. This is the honest intermediate step: every
+ * directive is allowlisted rather than left open, `unsafe-inline` appears
+ * only for styles (Tailwind's runtime + component-level `style` props have
+ * no nonce path today), and there is no `unsafe-eval` anywhere.
+ */
+const CSP = [
+  "default-src 'self'",
+  // 'unsafe-inline' here is a known, deliberate weakening — not an
+  // oversight. Next's App Router injects inline bootstrap/RSC-streaming
+  // scripts with no nonce by default; blocking them without first wiring
+  // a per-request nonce through middleware would break hydration on every
+  // page, and that risk can't be caught by anything short of a real
+  // browser (not available in this session). Tightening this to a nonce
+  // is the very next hardening step, not something to guess at blind.
+  //
+  // 'unsafe-eval' is added ONLY outside production. `next dev`'s webpack
+  // bundler wraps every module in `eval()` under its dev-mode source-map
+  // devtool — with a strict script-src this doesn't merely lose source
+  // maps, it silently breaks every client component: hydration throws on
+  // load, so no onClick ever attaches and the page looks complete (the
+  // server-rendered HTML is unaffected) while being entirely inert. A
+  // production build's client bundle never calls eval, so the
+  // production CSP stays exactly as strict as before.
+  `script-src 'self' 'unsafe-inline'${
+    process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'"
+  } https://challenges.cloudflare.com https://plausible.io https://w.soundcloud.com`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https://res.cloudinary.com",
+  "font-src 'self' data:",
+  "connect-src 'self' https://plausible.io",
+  "frame-src 'self' https://challenges.cloudflare.com https://w.soundcloud.com https://open.spotify.com https://www.youtube-nocookie.com",
+  "media-src 'self' https://res.cloudinary.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+const securityHeaders = [
+  { key: 'Content-Security-Policy', value: CSP },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+];
+
 const config: NextConfig = {
   reactStrictMode: true,
 
   // Server Components may import the shared TypeScript packages directly.
-  transpilePackages: ['@dj/ui', '@dj/contracts', '@dj/utils'],
+  transpilePackages: ['@dj/ui', '@dj/contracts', '@dj/utils', '@dj/motion'],
 
   images: {
-    // Phase 9 swaps this for the Cloudinary loader. Declared now so no image
-    // is ever added with the default loader by accident.
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [360, 414, 640, 768, 1024, 1280, 1536, 1920, 2560],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 31_536_000,
+    // Cloudinary already does format/quality negotiation and resizing at the
+    // edge; Next's built-in image endpoint would just re-do that work and
+    // add a second hop. `<CloudinaryImage>` is the only sanctioned way to
+    // render a `MediaImage` — see docs/02-architecture/frontend.md §5.7.
+    loader: 'custom',
+    loaderFile: './src/lib/cloudinary-loader.ts',
   },
 
   // Phase 7 enables incremental PPR on /, /[persona] and /events.
@@ -40,6 +96,10 @@ const config: NextConfig = {
 
   async redirects() {
     return legacyRedirects;
+  },
+
+  async headers() {
+    return [{ source: '/:path*', headers: securityHeaders }];
   },
 
   eslint: {

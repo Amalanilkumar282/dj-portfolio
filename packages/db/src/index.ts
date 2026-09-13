@@ -15,11 +15,16 @@ export { createPrismaClient } from './client.js';
 export type { CreatePrismaClientOptions, ExtendedPrismaClient } from './client.js';
 
 // Request context, read by the audit and soft-delete extensions.
-export { runWithDbContext, getDbContext, runWithHardDelete } from './context.js';
+export {
+  runWithDbContext,
+  runWithDbContextSync,
+  getDbContext,
+  runWithHardDelete,
+} from './context.js';
 export type { DbRequestContext } from './context.js';
 
 // Publish-state helpers, composed by public controllers.
-export { publishedWhere, publishedOnly } from './extensions/publish.js';
+export { publishedWhere, publishedOnly, anyDeletionState } from './extensions/publish.js';
 export type { PublishedWhereOptions } from './extensions/publish.js';
 
 export { SYSTEM_ACTOR } from './extensions/audit.js';

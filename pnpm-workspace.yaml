@@ -35,4 +35,7 @@ ignoredBuiltDependencies:
 strictDepBuilds: false
 
 allowBuilds:
+  '@prisma/client': set this to true or false
   '@scarf/scarf': set this to true or false
+  '@swc/core': set this to true or false
+  prisma: set this to true or false

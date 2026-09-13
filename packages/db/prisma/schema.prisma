@@ -507,6 +507,7 @@ model MediaAsset {
   seoOgImages        SeoMeta[]
   settingsLogos      SiteSettings[] @relation("SettingsLogo")
   settingsOgImages   SiteSettings[] @relation("SettingsOgImage")
+  settingsHomeHeroVideos SiteSettings[] @relation("SettingsHomeHeroVideo")
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -891,8 +892,9 @@ model Venue {
   seoMetaId String?  @unique
   seoMeta   SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
 
-  status      ContentStatus @default(PUBLISHED)
+  status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())
@@ -1189,8 +1191,9 @@ model Brand {
 
   personas PersonaBrand[]
 
-  status      ContentStatus @default(PUBLISHED)
+  status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())
@@ -1261,6 +1264,7 @@ model ExperienceEntry {
 
   status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())
@@ -1294,6 +1298,7 @@ model GearItem {
 
   status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())
@@ -1370,6 +1375,7 @@ model Faq {
 
   status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())
@@ -1401,6 +1407,7 @@ model PressAsset {
 
   status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
+  scheduledAt DateTime?
   sortIndex   Int           @default(0)
 
   createdAt DateTime  @default(now())
@@ -1641,6 +1648,14 @@ model SiteSettings {
   siteTagline String?
   logoId      String?
   logo        MediaAsset? @relation("SettingsLogo", fields: [logoId], references: [id], onDelete: SetNull)
+
+  /// An optional looping, muted background clip for the homepage hero —
+  /// the site-wide equivalent of a persona's own `bgVideoMediaId`. The
+  /// homepage isn't tuned to one persona (it cycles through all four via
+  /// the channel switcher), so this lives here rather than on any one
+  /// Persona row.
+  homeHeroVideoMediaId String?
+  homeHeroVideoMedia   MediaAsset? @relation("SettingsHomeHeroVideo", fields: [homeHeroVideoMediaId], references: [id], onDelete: SetNull)
 
   // Contact / NAP - kept consistent with the Google Business Profile for
   // local SEO.

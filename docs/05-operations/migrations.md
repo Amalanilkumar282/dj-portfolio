@@ -9,7 +9,7 @@ is the thing most likely to confuse you here.
 |                               | Owner                        | Contents                                                                                                    | Drift-checked                  |
 | ----------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------ |
 | `prisma/migrations/`          | **Prisma. Never hand-edit.** | Tables, columns, FKs, unique constraints, ordinary indexes, GIN trigram indexes, `CREATE EXTENSION pg_trgm` | Yes                            |
-| `prisma/sql/post-migrate.sql` | Us                           | 14 partial indexes, the generated `searchVector` column + its GIN index, 12 CHECK constraints               | No — asserted by tests instead |
+| `prisma/sql/post-migrate.sql` | Us                           | 15 partial indexes, the generated `searchVector` column + its GIN index, 26 CHECK constraints               | No — asserted by tests instead |
 
 Anything expressible in the datamodel **must** go in the datamodel, so the
 drift gate can see it. Trigram indexes are expressible:
@@ -36,6 +36,46 @@ pnpm db:migrate:check      # must print "No difference detected."
 
 `db:migrate` and `db:migrate:deploy` both chain `post-migrate`, so the two
 halves cannot drift apart in normal use.
+
+### `pnpm db:migrate` (`prisma migrate dev`) will want to reset a dev database that already ran post-migrate
+
+This is expected, not a bug, and it will happen on the **first** new migration
+you create against any database `post-migrate.sql` has already touched.
+`migrate dev` diffs the _live database_ against migration history, and
+`post-migrate.sql` deliberately adds objects — the CHECK constraints, the
+generated `searchVector` column — outside that history
+([ADR 0015](../01-decisions/0015-post-migrate-sql-outside-migrations.md)). So
+it always looks like drift to `migrate dev`, and it will offer to reset.
+
+**Resetting is fine on a disposable local database** — reseed after. It is
+not fine to reach for automatically against anything with data worth keeping,
+and per `CLAUDE.md` a reset needs the destructive-command guard either way.
+
+To add a migration **without** resetting (e.g. a shared dev database, or a
+scratch database you do not want to reseed mid-task):
+
+```bash
+# Diffs schema.prisma against migration history only — never touches the
+# live database, so post-migrate's out-of-band objects cannot look like drift.
+npx prisma migrate diff \
+  --from-migrations ./prisma/migrations \
+  --to-schema-datamodel ./prisma/schema.prisma \
+  --shadow-database-url "$SHADOW_DATABASE_URL" \
+  --script > /tmp/migration.sql
+
+# Hand-place the output into a new, properly-named migration folder —
+# this is the one case "never hand-write prisma/migrations/" doesn't mean
+# "never create the folder": the SQL itself still comes from Prisma's diff
+# engine, not from you.
+mkdir -p prisma/migrations/$(date -u +%Y%m%d%H%M%S)_my_change
+mv /tmp/migration.sql prisma/migrations/*_my_change/migration.sql
+
+pnpm db:migrate:deploy   # applies pending migrations + post-migrate, no drift check
+pnpm db:migrate:check    # confirm: "No difference detected."
+```
+
+This is exactly how [ADR 0019](../01-decisions/0019-scheduled-at-and-published-check-on-every-publishable-model.md)
+was applied.
 
 ### Adding a partial index or CHECK constraint
 

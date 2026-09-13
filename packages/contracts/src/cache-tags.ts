@@ -33,6 +33,15 @@ export const tags = {
   personas: 'personas',
   persona: (slug: string) => `persona:${slug}`,
 
+  /**
+   * Genres are a taxonomy, so a change to one is felt wherever it is
+   * *rendered*, not on a page of its own: the filter bar on /music, and the
+   * genre chips on every persona page. Renaming "Psytrance" has to reach
+   * those, which is why `genre` invalidates `tracks` and `personas` too.
+   */
+  genres: 'genres',
+  genre: (slug: string) => `genre:${slug}`,
+
   tracks: 'tracks',
   track: (slug: string) => `track:${slug}`,
   tracksFeatured: 'tracks:featured',
@@ -82,6 +91,7 @@ export const tags = {
 /** Entity names the revalidation webhook accepts. */
 export const REVALIDATABLE_ENTITIES = [
   'persona',
+  'genre',
   'track',
   'playlist',
   'release',

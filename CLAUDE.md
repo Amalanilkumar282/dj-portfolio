@@ -45,15 +45,184 @@ without a developer.**
 | `apps/admin` | admin.djfelicitous.com | The CMS. **This is the product.**                   |
 | `apps/api`   | api.djfelicitous.com   | NestJS. Owns the database and business rules.       |
 
-## Current state (2026-09-10)
+## Current state (2026-09-12, cinematic visual layer session)
 
-Phases 0 and 1 are complete. The monorepo is scaffolded and the data layer is
-finished, migrated, seeded and tested against a real Postgres — 48 models,
-73 integration tests, zero schema drift.
+Groups A through F (all 13 phases) now have code written, each **scoped**
+rather than built to the masterplan's full literal breadth — see
+`STATUS.md`'s Group C through F sections for exactly what that means per
+group. Phase 3 has one documented gap. **Development is code-complete in
+the sense that every phase has been worked; it is not "launched" — Group
+F's own account includes an explicit handoff list of what needs the user
+directly (screen-reader testing, a Sentry account, an actual deployment,
+load testing, a restore drill, real per-location content), not more code.**
 
-`apps/api`, `apps/web` and `apps/admin` are **scaffolds only**. Phase 2 is the
-next task: the API skeleton and global concerns.
-Read [`docs/02-architecture/backend.md`](docs/02-architecture/backend.md).
+The data layer is finished, migrated, seeded and tested against a real
+Postgres — 48 models, 90 integration tests, zero schema drift. The API boots,
+authenticates, authorises, validates, caches, audits and revalidates **25
+content/engagement modules**, verified by 163 e2e tests against a live
+database.
+
+**Group A — all 8 content modules done and verified**: `Personas`, `Venues`,
+`Tracks`, `Releases`, `Playlists`, `Programs`, `Events` (publishable — extend
+`BaseContentService`) and `Genres` (taxonomy — no publish workflow, guarded
+hard delete).
+
+**Group B — all 17 modules written and wired**: `Media` (signed uploads,
+confirm-via-Cloudinary-reread, two-phase delete, orphan sweeper),
+`Testimonials`, `Services`, `Brands`, `Stats`, `Faq`, `Gear`, `Experience`,
+`StaticPages`, `Settings` (singleton), `Redirects`, `Sitemap`, `Inquiries`
+(spam scoring, honeypot, retry cron), `Newsletter` (double opt-in),
+`PressAssets` (+ EPK PDF generator), `Tags`, `Posts`. The pure-CRUD half is
+fully verified end to end. The Cloudinary/Resend/Turnstile-dependent paths
+(a real upload, a real email send, a real Turnstile check) are **not**
+live-verified — credentials remain placeholders — but every one of those
+code paths is verified to degrade gracefully (a clean 503, or a skip-and-log
+rather than a crash), mirroring the pattern `CloudinaryService` established
+in Phase 2. Gallery and Video are deliberately out of scope for Phase 6 —
+`phases.md`'s own exit criteria do not list them.
+
+**Group C — `apps/web` is now a real server-rendered site**, not a scaffold:
+the full public route tree from `docs/02-architecture/frontend.md`, a
+server-only Zod-validated data layer (`server/queries/*`, `React.cache()`-
+wrapped), `generateMetadata` + a JSON-LD `@graph` on every route, robots/
+sitemap/manifest/feeds, and the HMAC-verified `/api/revalidate` webhook.
+
+**Group D — Conversion + Media & player, scoped:** the real Turnstile
+widget wired into `/book` (fixing a bug this session's own credential swap
+would otherwise have caused — see STATUS.md), consent-gated analytics
+event firing, the Cloudinary image loader + `<CloudinaryImage>` (fixing a
+latent OG-image URL bug in passing), and a mini player built as the
+masterplan's own documented fallback tier (plain `<audio>`, not
+wavesurfer.js) — functionally wired but untested against real audio, since
+no track has one yet. Deferred: the admin enquiry inbox (needs Phase 11's
+auth to exist safely), gallery/video lightboxes (no backend module),
+shader/motion work, self-hosted fonts, dynamic per-entity OG images, split
+sitemaps. `apps/admin` is still a **scaffold only**.
+
+**Group E — `apps/admin` is now a real, broad admin panel.** Auth (login +
+TOTP, in-memory access token, httpOnly refresh cookie, CSRF double-submit,
+silent refresh on load), a protected shell with an RBAC-aware sidebar, and
+**18 content types with full CRUD + publish workflow** — Venues, Personas,
+Tracks, Releases, Playlists, Programs and Events (each with bespoke
+relation pickers — genres, persona/venue/program dropdowns, a track-order
+picker, a lineup builder) plus a config-driven generic scaffold
+(`lib/entity-config.ts`) covering Genres/Tags/Stats/Redirects/
+Testimonials/Services/FAQs/Experience/Brands/Gear/Press assets.
+StaticPages and Posts get a real Tiptap v3 editor. Settings (the
+singleton), a real media library, Draft Mode preview links, an audit log
+viewer, and a booking Kanban all exist and are live-verified against the
+real, seeded Neon database. Two structural gaps remain, deliberately not
+guessed at: Track↔Release membership and Persona social links both need a
+contract change (a new write schema) before they can be set — see
+STATUS.md's Group F section.
+
+**Three real bugs were found and fixed by actually building the admin,
+not by inspection.** `MediaService.createUploadSignature()` signed a
+params object including `resource_type`, which Cloudinary's own
+signature verification excludes — every real upload, through any client,
+had been failing with `Invalid Signature` since Group B, undetected
+because verification only ever checked that a signature was *computed*,
+never that Cloudinary would accept it. `Venue`/`Brand` defaulted their
+`status` column to `PUBLISHED` instead of `DRAFT` like every other
+publishable model, crashing the "New venue" form the instant it omitted
+`status`. And none of the six relational content types had a write path
+for their own media-attachment fields (`artworkId`, `coverId`, `heroId`,
+`flyerId`, `heroMediaId`/`avatarMediaId`) — the columns and read-side
+mapping existed, but the create/update contracts never exposed them, so
+setting a track's artwork was structurally impossible for any client
+until this session added it. All three fixed and re-verified live
+against the real database and real Cloudinary. See STATUS.md's Group E
+(both passes) and Group F sections for the full account of each.
+
+**Phase 10 (motion) is now built out properly — the cinematic visual
+layer.** Before the visual-layer session `apps/web` was functionally
+complete and visually flat: no hero, no shader, no persona switcher, no 3D,
+and a play button that structurally never rendered because it gated on
+`audioUrl` while all 19 tracks are SoundCloud-only. Now shipped:
+`packages/motion` (the three-tier `'static' | 'light' | 'full'` gate the
+docs always specified — closing half of gap #9); real typography via
+`next/font/google`; a WebGL persona field with four blended shader
+variants; the channel switcher that repaints the whole viewport from CMS
+accent colours (the consumer `@property --color-accent` was registered
+for); a nine-act homepage; rebuilt persona pages; a procedural 3D CDJ with
+no model file; a 2.5D projected gig map; CSS scroll-driven reveals; and a
+player rebuilt on the **SoundCloud Widget API**, making the catalogue
+actually audible. Every technique has a *finished* fallback at the lower
+tiers, not a degraded one. Route budgets measured green (`/` 123 kB,
+`/[persona]` 126 kB).
+
+**Three rendering bugs were found only by serving the site**, none of
+which `tsc`, ESLint or the build could see, and two of which had been
+degrading every page in both apps: `cn()` was silently dropping classes
+(tailwind-merge did not know our custom `--text-*` scale, so it treated
+`text-lead` as a colour and deleted `text-on-accent` — every primary CTA
+rendered body-coloured text on an accent fill); the display font's
+`wght`/`wdth` variable axes were never driven, so an 11rem `<h1>` rendered
+at a plain 400/100%; and the hero backdrop depended on an unguaranteed
+stacking context. **If you add a `--text-*` token to theme.css, add it to
+`FONT_SIZES` in `packages/ui/src/lib/cn.ts` too** — otherwise that one size
+is silently dropped wherever it meets a text colour. See STATUS.md.
+
+**The generative direction was forced, and is load-bearing:** there are
+zero photos, zero video and zero font files in this repo. Do not plan work
+that assumes otherwise. Photography slots in later as enhancement.
+
+**One documented deviation:** [ADR 0022](docs/01-decisions/0022-webgl-tier-on-capable-touch-devices.md)
+puts capable touch devices on the WebGL tier, where `motion.md` sent every
+coarse pointer to `light`. 3D scenes stay desktop-only regardless.
+
+**Nothing in this layer had been opened in a browser as of the previous
+session — it has been now.** A follow-up session installed a headless
+Chromium temporarily, found and fixed two deep, previously undetected
+structural bugs (Tailwind never scanned `packages/ui` for classes, so
+`Button`/`Chip` had zero padding; the strict CSP broke all client
+interactivity in `next dev` because Next's dev bundler needs `eval()`),
+then a further session did a real UX pass: rebuilt the admin shell and
+dashboard from a bare scaffold into one with live stat cards and a working
+mobile drawer, fixed a mobile-menu-never-closes bug and two real
+horizontal-scroll bugs on mobile, and — finding `Gallery`/`GalleryItem`
+and `Persona.bgVideoMediaId` already in the Prisma schema since Phase 1,
+entirely unused — built the missing Gallery feature (API module, admin
+screen, `/gallery` public pages) and wired the hero-video field through to
+a real `<video>` background. See STATUS.md's "Second UX/bug pass" section
+for the full account, including what was verified live versus reasoned.
+
+Still deferred: View Transitions, the custom cursor, `@dnd-kit`
+drag-and-drop (explicit move-up/down buttons are the actual required
+accessible baseline, not a stand-in), `react-easy-crop` cropping, and
+custom Tiptap embed nodes. Also still shipped from earlier passes: Lenis
+smooth scroll and the `⌘K` command palette (static routes + personas, not a
+full search index).
+
+**Group F — Phase 12/13's codeable subset, plus closing Phase 11's last
+content-type gap.** A real CSP + standard security headers on both
+`apps/web` and `apps/admin` (documented `unsafe-inline` on `script-src`,
+pending a real-browser-verified nonce rollout — Next's App Router injects
+inline hydration scripts with no nonce by default, and this session can't
+verify hydration wouldn't break without a real browser); legacy 301
+redirects re-verified live; a real `/search` page querying actual content
+(no fabricated results, and explicitly not the location-landing-page or
+i18n work, both of which need real per-location/per-language content from
+the user, not more code — see STATUS.md). **Development is now coded
+through every phase; it has not been hardened, load-tested, screen-reader
+audited, or launched — those are the explicit handoff items in STATUS.md's
+Group F section, not gaps in scope.**
+
+One documented gap: `auth/` unit-test coverage — behaviour is fully verified
+by 36 e2e tests, but `AuthService` and 4 other classes have no unit tests.
+See [ADR 0021](docs/01-decisions/0021-auth-coverage-gap-and-inert-threshold.md).
+
+Read [`docs/06-roadmap/STATUS.md`](docs/06-roadmap/STATUS.md) for the full
+account — especially the Group B through F sections, which spell out
+exactly what "code complete" does and does not mean — then the relevant
+[`docs/02-architecture/`](docs/02-architecture/) doc before picking up
+any of Group F's handoff items or the Track↔Release/social-links
+contract gap.
+
+**Note for the next session on the API's e2e suite (gap #15):** it assumes
+a disposable database reset per run. A prior session pointed it at the
+real Neon database and its own lockout test locked the real seeded admin
+account — run it only against a throwaway database going forward.
 
 ## Commands
 
@@ -70,6 +239,10 @@ pnpm lint                         # includes the 4 custom architectural rules
 pnpm typecheck
 pnpm test
 pnpm check:env                    # .env.example ↔ env.schema.ts parity
+
+pnpm --filter @dj/api test        # unit only, no infrastructure needed
+pnpm --filter @dj/api test:e2e    # boots the app; needs Postgres + seeds
+pnpm --filter @dj/api openapi:update   # regenerate the committed snapshot
 
 pnpm db:generate
 pnpm db:migrate                   # migrate + post-migrate SQL
@@ -100,8 +273,16 @@ already been paid for.
 | Every heavy visual effect has a reduced-motion fallback | `<MotionGate>` + phase exit criteria |
 | Every internal link resolves 200                        | Playwright link crawl                |
 | `schema.prisma` never drifts from `prisma/migrations`   | `pnpm db:migrate:check`              |
+| Validation failures are 422 with JSON Pointer errors    | `ZodValidationPipe` + e2e assertions |
+| Unknown request properties are rejected, never stripped | `inputObject()` = `.strict()`        |
+| The OpenAPI document never drifts from the code         | committed `apps/api/openapi.json`    |
+| e2e tests leave seeded content exactly as they found it | restore in `finally` + a double run  |
+| A uniqueness pre-check sees soft-deleted rows too       | `anyDeletionState()` from `@dj/db`   |
 
-Do not disable a `dj/*` rule. Fix the code.
+Do not disable a `dj/*` rule. Fix the code. If a rule is genuinely wrong,
+narrow it deliberately and write down why — as was done for
+`dj/prisma-only-in-repositories`, which banned domain enums it was never meant
+to cover.
 
 ## Conventions that will trip you up
 
@@ -118,6 +299,49 @@ Do not disable a `dj/*` rule. Fix the code.
   keep doing so.** Prisma's `PrismaPromise` is lazy, so returning it out of the
   scope means the query runs with no context and audit stamping silently
   becomes `null`. There is a regression test. Do not "simplify" it.
+- **`import './bootstrap-env'` must stay the first line of `apps/api/main.ts`.**
+  `@prisma/client` loads `packages/db/.env` at require time and dotenv never
+  overwrites, so without it a sibling package's `DATABASE_URL` silently wins
+  and the app dials a port no file mentions. Import sorters are a hazard here.
+  [ADR 0017](docs/01-decisions/0017-app-env-precedence.md).
+- **`@dj/db`, `@dj/contracts` and `@dj/utils` build to CommonJS.** The Nest app
+  is CJS and needs `emitDecoratorMetadata`. If a shared-package change seems
+  not to take effect in the API, **rebuild the package before debugging
+  anything else** — a stale `dist` presents as a missing export.
+  [ADR 0016](docs/01-decisions/0016-cjs-builds-for-shared-packages.md).
+- **After `pnpm add` anywhere in the workspace, regenerate the Prisma
+  client** (`pnpm --filter @dj/db exec prisma generate`) before trusting a
+  build failure to be about the code. Installing a new dependency can make
+  pnpm resolve a second peer-dependency hash for `@prisma/client`; if
+  `packages/db`'s symlink moves to that new, ungenerated copy, `@dj/db:build`
+  fails with `Module '@prisma/client' has no exported member 'PrismaClient'`
+  — which reads like the schema broke, not like a dependency-install side
+  effect.
+- **Declare literal routes above parameterised ones.** `@Patch(':id')` above
+  `@Patch('reorder')` swallows `/reorder` and tries to update a record named
+  `"reorder"` — a 404 that reads like a missing row. Same for `@Get('slugs')`
+  vs `@Get(':slug')`.
+- **A taxonomy row's `delete` is real, and its joins cascade.** `Genre`,
+  `Stat`, `Tag`, `Redirect` and `Settings` have no `deletedAt`, so deleting
+  one in use silently strips it from every row that referenced it — Postgres
+  does not object. Count references and 409 instead. `NON_PUBLISHABLE` in
+  `packages/db/seed/data/rbac.ts` is the list.
+- **`isSlugTaken` (and any uniqueness pre-check) must spread
+  `anyDeletionState()` from `@dj/db`.** A plain `findUnique` is narrowed by
+  the soft-delete extension to `deletedAt: null`, so it reports a slug held
+  by a soft-deleted row as free — and the auto-generated slug path then hands
+  back one the database rejects. [ADR 0020](docs/01-decisions/0020-any-deletion-state-for-uniqueness-checks.md).
+- **Inject the event bus as `DOMAIN_EVENT_BUS`, never as `EventEmitter2`.**
+  The upstream type resolves to an error type and propagates as `any`, which
+  silently disables type checking on every `emit`. See
+  `apps/api/src/common/events.ts`.
+- **A cursor must be decoded and applied.** A service that accepts `cursor`
+  and ignores it still returns a plausible `nextCursor`, so page 2 is page 1
+  and infinite scroll loops forever with no error.
+- **e2e tests must not leave seeded content changed.** It is the artist's real
+  copy. Never probe a destructive endpoint to prove a permission is absent —
+  if the assumption is wrong the test does damage instead of failing.
+  [testing.md](docs/04-conventions/testing.md).
 - **Never `new Date()` bare** — there is a lint rule. Pass an explicit
   timestamp so tests stay deterministic.
 - **Always use `@dj/utils` for dates and money.** IST display, UTC storage,
@@ -126,6 +350,16 @@ Do not disable a `dj/*` rule. Fix the code.
 - **Cache tags live in two places and must stay symmetrical** —
   `packages/contracts/src/cache-tags.ts` and the API's `TAG_MAP`. An asymmetry
   fails silently as "I published but nothing changed".
+- **A new "is this credential configured" check must match this repo's
+  actual placeholder values, not just the documented pattern.**
+  `apps/api/.env.local` uses `test`/`re_test`, not `replace-me`, for several
+  keys — `CloudinaryService` already special-cases both; `TurnstileService`
+  and `MailService` initially matched only `replace-me` and silently believed
+  they were configured, attempting real network calls on every request until
+  caught by an e2e spec. Copy `CloudinaryService.onModuleInit()`'s exact
+  regex, not just its shape, and prefer graceful skip/log over throwing when
+  unconfigured — the established pattern for Cloudinary, Resend and
+  Turnstile alike.
 
 ## Agent-specific notes
 

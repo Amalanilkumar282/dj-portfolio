@@ -1,0 +1,9 @@
+{
+  "extends": "@dj/config-ts/cjs-lib.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/__tests__/**", "src/**/*.spec.ts", "src/**/*.int-spec.ts"]
+}

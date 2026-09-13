@@ -7,22 +7,47 @@ Canonical phase table with exit criteria. For current state, read
 > Phase 4 means building against an API that does not exist. Exit criteria are
 > the definition of "done" for a phase, not a wish list.
 
-| #   | Phase                          | Depends on          | State       |
-| --- | ------------------------------ | ------------------- | ----------- |
-| 0   | Foundations                    | —                   | ✅          |
-| 1   | Data layer                     | 0                   | ✅          |
-| 2   | API skeleton & global concerns | 1                   | ⬜ **next** |
-| 3   | Auth & RBAC                    | 2                   | ⬜          |
-| 4   | Core content CRUD              | 3                   | ⬜          |
-| 5   | Media pipeline                 | 4 + Cloudinary keys | ⬜          |
-| 6   | Remaining content + engagement | 4 + Resend keys     | ⬜          |
-| 7   | Web shell + data + SEO core    | 4                   | ⬜          |
-| 8   | Conversion (booking funnel)    | 6, 7                | ⬜          |
-| 9   | Media & player                 | 5, 7                | ⬜          |
-| 10  | Cinematic + signature motion   | 9                   | ⬜          |
-| 11  | Admin panel                    | 3, 4, 5, 6          | ⬜          |
-| 12  | Hardening & launch             | all                 | ⬜          |
-| 13  | Growth                         | 12                  | ⬜          |
+| #   | Phase                          | Depends on          | Group | State      |
+| --- | ------------------------------ | ------------------- | ----- | ---------- |
+| 0   | Foundations                    | —                   | —     | ✅         |
+| 1   | Data layer                     | 0                   | —     | ✅         |
+| 2   | API skeleton & global concerns | 1                   | **A** | ✅         |
+| 3   | Auth & RBAC                    | 2                   | **A** | ✅ (1 gap) |
+| 4   | Core content CRUD              | 3                   | **A** | ✅         |
+| 5   | Media pipeline                 | 4 + Cloudinary keys | **B** | ✅ (code) / ⬜ (live) |
+| 6   | Remaining content + engagement | 4 + Resend keys     | **B** | ✅ (code) / ⬜ (live) |
+| 7   | Web shell + data + SEO core    | 4                   | **C** | ✅         |
+| 8   | Conversion (booking funnel)    | 6, 7                | **D** | ✅ (scoped) |
+| 9   | Media & player                 | 5, 7                | **D** | ✅ (scoped) |
+| 10  | Cinematic + signature motion   | 9                   | **E** | ✅ (scoped) |
+| 11  | Admin panel                    | 3, 4, 5, 6          | **E** | ✅ (all content types) |
+| 12  | Hardening & launch             | all                 | **F** | ✅ (codeable subset) |
+| 13  | Growth                         | 12                  | **F** | ✅ (codeable subset) |
+
+---
+
+## Delivery groups
+
+Phases are the unit of _design_; groups are the unit of _delivery_. Phases
+within a group are built together in one pass because they share the same
+files and the same verification setup — doing them separately means writing
+the module skeleton, then reopening every file to add auth, then reopening it
+again to add CRUD.
+
+**Grouping changes nothing about scope.** Every phase's exit criteria still
+have to be met, and verified together before the group is called done.
+
+| Group | Phases | Theme               | State                                                               |
+| ----- | ------ | ------------------- | ------------------------------------------------------------------- |
+| **A** | 2+3+4  | Backend foundation  | 2 and 4 done; 3 has one documented gap (auth unit coverage)         |
+| **B** | 5+6    | Media + content     | All code written and wired; live Cloudinary/Resend/Turnstile verification blocked on credentials (STATUS.md gap #2) |
+| **C** | 7      | Web shell + SEO     | Complete — see STATUS.md                                             |
+| **D** | 8+9    | Conversion + player | Complete (scoped) — see STATUS.md                                    |
+| **E** | 10+11  | Motion + admin      | Complete — all content types have admin CRUD — see STATUS.md         |
+| **F** | 12+13  | Hardening + growth  | Complete (codeable subset) — see STATUS.md's handoff list for the rest |
+
+Group A's one remaining item is listed in [`STATUS.md`](STATUS.md) — the
+`auth/` unit-test coverage gap, which does not block Group B or C.
 
 ---
 
@@ -43,7 +68,7 @@ three seed layers, integration tests.
 integration tests prove soft delete hides rows and that `delete` never issues a
 real `DELETE`; `db:migrate:check` reports zero drift.
 
-## Phase 2 — API skeleton & global concerns ⬜
+## Phase 2 — API skeleton & global concerns ✅
 
 NestJS bootstrap, Zod config, Pino + request-id, `/api/v1` versioning, the
 guard/filter/interceptor chain, `PrismaModule`, Terminus health, Swagger,
@@ -54,7 +79,10 @@ helmet/CORS/compression, graceful shutdown.
 `application/problem+json` carrying a `requestId` that appears in the logs; a
 30-second handler is cut off at 15 seconds by the timeout interceptor.
 
-## Phase 3 — Auth & RBAC ⬜
+**Met**, except that the 30-second timeout was verified by inspection rather
+than by an end-to-end test. Sentry's filter is deferred to Phase 12.
+
+## Phase 3 — Auth & RBAC ✅ (one gap)
 
 argon2id, access + rotating refresh tokens, reuse detection, lockout, TOTP,
 RBAC guards and decorators, audit interceptor, CSRF.
@@ -64,7 +92,15 @@ RBAC guards and decorators, audit interceptor, CSRF.
 endpoint class, CSRF rejection. `auth/` at **100% coverage**. An `AuditLog` row
 for every auth action.
 
-## Phase 4 — Core content CRUD ⬜
+**Met except coverage.** 36 e2e tests cover the behaviour — no enumeration,
+rotation, family revocation on reuse, CSRF, the per-IP limit, and the role
+matrix. `TotpService` and `PasswordService` now carry unit tests (~98% lines
+each); `AuthService`, `AuthController`, `AuthRepository`,
+`RefreshTokenService` and `AuthCookieService` remain unit-untested. Gap #7 in
+[`STATUS.md`](STATUS.md), full account in
+[ADR 0021](../01-decisions/0021-auth-coverage-gap-and-inert-threshold.md).
+
+## Phase 4 — Core content CRUD ✅
 
 Personas, Genres, Tracks, Playlists, Releases, Events, Venues, Programs, plus a
 shared `BaseContentService` implementing publish/unpublish/archive/restore/
@@ -75,7 +111,17 @@ fields), read-by-slug, admin CRUD and the publish workflow;
 `GET /personas/:slug/page` returns the complete landing payload in **≤8
 queries**; the OpenAPI snapshot is committed.
 
-## Phase 5 — Media pipeline ⬜
+**Met.** `BaseContentService`, cursor and offset pagination, the include and
+sort allowlists, idempotency, ETags, cache-tag revalidation, and **all 8
+modules** end to end — Personas and Genres from the prior session, Venues,
+Tracks, Releases, Playlists, Programs and Events this one. The aggregate page
+endpoint runs in **5 queries**. The OpenAPI snapshot is committed and gated
+against drift, and now describes every module's routes. 77 new e2e tests plus
+a live app-boot smoke test verified the last six, documented in
+[`../02-architecture/backend.md`](../02-architecture/backend.md)
+§"Adding a content module".
+
+## Phase 5 — Media pipeline ✅ (code) / ⬜ (live verification)
 
 Cloudinary module, signed uploads, transformation bootstrap, metadata re-read,
 placeholder generation, reference counting, two-phase delete, orphan sweeper.
@@ -87,7 +133,16 @@ referenced asset 409s **listing the referencing entities**; the sweeper removes
 a 31-day-old soft-deleted asset from both database and Cloudinary; a background
 video and an audio track both round-trip, the audio with peaks.
 
-## Phase 6 — Remaining content + engagement ⬜
+**Not met as literally written** — every clause needs a real upload against
+live Cloudinary credentials, which remain placeholders (STATUS.md gap #2).
+What is built and verified: signing (pure local computation, tested), the
+confirm/re-read flow's code path (tested to fail as a clean 503 when
+unconfigured, not tested against a real Cloudinary response), the reference-
+counting delete guard across every FK that can point at a `MediaAsset`, and
+the orphan sweeper's `pg_try_advisory_xact_lock` guard. See STATUS.md's
+Phase 5 section for the full account.
+
+## Phase 6 — Remaining content + engagement ✅ (code) / ⬜ (live verification)
 
 Testimonials, Services, Brands, Stats, FAQ, PressKit, Gear, Experience, Blog,
 StaticPages, Settings, Redirects, Sitemap; Inquiries and Newsletter; all email
@@ -97,6 +152,13 @@ templates and the retry cron.
 **<100ms**, and delivers both the notification and the autoresponder;
 `GET /sitemap` lists exactly the published indexable URLs; the press-kit PDF
 generates and downloads through a signed URL.
+
+**Partially met.** The pure-CRUD half (Testimonials, Services, Brands, Stats,
+FAQ, Gear, Experience, StaticPages, Settings, Redirects, Sitemap, Blog/Tags)
+is fully verified against a live database — 37 new e2e tests. The row/
+201-in-under-100ms half of the inquiry criterion is verified; actual email
+delivery and actual PDF upload are not, for the same reason as Phase 5 (gap
+#2). Gallery and Video are deliberately out of scope — see STATUS.md.
 
 ## Phase 7 — Web shell + data + SEO core ⬜
 
@@ -126,7 +188,7 @@ precomputed peaks, gallery and video lightboxes, custom video player.
 player survives **five navigations**; the lightbox passes keyboard, gesture and
 deep-link tests; `size-limit` gates enforced.
 
-## Phase 10 — Cinematic + signature motion ⬜
+## Phase 10 — Cinematic + signature motion ✅ (shipped; browser verification outstanding)
 
 `packages/motion`, `<MotionGate>`, channel switcher, shader backgrounds, 3D
 turntable, 3D gig globe, audio visualiser, scroll-driven reveals, Lenis, View
@@ -137,6 +199,18 @@ Transitions, command palette, grain.
 its documented fallback**; a forced `prefers-reduced-motion` run **and** a
 forced `saveData` run each render a complete, beautiful page with ≤60KB JS; INP
 ≤150ms; no budget regressions.
+
+**Status:** shipped in the visual-layer session — `packages/motion`, the
+three-tier gate, real fonts, the WebGL persona field, the channel switcher,
+the nine-act homepage, the persona pages, a procedural 3D deck, a projected
+gig map, scroll-driven reveals, and a player rebuilt on the SoundCloud
+Widget API. The generative direction was forced by there being **no photos,
+video or fonts in the repo at all**, and turned out to be the right one.
+Budgets measured green (`/` 123 kB, `/[persona]` 126 kB). **Still open:**
+View Transitions and the custom cursor, and — the important one — nothing
+in this layer has been observed in a real browser, so the `≤60KB JS` and
+`INP ≤150ms` halves of this exit criterion are reasoned rather than
+measured. See STATUS.md gaps #17–18.
 
 ## Phase 11 — Admin panel ⬜
 

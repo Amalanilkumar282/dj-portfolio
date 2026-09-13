@@ -1,2 +1,139 @@
 /* The only import here. All tokens live in the design system. */
 @import '@dj/ui/styles/theme.css';
+
+/*
+ * Fonts are loaded by `next/font/google` in ./fonts.ts and attached to
+ * <html> as CSS variables, which is why nothing is declared here any more:
+ * --font-monument, --font-satoshi and --font-jetbrains are all set by Next
+ * at render time, and theme.css already reads them.
+ *
+ * See docs/03-design-system/typography.md.
+ */
+
+/* ==========================================================================
+   Cinematic layer — app-level animation.
+
+   These live here rather than in @dj/ui's theme.css because they are
+   marketing-page compositions, not design tokens: apps/admin imports the
+   same token file and has no use for a shader fade or a marquee.
+
+   Every duration and easing below reads a token. No magic numbers.
+   ========================================================================== */
+
+/* The WebGL canvas fading in *over* the CSS field that was already there. */
+@keyframes shader-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slow drift of the CSS gradient field, so the light tier is alive too. */
+@keyframes field-drift {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.12) translate3d(2%, -1.5%, 0);
+  }
+}
+
+/* Marquee: the track duplicates an aria-hidden copy, so -50% loops seamlessly. */
+@keyframes marquee-x {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/*
+ * The channel-switch wipe. A single accent sweep plus a brief chromatic
+ * offset — deliberately ONE pass, not a repeating flicker, so it cannot
+ * approach the 3Hz flash threshold (WCAG 2.3.1) however fast a visitor
+ * clicks between channels.
+ */
+@keyframes channel-wipe {
+  0% {
+    opacity: 0;
+    transform: translate3d(-100%, 0, 0) skewX(-8deg);
+  }
+  35% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(100%, 0, 0) skewX(-8deg);
+  }
+}
+
+/*
+ * Scroll-driven reveals — native, zero JS, compositor-only.
+ *
+ * `animation-timeline: view()` is progressively enhanced: without support
+ * (or under reduced motion) the element simply renders in its final state,
+ * which is the documented fallback for motion.md item 8.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .dj-reveal {
+      animation: dj-reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 5% cover 28%;
+    }
+
+    /* Display lines rising out of a mask. The <h1> stays one string; only
+       these wrapper spans move, so no JS text-splitting is involved. */
+    .dj-rise-mask > span {
+      display: block;
+      animation: dj-rise-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 22%;
+    }
+  }
+}
+
+@keyframes dj-reveal-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes dj-rise-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 105%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* A mask wrapper for rising display type — overflow hidden, no clipping of
+   descenders (the extra bottom padding is reclaimed by a negative margin). */
+.dj-rise-mask {
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+/* The rhythm field's per-bar pulse. Period is set from the track's real BPM
+   via a --beat custom property, so this is one keyframe for every tempo. */
+@keyframes rhythm-pulse {
+  0%,
+  100% {
+    transform: scaleY(0.72);
+  }
+  35% {
+    transform: scaleY(1);
+  }
+}

@@ -85,8 +85,11 @@ export const seedPersonas: SeedPersona[] = [
     ],
     seo: {
       title: 'DJ Felicitous & DJ Geetz — Couple DJ Duo in Bengaluru',
+      // 160 chars exactly — SeoMetaSchema's cap, itself the point Google
+      // truncates a SERP snippet. The original ran to 161; trimmed by one
+      // word ("commercial") without changing what it promises.
       description:
-        'Book DJ Felicitous & DJ Geetz, a couple DJ duo based in Bengaluru playing Bollywood, South Indian, commercial and techno for weddings, clubs and private parties.',
+        'Book DJ Felicitous & DJ Geetz, a couple DJ duo based in Bengaluru playing Bollywood, South Indian and techno for weddings, clubs and private parties.',
     },
   },
   {

@@ -25,6 +25,16 @@ export interface DbRequestContext {
    * DELETEs. Nothing else may set it. See extensions/soft-delete.ts
    */
   allowHardDelete?: boolean | undefined;
+  /**
+   * Prisma operations issued during this request.
+   *
+   * Incremented by `queryCountExtension`. Lives on the context rather than in
+   * a side map because that is the only place guaranteed to be reachable from
+   * inside a Prisma extension hook — and unlike `$on('query')`, an extension
+   * hook DOES run in the caller's async context, which is what makes the
+   * count attributable to a request at all.
+   */
+  queryCount?: number | undefined;
 }
 
 const storage = new AsyncLocalStorage<DbRequestContext>();
@@ -50,7 +60,35 @@ export async function runWithDbContext<T>(
   return storage.run(context, async () => fn());
 }
 
-/** Reads the ambient context. Returns an empty object outside a request. */
+/**
+ * Synchronous variant, for framework integration only.
+ *
+ * Use this **only** where the caller itself keeps the scope open for the whole
+ * duration of the work — in practice that means Express middleware, where
+ * `fn` is `next()` and every downstream handler runs inside the callback.
+ *
+ * Everywhere else use `runWithDbContext`. This version does not await, so
+ * handing it an unstarted `PrismaPromise` reintroduces exactly the bug the
+ * async version exists to prevent: the query runs after the scope has exited
+ * and the audit stamp silently becomes null.
+ *
+ * The returned context object is the live store, so a caller that learns the
+ * actor later — an auth guard, say — can mutate it in place rather than
+ * opening a second nested scope.
+ */
+export function runWithDbContextSync<T>(context: DbRequestContext, fn: () => T): T {
+  return storage.run(context, fn);
+}
+
+/**
+ * Reads the ambient context.
+ *
+ * Returns a **live reference** to the store when one is open, so mutating the
+ * result updates the context for the rest of the request. That is how the auth
+ * guard attaches `userId` after the middleware has already opened the scope.
+ * Outside a request it returns a fresh throwaway object, and mutating that has
+ * no effect — which is the correct behaviour, not a bug.
+ */
 export function getDbContext(): DbRequestContext {
   return storage.getStore() ?? {};
 }

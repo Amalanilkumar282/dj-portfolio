@@ -1,12 +1,15 @@
 import type { Metadata, Viewport } from 'next';
 
+import { AuthProvider } from '../lib/auth-context';
+
 import './globals.css';
 
 /**
- * Admin root layout — Phase 0 scaffold.
+ * Admin root layout.
  *
- * Phase 11 adds: the auth gate, sidebar, top bar with command palette,
- * TanStack Query provider and the RBAC-driven navigation.
+ * `<AuthProvider>` sits here, above every route (including `/login`), so a
+ * silent-refresh attempt runs once per page load regardless of which route
+ * was requested directly.
  */
 export const metadata: Metadata = {
   title: 'DJ Felicitous — Admin',
@@ -20,10 +23,12 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 };
 
-export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
+export default function AdminRootLayout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

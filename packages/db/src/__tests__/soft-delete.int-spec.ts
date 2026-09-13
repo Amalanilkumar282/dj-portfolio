@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createPrismaClient, type ExtendedPrismaClient } from '../client.js';
 import { runWithDbContext, runWithHardDelete } from '../context.js';
+import { anyDeletionState } from '../extensions/publish.js';
 
 /**
  * Integration tests for the soft-delete extension.
@@ -38,6 +39,11 @@ async function makeVenue(name: string) {
       name: `${name} ${suffix}`,
       city: 'Bengaluru',
       country: 'India',
+      // Explicit DRAFT: Venue defaults to PUBLISHED, and these fixtures are
+      // about soft-delete and audit mechanics, not the publish workflow.
+      // `venues_published_has_date` now enforces that a PUBLISHED row must
+      // carry a publishedAt (see ADR 0019) — a bare default here would fail.
+      status: 'DRAFT',
     },
   });
 }
@@ -228,11 +234,47 @@ describe('audit stamping', () => {
           name: `lazy ${suffix}`,
           city: 'Bengaluru',
           country: 'India',
+          status: 'DRAFT',
         },
       }),
     );
 
     expect(venue.createdBy).toBe('user_lazy');
     expect(venue.updatedBy).toBe('user_lazy');
+  });
+});
+
+describe('anyDeletionState', () => {
+  // A soft-deleted row still occupies its unique `slug` at the database
+  // level — soft delete only rewrites `DELETE` into an `UPDATE`, it does not
+  // relax the constraint. A plain `findUnique`/`findFirst` is narrowed by the
+  // soft-delete extension to `deletedAt: null`, so it reports that slug as
+  // free — and `SlugService`'s auto-generated path then hands back a slug it
+  // believes is guaranteed available, which the database immediately
+  // rejects. This is the bug `anyDeletionState()` exists to close; found
+  // while building the Venues module, but it silently applied to every
+  // soft-deletable model's uniqueness pre-check, including the already-
+  // shipped `Personas.isSlugTaken`.
+  it('finds a soft-deleted row that an ordinary query would hide', async () => {
+    const venue = await makeVenue('any-deletion-state');
+    await prisma.venue.delete({ where: { id: venue.id } }); // rewritten to soft delete
+
+    const invisible = await prisma.venue.findFirst({ where: { slug: venue.slug } });
+    expect(invisible, 'the soft-delete extension is expected to hide this').toBeNull();
+
+    const visible = await prisma.venue.findFirst({
+      where: { slug: venue.slug, ...anyDeletionState() },
+    });
+    expect(visible?.id).toBe(venue.id);
+  });
+
+  it('still finds a live row', async () => {
+    const venue = await makeVenue('any-deletion-state-live');
+
+    const found = await prisma.venue.findFirst({
+      where: { slug: venue.slug, ...anyDeletionState() },
+    });
+
+    expect(found?.id).toBe(venue.id);
   });
 });

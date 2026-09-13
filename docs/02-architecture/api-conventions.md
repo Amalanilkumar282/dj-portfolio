@@ -112,6 +112,25 @@ a user-reported error traceable.
 
 Problem `type` URIs resolve to real documentation under `/api/docs/problems`.
 
+### The status split, and why it needs enforcing
+
+- **422** — the request parsed, but the server will not accept it. Every
+  validation failure.
+- **400** — the server could not parse the request at all: malformed JSON, an
+  undecodable pagination cursor.
+
+This distinction is not free. `nestjs-zod`'s stock `ZodValidationPipe` throws
+`BadRequestException` **and** emits raw Zod issues (`path` as an array, plus
+`expected`/`received`), so for a while the API returned 400 with a body that
+claimed 422 and carried a shape no client was documented to expect. Nothing
+errored — it was valid JSON in the wrong contract.
+
+So the pipe is wrapped (`common/pipes/zod-validation.pipe.ts`) and one module
+(`common/validation-errors.ts`) owns the conversion used by both the pipe and
+the exception filter. **The filter never casts an `errors` array; it
+normalises it.** A blind cast was how the raw issues escaped.
+[ADR 0018](../01-decisions/0018-validation-is-422-with-json-pointers.md).
+
 ## Idempotency
 
 `Idempotency-Key` on all POSTs. A replay returns the stored response with
