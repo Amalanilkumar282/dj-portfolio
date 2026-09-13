@@ -25,9 +25,13 @@ function apiBaseUrl(): string {
   return url;
 }
 
+/** Must match apps/api/src/common/constants.ts's CSRF_COOKIE/CSRF_HEADER exactly. */
+const CSRF_COOKIE_NAME = 'dj_csrf';
+const CSRF_HEADER = 'x-csrf-token';
+
 function readCsrfCookie(): string | undefined {
   if (typeof document === 'undefined') return undefined;
-  const match = document.cookie.split('; ').find((row) => row.startsWith('dj_csrf='));
+  const match = document.cookie.split('; ').find((row) => row.startsWith(`${CSRF_COOKIE_NAME}=`));
   return match?.split('=')[1];
 }
 
@@ -55,6 +59,20 @@ export async function apiFetch<T>(
   if (options.body !== undefined) headers['content-type'] = 'application/json';
   if (options.accessToken) headers.authorization = `Bearer ${options.accessToken}`;
 
+  // The API's CsrfGuard only ever fires on POST/PATCH/DELETE routes that
+  // authenticate via the refresh cookie — in practice, just
+  // `auth/refresh` and `auth/logout` — and only when that cookie is
+  // present. Attaching the header here unconditionally is harmless for
+  // every other request (Bearer-authenticated routes never register the
+  // guard, so it's simply ignored), and is what makes a *direct* call to
+  // `auth/refresh` work — the silent refresh the auth context fires on
+  // every page load calls this function directly, never through the
+  // 401-retry branch below, so without this line every reload's refresh
+  // attempt failed CSRF_FAILED even with a perfectly valid session cookie,
+  // bouncing a genuinely logged-in admin back to /login.
+  const csrfCookie = readCsrfCookie();
+  if (csrfCookie) headers[CSRF_HEADER] = csrfCookie;
+
   const response = await fetch(url, {
     method: options.method ?? 'GET',
     headers,
@@ -67,7 +85,7 @@ export async function apiFetch<T>(
     const refreshResponse = await fetch(new URL('auth/refresh', `${apiBaseUrl()}/`), {
       method: 'POST',
       credentials: 'include',
-      headers: csrf ? { 'x-csrf-token': csrf } : {},
+      headers: csrf ? { [CSRF_HEADER]: csrf } : {},
     });
     if (refreshResponse.ok) {
       const { accessToken } = (await refreshResponse.json()) as { accessToken: string };

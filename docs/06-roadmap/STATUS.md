@@ -1034,6 +1034,65 @@ stylesheet contains the `.font-display` base rule; and all sixteen key routes
 page. Whether the shader renders, the deck spins, the accent crossfades or a
 SoundCloud track plays is still unknown — see gaps #17–18.
 
+### Admin session lost on every page refresh — real bug, confirmed and fixed
+
+The user reported that reloading any admin page bounced them back to
+`/login`, even immediately after signing in, and suspected a session
+issue. Confirmed real, and traced to the exact mechanism — not a vague
+"session problem" but one specific missing header on one specific call.
+
+**Root cause.** The API's `CsrfGuard` (double-submit CSRF protection)
+requires an `x-csrf-token` header matching the `dj_csrf` cookie on any
+POST/PATCH/DELETE that authenticates via the refresh cookie — in
+practice, just `POST /auth/refresh` and `POST /auth/logout`. The admin's
+`AuthProvider` fires a **silent refresh on every mount** (the mechanism
+that's supposed to survive a reload — the in-memory access token is lost
+on refresh, but the httpOnly refresh cookie should still be valid) by
+calling `apiFetch('auth/refresh', { method: 'POST' })` directly.
+
+`apiFetch`'s main request path never attached the CSRF header — only the
+*embedded* 401-retry-then-refresh branch further down the same function
+did. Since the mount-time silent refresh calls the function directly,
+never through that retry branch, it never sent the header, and the guard
+rejected it every single time with `403 CSRF_FAILED` — even with a
+completely valid session. A perfectly logged-in admin refreshing the page
+looked identical, from the client's perspective, to someone with no
+session at all.
+
+This wasn't a new bug: an earlier session's own logs (pasted mid-way
+through an unrelated task) showed `request_failed status=403
+code=CSRF_FAILED path=/api/v1/auth/refresh` right after admin startup —
+misread at the time as "benign, no session cookie yet." It was actually
+this exact bug, firing on every load, session or no session.
+
+**Fix.** `apps/admin/src/lib/api-client.ts`'s main request path now reads
+and attaches the CSRF header unconditionally (harmless on every other
+route — Bearer-authenticated endpoints never register the guard, so it's
+simply ignored there), matching what the 401-retry branch already did.
+Extracted the header name into a shared constant so the two call sites
+can't drift apart again.
+
+**A second, smaller real bug found in the same file while verifying:**
+`LoginForm` called `router.replace('/')` directly during render (for an
+already-authenticated visitor), which is exactly what triggers React's own
+"Cannot update a component while rendering a different component"
+warning — the redirect happened to win the race every time, but it was
+undefined behaviour, not a style nitpick. Moved into a `useEffect`.
+
+### Verified
+
+- Installed a headless Chromium temporarily, logged into the real running
+  admin app, and reloaded the page — before the fix, this bounced to
+  `/login` every time; after, the session survives the reload and the
+  dashboard stays up. This is the literal bug the user reported, confirmed
+  fixed against the real app, not just reasoned about.
+- The stray console warning ("Cannot update a component…") is gone after
+  the `LoginForm` fix.
+- `pnpm --filter @dj/admin exec tsc --noEmit` — clean.
+- `pnpm turbo lint typecheck build --filter='!@dj/db'` — 20/20 green.
+- The temporary Playwright install used for verification was removed
+  afterward; `apps/admin/package.json` and `pnpm-lock.yaml` are unchanged.
+
 ### CI failures fixed (this session)
 
 The first real push to `main` (merging `visual-layer`) showed 3 of 4 CI

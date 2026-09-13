@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { ApiError } from '../lib/api-client';
 import { useAuth } from '../lib/auth-context';
@@ -16,10 +16,19 @@ export function LoginForm(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (!loading && user) {
-    router.replace('/');
-    return <></>;
-  }
+  // An already-signed-in visitor (the silent refresh on load succeeded)
+  // gets bounced to the dashboard. This has to be an effect, not a call
+  // during render: `router.replace` triggers Next's own state update, and
+  // doing that synchronously while THIS component is still rendering is
+  // exactly what React warns about as "Cannot update a component while
+  // rendering a different component" — harmless in practice here since
+  // the redirect wins before anything paints, but it is undefined
+  // behaviour under React's own rules, not a style nitpick.
+  useEffect(() => {
+    if (!loading && user) router.replace('/');
+  }, [loading, user, router]);
+
+  if (!loading && user) return <></>;
 
   async function onSubmit(event: React.SyntheticEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
