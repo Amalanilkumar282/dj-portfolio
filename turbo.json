@@ -10,7 +10,8 @@
     },
     "build": {
       "dependsOn": ["^build", "generate"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "storybook-static/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "storybook-static/**"],
+      "env": ["API_INTERNAL_URL", "API_KEY", "REVALIDATE_SECRET", "PREVIEW_TOKEN"]
     },
     "typecheck": {
       "dependsOn": ["^build", "generate", "build"]
