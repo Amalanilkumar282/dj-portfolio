@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { previewUrl } from '../../lib/preview';
 import { usePersonaKeyOptions } from '../../lib/reference-data';
+import { InlineUploader } from '../media/inline-uploader';
+import { type UploadedAsset } from '../media/use-media-upload';
 
 interface MediaRow {
   id: string;
@@ -56,7 +58,7 @@ export function GalleryForm({ id }: { id?: string }): React.JSX.Element {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadImages(): void {
     request<{ data: MediaRow[] }>('admin/media?perPage=200')
       .then((result) => {
         setImageOptions(result.data.filter((asset) => asset.resourceType === 'IMAGE'));
@@ -64,8 +66,21 @@ export function GalleryForm({ id }: { id?: string }): React.JSX.Element {
       .catch(() => {
         setImageOptions([]);
       });
+  }
+
+  useEffect(() => {
+    loadImages();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetched once per mount
   }, []);
+
+  function onUploaded(asset: UploadedAsset): void {
+    loadImages();
+    setItems((current) =>
+      current.some((item) => item.mediaId === asset.id)
+        ? current
+        : [...current, { mediaId: asset.id, publicId: asset.publicId, caption: '', isCover: false }],
+    );
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -315,10 +330,7 @@ export function GalleryForm({ id }: { id?: string }): React.JSX.Element {
             <summary className="text-accent cursor-pointer text-sm">Add images…</summary>
             <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
               {availableImages.length === 0 ? (
-                <p className="text-fg-muted text-xs">
-                  Every uploaded image is already in this gallery, or none has been uploaded yet — upload
-                  one on the Media library page first.
-                </p>
+                <p className="text-fg-muted text-xs">Every uploaded image is already in this gallery.</p>
               ) : (
                 availableImages.map((asset) => (
                   <button
@@ -334,6 +346,7 @@ export function GalleryForm({ id }: { id?: string }): React.JSX.Element {
                 ))
               )}
             </div>
+            <InlineUploader purpose="GALLERY" entityType="gallery" onUploaded={onUploaded} />
           </details>
         </div>
 

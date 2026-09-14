@@ -2437,3 +2437,47 @@ See "Group F" above for the full account.
 
 No exit criteria — Phase 13 is a backlog, not a phase with a defined
 "done."
+
+## Admin media-upload bug fix (this session)
+
+The user reported that clicking "add asset" anywhere in `apps/admin`
+opened a new browser tab and landed on the login screen instead of
+uploading, and that the Gallery editor had no upload affordance at all.
+
+**Root cause #1 (the new-tab/login bug), all entity forms using
+`MediaSelect`** (Persona, Track, Release, Playlist, Program, Event,
+Venue): `media-select.tsx` rendered the upload trigger as
+`<a href="/media" target="_blank">` — a real page navigation, not an
+in-app action. `apps/admin`'s access token lives in memory only
+(`auth-context.tsx`); a new tab is a fresh JS context with no token, so
+it depends on the httpOnly-refresh-cookie silent-refresh racing
+`dashboard-shell.tsx`'s `!user → redirect to /login` guard. When that
+race lost — which it visibly did — the new tab bounced straight to
+login, and the original tab's in-progress form edit was left stranded
+behind it.
+
+**Root cause #2 (separate), the Gallery editor**:
+`galleries/gallery-form.tsx` hand-rolls its own image picker instead of
+using `MediaSelect`, and its "Add images…" panel only ever listed
+already-uploaded assets — there was no upload link, button, or
+affordance in that file at all, not even the broken one. Not a
+permission gate; just never built.
+
+**Fix:** extracted the existing signed-upload → Cloudinary → confirm
+flow (previously only in `media-library.tsx`) into a shared hook,
+`media/use-media-upload.ts`, and a same-tab, same-session UI on top of
+it, `media/inline-uploader.tsx` (click to reveal a file input + Upload
+button inline, no navigation). Wired into `MediaSelect` (replacing the
+broken anchor, auto-selecting the newly uploaded asset) and into
+`GalleryForm`'s "Add images…" panel (previously nothing). `MediaLibrary`
+itself was refactored onto the same hook so there is exactly one
+implementation of the upload flow, not two. `pnpm --filter @dj/admin
+typecheck` and `lint` both pass clean.
+
+**Not verified live** — this machine has no Cloudinary/API credentials
+configured beyond placeholders (see the repo-wide caveat on Cloudinary/
+Resend/Turnstile paths above), so the actual signed-upload round trip to
+Cloudinary was not exercised in a browser this session; verified by
+reading the code path end to end and by typecheck/lint only. The next
+session with real credentials and a browser should upload one asset from
+a Persona form and one from Gallery to confirm.

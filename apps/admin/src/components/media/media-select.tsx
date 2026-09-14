@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '../../lib/auth-context';
+
+import { InlineUploader } from './inline-uploader';
+import { type UploadedAsset } from './use-media-upload';
 
 interface MediaRow {
   id: string;
@@ -43,7 +46,7 @@ export function MediaSelect({
   const { request } = useAuth();
   const [assets, setAssets] = useState<MediaRow[]>([]);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     request<{ data: MediaRow[] }>('admin/media?perPage=100')
       .then((result) => {
         setAssets(result.data.filter((asset) => asset.resourceType === mediaType));
@@ -51,10 +54,18 @@ export function MediaSelect({
       .catch(() => {
         setAssets([]);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetched once per mount
-  }, [mediaType]);
+  }, [request, mediaType]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const selected = assets.find((asset) => asset.id === value);
+
+  function onUploaded(asset: UploadedAsset): void {
+    load();
+    onChange(asset.id);
+  }
 
   return (
     <div>
@@ -93,9 +104,11 @@ export function MediaSelect({
           ))}
         </select>
       </div>
-      <a href="/media" target="_blank" rel="noopener noreferrer" className="text-accent mt-1 inline-block text-xs underline">
-        Upload a new asset →
-      </a>
+      <InlineUploader
+        purpose={mediaType === 'VIDEO' ? 'BACKGROUND_VIDEO' : 'GALLERY'}
+        entityType="misc"
+        onUploaded={onUploaded}
+      />
     </div>
   );
 }
