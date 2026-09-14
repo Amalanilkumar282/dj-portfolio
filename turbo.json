@@ -3,23 +3,23 @@
   "globalDependencies": [".env", "packages/db/prisma/schema.prisma"],
   "globalEnv": ["NODE_ENV", "CI"],
   "tasks": {
-    "db:generate": {
+    "generate": {
       "cache": false,
       "outputs": ["../../node_modules/.prisma/**"],
       "env": ["DATABASE_URL", "DIRECT_URL"]
     },
     "build": {
-      "dependsOn": ["^build", "db:generate"],
+      "dependsOn": ["^build", "generate"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", "storybook-static/**"]
     },
     "typecheck": {
-      "dependsOn": ["^build", "db:generate", "build"]
+      "dependsOn": ["^build", "generate", "build"]
     },
     "lint": {
       "dependsOn": ["^build"]
     },
     "test": {
-      "dependsOn": ["^build", "db:generate"],
+      "dependsOn": ["^build", "generate"],
       "env": [
         "DATABASE_URL",
         "DIRECT_URL",
