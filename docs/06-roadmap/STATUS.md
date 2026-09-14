@@ -7,7 +7,7 @@
 > honest "blocked" line is far more useful to the next session than an
 > optimistic tick.
 
-**Last updated:** 2026-09-13 (CI fixes session)
+**Last updated:** 2026-09-14 (keep-alive workflow fix)
 **Current phase:** The **cinematic visual layer** — Phase 10 done properly.
 Until this session `apps/web` was functionally complete and visually flat:
 no hero, no shader, no persona switcher, no 3D, and a play button that
@@ -22,6 +22,16 @@ load testing and a restore drill remain the user-facing handoff items from
 Group F.
 **Phases complete:** 0, 1, 2, 4, 5 (code), 6 (code), 7, 8 (scoped), 9 (scoped), 10 (scoped), 11 (scoped, all content types), 12 (scoped), 13 (scoped — see below)
 **Phase 3:** complete except one gap — see "What is not done" below
+
+**This session:** fixed the failing scheduled GitHub Actions job
+`Keep API awake` (`ping`). The root cause was not an API outage — the
+repository variable `API_HEALTH_URL` had been set to the workflow's own
+placeholder example URL (`https://your-real-api.onrender.com/health`), and
+the workflow only treated an empty value as "not configured", so it tried to
+`curl` the fake URL and failed 404. `.github/workflows/keep-alive.yml` now
+skips cleanly when the variable is empty **or still set to either documented
+placeholder shape** (`.../health` or `.../health/ready`), while continuing to
+fail red on genuine non-2xx responses from a real configured endpoint.
 
 ---
 

@@ -12,9 +12,11 @@ name: Keep API awake
 #   tab -> "New repository variable" -> name API_HEALTH_URL, value
 #   https://your-real-api.onrender.com/health
 #
-# Until that variable is set, this workflow runs and no-ops harmlessly
-# (skips the ping with a clear log line) rather than failing red on every
-# run.
+# Until that variable is set to a real URL, this workflow runs and no-ops
+# harmlessly (skips the ping with a clear log line) rather than failing red
+# on every run. The literal example URL above is treated as "not configured"
+# too, because copying it into the repo variable is the same as not having a
+# real API URL yet.
 on:
   schedule:
     # Every 10 minutes. Comfortably under Render's 15-minute sleep timer,
@@ -33,11 +35,13 @@ jobs:
         env:
           API_HEALTH_URL: ${{ vars.API_HEALTH_URL }}
         run: |
-          if [ -z "$API_HEALTH_URL" ]; then
-            echo "API_HEALTH_URL repository variable is not set yet - skipping."
+          case "$API_HEALTH_URL" in
+            ""|"https://your-real-api.onrender.com/health"|"https://your-real-api.onrender.com/health/ready")
+            echo "API_HEALTH_URL repository variable is not set to a real API URL yet - skipping."
             echo "Set it under Settings > Secrets and variables > Actions > Variables."
             exit 0
-          fi
+            ;;
+          esac
 
           echo "Pinging $API_HEALTH_URL"
           # --fail turns a non-2xx response into a failed step (so a real
