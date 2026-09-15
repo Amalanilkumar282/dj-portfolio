@@ -97,7 +97,10 @@ export function useTrackOptions(): TrackRow[] {
   const [tracks, setTracks] = useState<TrackRow[]>([]);
 
   useEffect(() => {
-    request<{ data: TrackRow[] }>('admin/tracks?perPage=200')
+    // The API caps `perPage` at 100 (`TrackAdminListQuery` in
+    // apps/api/src/modules/tracks/dto/track.dto.ts) — 200 here 422'd on
+    // every load, silently falling back to an empty list below.
+    request<{ data: TrackRow[] }>('admin/tracks?perPage=100')
       .then((result) => {
         setTracks(result.data);
       })

@@ -2609,3 +2609,87 @@ Verified: `pnpm --filter @dj/api typecheck`/`lint` and `pnpm --filter
 @dj/admin typecheck`/`lint` all pass clean. **Not yet re-verified against a
 real upload** — the user should retry an image upload from a Persona (or
 any entity) form now; it should prompt for alt text and then succeed.
+
+## Uploads succeed but never appear on `apps/web` (this session, later still)
+
+Confirmed: image upload itself now works (alt-text prompt, 201/200/201 all
+green). But newly uploaded images attached to a Persona's hero/avatar or to
+a Gallery still did not render anywhere on the public site. Investigated
+five hypotheses (save-without-publish, missing publish, stale cache/
+revalidation, a Cloudinary/env mismatch, a public-read mapping gap);
+revalidation, env, and read-mapping all checked out clean. Two real causes:
+
+1. **`toMediaImage()`** (`apps/api/src/common/base/media.mapper.ts:46-51`)
+   deliberately treats an image as absent — returns `null`, not an error —
+   if it's missing `width`, `height`, `altText`, **or `blurDataUrl`**. That
+   last one is the bug: `blurDataUrl` is populated by `MediaService.confirm()`
+   with a **live fetch** of Cloudinary's blur derivative, generated
+   on-the-fly on that very first request (`fetchBlurDataUrl`,
+   `media.service.ts`). That fetch can transiently fail — the derivative
+   racing its own first-ever generation — and silently degraded to `null`
+   with zero error surfaced anywhere in the chain, which then made
+   `toMediaImage()` drop the image forever, on every page, with nothing in
+   any log pointing at why. This is almost certainly why "hero, avatar, AND
+   gallery all fail" together — one shared code path (`confirm()`), not
+   three separate bugs.
+
+   **Fixed:** `fetchBlurDataUrl` now retries once after a 400ms delay before
+   giving up. If it still fails, `confirm()` now falls back to a synthesized
+   solid-colour placeholder (`solidColorBlurDataUrl`, a tiny inline SVG data
+   URI built from the asset's own `dominantColor`) instead of `null` — so
+   `blurDataUrl` is always populated for a confirmed image going forward,
+   honouring the contract's stated (and correct) invariant that it's
+   non-nullable, instead of quietly violating it.
+
+   **Known limitation, not fixed:** this only prevents the bug for *new*
+   uploads from now on. Any image already confirmed while this bug was live
+   has a permanently `null` `blurDataUrl` sitting in the database and will
+   keep failing to render until it is re-uploaded (delete the asset in the
+   admin Media library, then upload it again) — there is no in-place repair
+   for already-broken rows in this pass. If the user's specific missing
+   images are still missing after this deploys, that's why; a one-time
+   backfill script (re-fetch `blurDataUrl` for every existing `MediaAsset`
+   row where it's null) would be the real fix but was not built this
+   session.
+
+2. **Also confirmed as expected behaviour, not a bug, but worth restating
+   since it looks like one:** selecting an image via `MediaSelect`/
+   `InlineUploader` only updates the entity form's local state — nothing is
+   written until **Save** is clicked (`persona-form.tsx` etc.), and even
+   after saving, a brand-new or DRAFT Persona/Gallery will not appear on
+   `apps/web` at all until it is explicitly **Published** from its list page
+   (the Publish/Unpublish toggle, separate from Save — see
+   `entity-list.tsx`). Both steps are required; if a specific persona/gallery
+   is still invisible after this deploys, check its status on `/personas` or
+   `/galleries` first.
+
+Verified: `pnpm --filter @dj/api typecheck`/`lint` clean. Not yet
+re-verified against a real upload+render — needs a fresh image upload after
+deploy, and confirmation that the affected persona/gallery is actually
+Published.
+
+## Gallery "Add images…" 422, pre-existing and unrelated to the above
+
+While retesting, the user hit `GET admin/media?perPage=200` returning
+`422 Unprocessable Entity` on every load inside the gallery editor — a
+pre-existing bug, not a regression from today's other fixes. The upload
+itself was succeeding the whole time (the just-uploaded image correctly
+showed under "Images, in order"); it was only the *list refresh* that
+silently failed and fell back to an empty array, which made the "Add
+images…" picker look permanently empty.
+
+**Root cause:** `MediaAdminListQuery.perPage` (`apps/api/src/modules/media/
+dto/media.dto.ts:22`) is capped at `.max(100)`, but `gallery-form.tsx`
+requested `perPage=200` — always over the cap, always 422, always silently
+swallowed by the `.catch(() => setImageOptions([]))` that was (reasonably)
+written to treat a failed load as "nothing to show" rather than surface an
+error. Found and fixed the same bug in `lib/reference-data.ts`'s
+`useTrackOptions()` (used by the Playlist track-picker), which also
+requested `admin/tracks?perPage=200` against the same 100-cap on
+`TrackAdminListQuery`. Every other `perPage=` call site in `apps/admin`
+was already ≤ 100. Both fixed by requesting `perPage=100` instead — well
+above the real catalogue size (19 tracks, well under 100 media assets) so
+nothing is actually truncated.
+
+Verified: `pnpm --filter @dj/admin typecheck`/`lint` clean. Not yet
+re-verified live.

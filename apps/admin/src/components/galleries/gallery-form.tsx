@@ -59,7 +59,12 @@ export function GalleryForm({ id }: { id?: string }): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
 
   function loadImages(): void {
-    request<{ data: MediaRow[] }>('admin/media?perPage=200')
+    // The API caps `perPage` at 100 (`MediaAdminListQuery` in
+    // apps/api/src/modules/media/dto/media.dto.ts) — 200 here 422'd on
+    // every load, silently falling back to an empty list in the .catch
+    // below, which is why the "Add images…" picker looked permanently
+    // empty regardless of how many assets actually existed.
+    request<{ data: MediaRow[] }>('admin/media?perPage=100')
       .then((result) => {
         setImageOptions(result.data.filter((asset) => asset.resourceType === 'IMAGE'));
       })

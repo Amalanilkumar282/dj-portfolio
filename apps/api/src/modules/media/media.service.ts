@@ -29,6 +29,26 @@ const CLOUDINARY_RESOURCE_TYPE: Record<MediaResourceType, 'image' | 'video' | 'r
   RAW: 'raw',
 };
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+/**
+ * A tiny inline SVG, one flat colour, base64-encoded as a data URI — the
+ * last-resort `blurDataUrl` when Cloudinary's real blur derivative couldn't
+ * be fetched even after a retry. `MediaImage.blurDataUrl` is deliberately
+ * non-nullable in the contract (`packages/contracts/src/common.ts`) so no
+ * consumer has to branch on it; this keeps that promise even when the live
+ * fetch it's normally built from fails.
+ */
+function solidColorBlurDataUrl(hex: string | null): string {
+  const color = hex && /^#[0-9a-f]{3,8}$/i.test(hex) ? hex : '#1a1a1a';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="${color}"/></svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+}
+
 /** Retained 30 days in the trash before the sweeper hard-deletes it. */
 export const MEDIA_TRASH_RETENTION_DAYS = 30;
 
@@ -106,7 +126,9 @@ export class MediaService {
 
     const dominantColor = resource.colors?.[0]?.[0] ?? null;
     const blurDataUrl =
-      input.resourceType === 'IMAGE' ? await this.fetchBlurDataUrl(input.publicId) : null;
+      input.resourceType === 'IMAGE'
+        ? ((await this.fetchBlurDataUrl(input.publicId)) ?? solidColorBlurDataUrl(dominantColor))
+        : null;
 
     const folder = input.publicId.includes('/')
       ? input.publicId.slice(0, input.publicId.lastIndexOf('/'))
@@ -344,22 +366,36 @@ export class MediaService {
    * Downloads the tiny `t_djf_blur` derivative and inlines it as a data URI,
    * so `placeholder="blur"` costs nothing at render time. A random
    * `?v=` component is not needed here — Cloudinary derivatives are
-   * generated on first request, and this is that first request.
+   * generated on first request, and this is that first request — which is
+   * exactly why one retry matters: the very first request can race
+   * Cloudinary's own on-the-fly generation of a transformation nobody has
+   * asked for yet, and fail with a transient "not ready" response that a
+   * split-second later would succeed.
    */
   private async fetchBlurDataUrl(publicId: string): Promise<string | null> {
-    try {
-      const url = this.cloudinary.blurUrl(publicId);
-      const response = await fetch(url);
-      if (!response.ok) return null;
+    for (const delayMs of [0, 400]) {
+      if (delayMs > 0) await sleep(delayMs);
+      try {
+        const url = this.cloudinary.blurUrl(publicId);
+        const response = await fetch(url);
+        if (!response.ok) continue;
 
-      const buffer = Buffer.from(await response.arrayBuffer());
-      const contentType = response.headers.get('content-type') ?? 'image/webp';
-      return `data:${contentType};base64,${buffer.toString('base64')}`;
-    } catch {
-      // A missing placeholder degrades to no blur, not a failed upload —
-      // the asset itself is already safely stored by this point.
-      return null;
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const contentType = response.headers.get('content-type') ?? 'image/webp';
+        return `data:${contentType};base64,${buffer.toString('base64')}`;
+      } catch {
+        // Try again once before giving up — see the retry note above.
+      }
     }
+    // A missing placeholder used to mean the image had *no* blur, and
+    // `toMediaImage()` (apps/api/src/common/base/media.mapper.ts) treats a
+    // missing blurDataUrl as an incomplete asset and drops the image
+    // entirely — silently, with no error anywhere in the chain. That made a
+    // transient Cloudinary hiccup at upload time permanently hide an
+    // otherwise-fine image on the public site. `confirm()` now falls back to
+    // a synthesized solid-colour placeholder instead of `null` for exactly
+    // this reason — see `solidColorBlurDataUrl` below.
+    return null;
   }
 
   private async loadForAdmin(id: string) {
