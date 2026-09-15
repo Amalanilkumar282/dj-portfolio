@@ -164,9 +164,14 @@ export class ReleasesService extends BaseContentService<ReleaseRowBase> {
       ...(personaId === undefined ? {} : { personaId }),
     });
 
+    if (input.trackIds) {
+      await this.repository.setTracks(created.id, input.trackIds);
+    }
+
     await this.afterMutation(created, AuditAction.CREATE, 'create');
 
-    return toReleaseAdminDetail(created);
+    // Re-read so the response includes the tracks just attached.
+    return toReleaseAdminDetail(await this.loadForAdmin(created.id));
   }
 
   async update(id: string, input: ReleaseUpdateInput, now: Date): Promise<ReleaseAdminDetail> {
@@ -192,11 +197,15 @@ export class ReleasesService extends BaseContentService<ReleaseRowBase> {
       ...(personaId === undefined ? {} : { personaId }),
     });
 
+    if (input.trackIds) {
+      await this.repository.setTracks(id, input.trackIds);
+    }
+
     await this.afterMutation(updated, AuditAction.UPDATE, 'update', {
       changed: Object.keys(input),
     });
 
-    return toReleaseAdminDetail(updated);
+    return toReleaseAdminDetail(input.trackIds ? await this.loadForAdmin(id) : updated);
   }
 
   private async resolvePersonaId(

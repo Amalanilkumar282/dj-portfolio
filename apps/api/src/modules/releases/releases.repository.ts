@@ -183,4 +183,30 @@ export class ReleasesRepository {
       ),
     );
   }
+
+  /**
+   * Replaces this release's track membership wholesale.
+   *
+   * Unlike `PlaylistTrack` (a join table), Release↔Track is a plain FK on
+   * `Track` itself (`releaseId` + `trackNumber`) — so "attaching" a track
+   * means writing those two columns on it, and "detaching" one previously
+   * on this release but no longer in `trackIds` means clearing them, or a
+   * removed track would silently stay attached forever. Array position
+   * becomes `trackNumber`, 1-based (liner-note convention, not a 0-based
+   * array index).
+   */
+  async setTracks(releaseId: string, trackIds: string[]): Promise<void> {
+    await this.prisma.client.$transaction([
+      this.prisma.client.track.updateMany({
+        where: { releaseId, id: { notIn: trackIds } },
+        data: { releaseId: null, trackNumber: null },
+      }),
+      ...trackIds.map((id, index) =>
+        this.prisma.client.track.update({
+          where: { id },
+          data: { releaseId, trackNumber: index + 1 },
+        }),
+      ),
+    ]);
+  }
 }

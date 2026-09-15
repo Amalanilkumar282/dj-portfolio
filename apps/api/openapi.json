@@ -1796,6 +1796,36 @@
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "type": "string"
           },
+          "socialLinks": {
+            "items": {
+              "properties": {
+                "handle": {
+                  "maxLength": 80,
+                  "nullable": true,
+                  "type": "string"
+                },
+                "isPrimary": {
+                  "type": "boolean"
+                },
+                "platform": {
+                  "maxLength": 40,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "url": {
+                  "format": "uri",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "platform",
+                "url"
+              ],
+              "type": "object"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
           "sortIndex": {
             "exclusiveMinimum": false,
             "minimum": 0,
@@ -1956,6 +1986,36 @@
             "minLength": 1,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "type": "string"
+          },
+          "socialLinks": {
+            "items": {
+              "properties": {
+                "handle": {
+                  "maxLength": 80,
+                  "nullable": true,
+                  "type": "string"
+                },
+                "isPrimary": {
+                  "type": "boolean"
+                },
+                "platform": {
+                  "maxLength": 40,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "url": {
+                  "format": "uri",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "platform",
+                "url"
+              ],
+              "type": "object"
+            },
+            "maxItems": 10,
+            "type": "array"
           },
           "sortIndex": {
             "exclusiveMinimum": false,
@@ -2727,6 +2787,14 @@
             "minLength": 1,
             "type": "string"
           },
+          "trackIds": {
+            "items": {
+              "pattern": "^[a-z0-9]{20,32}$",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
+          },
           "type": {
             "enum": [
               "ALBUM",
@@ -2817,6 +2885,14 @@
             "maxLength": 200,
             "minLength": 1,
             "type": "string"
+          },
+          "trackIds": {
+            "items": {
+              "pattern": "^[a-z0-9]{20,32}$",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
           },
           "type": {
             "enum": [

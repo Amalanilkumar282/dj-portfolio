@@ -224,6 +224,9 @@ export class PersonasService extends BaseContentService<PersonaRowBase> {
     if (input.genreSlugs?.length) {
       await this.repository.setGenres(created.id, input.genreSlugs);
     }
+    if (input.socialLinks) {
+      await this.repository.setSocialLinks(created.id, input.socialLinks);
+    }
 
     await this.afterMutation(created, AuditAction.CREATE, 'create');
 
@@ -253,6 +256,9 @@ export class PersonasService extends BaseContentService<PersonaRowBase> {
 
     if (input.genreSlugs) {
       await this.repository.setGenres(id, input.genreSlugs);
+    }
+    if (input.socialLinks) {
+      await this.repository.setSocialLinks(id, input.socialLinks);
     }
 
     await this.afterMutation(updated, AuditAction.UPDATE, 'update', {

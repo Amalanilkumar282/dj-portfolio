@@ -73,6 +73,21 @@ export const SocialLinkSchema = z.object({
   isPrimary: z.boolean(),
 });
 
+/**
+ * The writable shape of a social link — a subset of `SocialLinkSchema`.
+ * `followerCount` is deliberately excluded: it's "manually curated social
+ * proof" per the DB column's own comment, not something this pass adds an
+ * editing surface for, and omitting it here keeps that a conscious choice
+ * for later rather than a field silently reset to null on every save.
+ */
+export const SocialLinkWriteSchema = z.object({
+  platform: z.string().min(1).max(40),
+  url: z.string().url(),
+  handle: z.string().max(80).nullish(),
+  isPrimary: z.boolean().optional(),
+});
+export type SocialLinkWriteInput = z.infer<typeof SocialLinkWriteSchema>;
+
 export const GenreSummary = z.object({
   slug: Slug,
   name: z.string(),
@@ -178,6 +193,10 @@ const PersonaCreateBase = inputObject({
   heroMediaId: Id.nullish(),
   avatarMediaId: Id.nullish(),
   bgVideoMediaId: Id.nullish(),
+  /** One row per platform — `SocialLink` has a `[personaId, platform]`
+   * unique constraint, so duplicate platforms in this array are a real
+   * request error, not silently merged. */
+  socialLinks: z.array(SocialLinkWriteSchema).max(10).optional(),
   ...PublishableInput,
 });
 
@@ -498,6 +517,13 @@ export const ReleaseCreateInput = inputObject({
   releaseDate: z.coerce.date().nullish(),
   isFeatured: z.boolean().optional(),
   coverId: Id.nullish(),
+  /** Ordered — position in the array becomes `Track.trackNumber` (1-based).
+   * Unlike Playlist↔Track (a join table, `PlaylistTrack`), Release↔Track is
+   * a plain FK on `Track` itself (`Track.releaseId`/`trackNumber`), so
+   * setting this reassigns those columns on exactly the tracks listed and
+   * clears them on any track previously on this release but no longer
+   * here — see `ReleasesRepository.setTracks`. */
+  trackIds: z.array(Id).max(200).optional(),
   ...PublishableInput,
 });
 export type ReleaseCreateInput = z.infer<typeof ReleaseCreateInput>;

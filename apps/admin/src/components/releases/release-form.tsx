@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { useAuth } from '../../lib/auth-context';
 import { previewUrl } from '../../lib/preview';
-import { usePersonaKeyOptions } from '../../lib/reference-data';
+import { usePersonaKeyOptions, useTrackOptions } from '../../lib/reference-data';
 import { MediaSelect } from '../media/media-select';
 
 interface ReleaseDetail {
@@ -16,6 +16,7 @@ interface ReleaseDetail {
   label: string | null;
   description: string | null;
   isFeatured: boolean;
+  tracks: { id: string; title: string; artistLabel: string }[];
 }
 
 const RELEASE_TYPES = ['ALBUM', 'EP', 'SINGLE', 'COMPILATION'];
@@ -24,6 +25,7 @@ export function ReleaseForm({ id }: { id?: string }): React.JSX.Element {
   const { request } = useAuth();
   const router = useRouter();
   const personaKeyOptions = usePersonaKeyOptions();
+  const trackOptions = useTrackOptions();
 
   const [title, setTitle] = useState('');
   const [artistLabel, setArtistLabel] = useState('');
@@ -33,6 +35,7 @@ export function ReleaseForm({ id }: { id?: string }): React.JSX.Element {
   const [description, setDescription] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
   const [coverId, setCoverId] = useState('');
+  const [trackIds, setTrackIds] = useState<string[]>([]);
   const [slug, setSlug] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(Boolean(id));
@@ -50,6 +53,7 @@ export function ReleaseForm({ id }: { id?: string }): React.JSX.Element {
         setLabel(release.label ?? '');
         setDescription(release.description ?? '');
         setIsFeatured(release.isFeatured);
+        setTrackIds(release.tracks.map((track) => track.id));
       })
       .catch(() => {
         setError('Could not load this release.');
@@ -58,6 +62,24 @@ export function ReleaseForm({ id }: { id?: string }): React.JSX.Element {
         setLoading(false);
       });
   }, [id, request]);
+
+  function toggleTrack(trackId: string): void {
+    setTrackIds((current) =>
+      current.includes(trackId) ? current.filter((value) => value !== trackId) : [...current, trackId],
+    );
+  }
+
+  function move(index: number, direction: -1 | 1): void {
+    setTrackIds((current) => {
+      const next = [...current];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return current;
+      const [item] = next.splice(index, 1);
+      if (item === undefined) return current;
+      next.splice(target, 0, item);
+      return next;
+    });
+  }
 
   async function onSubmit(event: React.SyntheticEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -73,6 +95,7 @@ export function ReleaseForm({ id }: { id?: string }): React.JSX.Element {
         description: description || undefined,
         isFeatured,
         coverId: coverId || undefined,
+        trackIds,
       };
       if (id) {
         await request(`admin/releases/${id}`, { method: 'PATCH', body });
@@ -90,6 +113,9 @@ export function ReleaseForm({ id }: { id?: string }): React.JSX.Element {
   if (loading) return <p className="text-fg-muted text-sm">Loading…</p>;
 
   const preview = slug ? previewUrl(`/music/albums/${slug}`) : null;
+  const selectedTracks = trackIds
+    .map((trackId) => trackOptions.find((track) => track.id === trackId))
+    .filter((track): track is (typeof trackOptions)[number] => Boolean(track));
 
   return (
     <div className="max-w-lg">
@@ -203,6 +229,74 @@ export function ReleaseForm({ id }: { id?: string }): React.JSX.Element {
           />
         </div>
         <MediaSelect label="Cover art" value={coverId} onChange={setCoverId} />
+
+        <div>
+          <span className="text-fg-strong text-sm font-medium">
+            Tracks, in order ({selectedTracks.length} selected)
+          </span>
+          {selectedTracks.length > 0 ? (
+            <ul className="border-border bg-surface mt-1 divide-y divide-border rounded-md border">
+              {selectedTracks.map((track, index) => (
+                <li key={track.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                  <span className="text-fg-strong">
+                    {track.title} <span className="text-fg-muted">— {track.artistLabel}</span>
+                  </span>
+                  <span className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => {
+                        move(index, -1);
+                      }}
+                      className="text-fg-muted text-xs underline disabled:opacity-30"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === selectedTracks.length - 1}
+                      onClick={() => {
+                        move(index, 1);
+                      }}
+                      className="text-fg-muted text-xs underline disabled:opacity-30"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleTrack(track.id);
+                      }}
+                      className="text-danger text-xs underline"
+                    >
+                      Remove
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <details className="mt-2">
+            <summary className="text-accent cursor-pointer text-sm">Add tracks…</summary>
+            <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+              {trackOptions
+                .filter((track) => !trackIds.includes(track.id))
+                .map((track) => (
+                  <label key={track.id} className="flex items-center gap-2 text-sm text-fg-secondary">
+                    <input
+                      type="checkbox"
+                      onChange={() => {
+                        toggleTrack(track.id);
+                      }}
+                      className="h-4 w-4"
+                    />
+                    {track.title} — {track.artistLabel}
+                  </label>
+                ))}
+            </div>
+          </details>
+        </div>
+
         <label className="flex items-center gap-2 text-sm text-fg-strong">
           <input
             type="checkbox"

@@ -40,8 +40,9 @@ export function MediaSelect({
    */
   hint?: string;
   /** Restricts the dropdown to one Cloudinary resource type. Most fields on
-   * this site are images; a hero background clip is the one video case. */
-  mediaType?: 'IMAGE' | 'VIDEO';
+   * this site are images; a hero background clip is the video case, and a
+   * self-hosted track file is the audio case. */
+  mediaType?: 'IMAGE' | 'VIDEO' | 'AUDIO';
 }): React.JSX.Element {
   const { request } = useAuth();
   const [assets, setAssets] = useState<MediaRow[]>([]);
@@ -79,6 +80,10 @@ export function MediaSelect({
           <div className="bg-surface-raised text-fg-muted flex h-10 w-10 shrink-0 items-center justify-center rounded border border-border text-lg">
             ▶
           </div>
+        ) : selected?.resourceType === 'AUDIO' ? (
+          <div className="bg-surface-raised text-fg-muted flex h-10 w-10 shrink-0 items-center justify-center rounded border border-border text-lg">
+            ♪
+          </div>
         ) : (
           // The empty state: nothing selected does not mean nothing to see
           // here — it means the public site currently falls back to a
@@ -105,7 +110,7 @@ export function MediaSelect({
         </select>
       </div>
       <InlineUploader
-        purpose={mediaType === 'VIDEO' ? 'BACKGROUND_VIDEO' : 'GALLERY'}
+        purpose={mediaType === 'VIDEO' ? 'BACKGROUND_VIDEO' : mediaType === 'AUDIO' ? 'DOCUMENT' : 'GALLERY'}
         entityType="misc"
         onUploaded={onUploaded}
       />

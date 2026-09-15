@@ -2851,3 +2851,84 @@ same bug without live verification, so treat it as high-priority to
 actually test before trusting it further: play track 1, switch to track
 2 and 3, confirm seek/pause/mute all work on each, then click the
 mini-player's close (✕) and confirm no crash.
+
+## Both dashboard "Known gaps" closed, plus a bigger gap the banner didn't mention (this session)
+
+The user asked why the dashboard's static "Known gaps" card
+(`apps/admin/src/app/(dashboard)/dashboard-home.tsx`) was still there
+instead of being fixed, and separately asked whether the audio/track admin
+functions actually work and where the catalogue's audio comes from.
+
+**Track↔Release membership**, closed end to end:
+- `packages/contracts/src/content.ts`: `ReleaseCreateInput`/`UpdateInput`
+  gained `trackIds: z.array(Id).max(200).optional()`. Release↔Track is
+  **not** a join table like `PlaylistTrack` — it's a plain FK on `Track`
+  itself (`releaseId` + `trackNumber`), so this isn't quite the Playlist
+  pattern underneath, just the same shape at the API boundary.
+- `apps/api/src/modules/releases/releases.repository.ts`: new
+  `setTracks(releaseId, trackIds)` — clears `releaseId`/`trackNumber` on
+  any track previously on the release but no longer listed, then writes
+  both columns (array position → 1-based `trackNumber`) on every track in
+  the new list, in one transaction.
+- `releases.service.ts`: `create`/`update` call it when `trackIds` is
+  present, then re-read so the response reflects the tracks just attached.
+- `apps/admin/src/components/releases/release-form.tsx`: added the same
+  "Tracks, in order" add/reorder/remove picker `playlist-form.tsx` already
+  has, reusing `useTrackOptions()`.
+
+**Persona social links**, closed end to end:
+- `content.ts`: new `SocialLinkWriteSchema` (`platform`, `url`, `handle`,
+  `isPrimary` — deliberately omitting `followerCount`, which the DB column
+  itself is commented as "manually curated social proof", not something
+  this pass adds an editing surface for) and `socialLinks` added to
+  `PersonaCreateBase`.
+- `personas.repository.ts`: new `setSocialLinks()`, same delete-all-then-
+  recreate transaction `setGenres()` already uses one platform is the
+  unique key (`SocialLink` has a `[personaId, platform]` constraint).
+- `personas.service.ts`: wired into `create`/`update` the same way
+  `genreSlugs` already is.
+- `persona-form.tsx`: a repeatable platform/url/handle/primary row editor
+  (add, edit, remove — six common platforms offered first in the dropdown).
+
+Both verified with `pnpm --filter @dj/api typecheck`/`lint`/`build` and
+`pnpm --filter @dj/admin typecheck`/`lint`/`build`, all clean, plus
+`pnpm --filter @dj/api openapi:update` re-run so the committed
+`openapi.json` snapshot doesn't drift from the new contract fields (a
+CI-enforced invariant per CLAUDE.md). The dashboard's "Known gaps" card
+is now deleted.
+
+**A bigger, unmentioned gap found and fixed while checking "does audio
+actually work":** `track-form.tsx` had **no `soundcloudTrackId` field at
+all**, despite the contract already accepting it — and per
+`player-context.tsx`'s own comment, "all 19 real tracks" stream from
+SoundCloud, not from Cloudinary/self-hosted storage. So there was
+previously no admin path whatsoever to set the one field that actually
+controls what a real track plays. Fixed by adding the input to
+`track-form.tsx`, with a hint distinguishing it from the page slug. This
+was more load-bearing than either gap the banner named and wasn't
+flagged anywhere — found only by directly checking "does this work" per
+the user's ask, not by reading a comment claiming it didn't.
+
+**Also fixed while there:** the "Audio file" (self-hosted) picker in
+`track-form.tsx` used `MediaSelect` with no `mediaType` prop, silently
+defaulting to `'IMAGE'` — so it filtered to image assets and could never
+show an actually-uploaded audio file, i.e. it was non-functional for its
+stated purpose. `MediaSelect`'s `mediaType` now accepts `'AUDIO'` (a music-
+note thumbnail, and its upload purpose maps to the existing `DOCUMENT`
+enum value rather than adding a new one — avoids a DB enum migration for
+a field no real content currently uses), and `track-form.tsx` passes it.
+
+**Direct answer on the audio-source question:** all 19 real catalogue
+tracks stream from **SoundCloud** (an external embed via the Widget API),
+**not** from Cloudinary/object storage — confirmed in both
+`player-context.tsx`'s own comment and the `Track` Prisma model, which
+carries both a `soundcloudTrackId` (populated, the real path) and a
+Cloudinary-backed `audioId` (unpopulated for any real track today, but now
+a working upload path if a future track needs self-hosted audio instead).
+
+**Not verified live** — no browser or way to exercise a real save against
+a live API this session. The next session (or the user) should: attach a
+track to a release and confirm it saves and shows on the release's public
+page; add a social link to a persona and confirm it round-trips; and set
+a `soundcloudTrackId` on a track via the new field and confirm it actually
+plays.

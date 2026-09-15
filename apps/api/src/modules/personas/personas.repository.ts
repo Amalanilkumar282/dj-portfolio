@@ -259,6 +259,33 @@ export class PersonasRepository {
   }
 
   /**
+   * Replaces the social link set wholesale, same reasoning as `setGenres`
+   * above — a platform dropped from the array must actually disappear, not
+   * linger because nothing told it to. `SocialLink` has a
+   * `[personaId, platform]` unique constraint, so `platform` is effectively
+   * the row's key; array order becomes `sortIndex`.
+   */
+  async setSocialLinks(
+    personaId: string,
+    links: { platform: string; url: string; handle?: string | null | undefined; isPrimary?: boolean | undefined }[],
+  ): Promise<void> {
+    await this.prisma.client.$transaction([
+      this.prisma.client.socialLink.deleteMany({ where: { personaId } }),
+      this.prisma.client.socialLink.createMany({
+        data: links.map((link, index) => ({
+          personaId,
+          platform: link.platform,
+          url: link.url,
+          handle: link.handle ?? null,
+          isPrimary: link.isPrimary ?? false,
+          sortIndex: index,
+        })),
+        skipDuplicates: true,
+      }),
+    ]);
+  }
+
+  /**
    * Everything a persona landing page needs, in two queries.
    *
    * This is the backend-for-frontend concession described in

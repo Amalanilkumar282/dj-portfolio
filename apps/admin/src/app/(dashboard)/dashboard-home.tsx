@@ -111,7 +111,7 @@ export function DashboardHome(): React.JSX.Element {
         ))}
       </div>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-2">
+      <div className="mt-10">
         <div className="rounded-lg border border-border bg-surface p-5">
           <h2 className="text-fg-strong text-sm font-semibold uppercase tracking-wide">Quick actions</h2>
           <ul className="mt-3 flex flex-col gap-2">
@@ -126,15 +126,6 @@ export function DashboardHome(): React.JSX.Element {
               </li>
             ))}
           </ul>
-        </div>
-
-        <div className="rounded-lg border border-border bg-surface p-5">
-          <h2 className="text-fg-strong text-sm font-semibold uppercase tracking-wide">Known gaps</h2>
-          <p className="text-fg-secondary mt-3 text-sm">
-            A track can&apos;t yet be attached to a release from here, and a persona&apos;s social
-            links are read-only in this form — both need a small contract change first. See
-            STATUS.md for the full account.
-          </p>
         </div>
       </div>
     </div>

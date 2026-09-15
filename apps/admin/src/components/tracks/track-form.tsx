@@ -20,6 +20,7 @@ interface TrackDetail {
   isFeatured: boolean;
   genres: { slug: string }[];
   tags: string[];
+  soundcloudTrackId: string | null;
 }
 
 const TRACK_TYPES = ['ORIGINAL', 'REMIX', 'LIVE_SET', 'MIX', 'PODCAST', 'COLLABORATION'];
@@ -42,6 +43,7 @@ export function TrackForm({ id }: { id?: string }): React.JSX.Element {
   const [tags, setTags] = useState('');
   const [artworkId, setArtworkId] = useState('');
   const [audioId, setAudioId] = useState('');
+  const [soundcloudTrackId, setSoundcloudTrackId] = useState('');
   const [slug, setSlug] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(Boolean(id));
@@ -63,6 +65,7 @@ export function TrackForm({ id }: { id?: string }): React.JSX.Element {
         setIsFeatured(track.isFeatured);
         setGenreSlugs(track.genres.map((genre) => genre.slug));
         setTags(track.tags.join(', '));
+        setSoundcloudTrackId(track.soundcloudTrackId ?? '');
       })
       .catch(() => {
         setError('Could not load this track.');
@@ -96,6 +99,7 @@ export function TrackForm({ id }: { id?: string }): React.JSX.Element {
         tags: tags ? tags.split(',').map((tag) => tag.trim()).filter(Boolean) : undefined,
         artworkId: artworkId || undefined,
         audioId: audioId || undefined,
+        soundcloudTrackId: soundcloudTrackId || null,
       };
       if (id) {
         await request(`admin/tracks/${id}`, { method: 'PATCH', body });
@@ -273,8 +277,34 @@ export function TrackForm({ id }: { id?: string }): React.JSX.Element {
             ))}
           </div>
         </div>
+        <div>
+          <label htmlFor="soundcloudTrackId" className="text-fg-strong text-sm font-medium">
+            SoundCloud track ID
+          </label>
+          <p className="text-fg-muted mt-0.5 text-xs">
+            The numeric id in a SoundCloud track&apos;s API/oEmbed URL (not the page slug) — this is
+            what the public player actually streams from, for every real track in the catalogue today.
+            Leave empty only for a track that plays from the uploaded audio file below instead.
+          </p>
+          <input
+            id="soundcloudTrackId"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="e.g. 1234567890"
+            value={soundcloudTrackId}
+            onChange={(event) => {
+              setSoundcloudTrackId(event.target.value);
+            }}
+            className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg-strong"
+          />
+        </div>
         <MediaSelect label="Artwork" value={artworkId} onChange={setArtworkId} />
-        <MediaSelect label="Audio file" value={audioId} onChange={setAudioId} />
+        <MediaSelect
+          label="Audio file (self-hosted, only if not on SoundCloud)"
+          value={audioId}
+          onChange={setAudioId}
+          mediaType="AUDIO"
+        />
         <label className="flex items-center gap-2 text-sm text-fg-strong">
           <input
             type="checkbox"

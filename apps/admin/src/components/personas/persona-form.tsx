@@ -8,6 +8,13 @@ import { previewUrl } from '../../lib/preview';
 import { useGenreOptions, usePersonaKeyOptions } from '../../lib/reference-data';
 import { MediaSelect } from '../media/media-select';
 
+interface SocialLinkRow {
+  platform: string;
+  url: string;
+  handle: string | null;
+  isPrimary: boolean;
+}
+
 interface PersonaDetail {
   key: string;
   slug: string;
@@ -19,12 +26,18 @@ interface PersonaDetail {
   country: string | null;
   memberNames: string[];
   genres: { slug: string }[];
+  socialLinks: SocialLinkRow[];
   isFeatured: boolean;
   isDuo: boolean;
   heroMediaId: string | null;
   avatarMediaId: string | null;
   bgVideoMediaId: string | null;
 }
+
+/** Common platforms first, so the dropdown doesn't force free typing for
+ * the ones almost every persona actually has. `SocialLink` has a
+ * `[personaId, platform]` unique constraint — one row per platform. */
+const SOCIAL_PLATFORMS = ['instagram', 'soundcloud', 'spotify', 'youtube', 'mixcloud', 'whatsapp'];
 
 export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
   const { request } = useAuth();
@@ -41,6 +54,7 @@ export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
   const [country, setCountry] = useState('');
   const [memberNames, setMemberNames] = useState('');
   const [genreSlugs, setGenreSlugs] = useState<string[]>([]);
+  const [socialLinks, setSocialLinks] = useState<SocialLinkRow[]>([]);
   const [heroMediaId, setHeroMediaId] = useState('');
   const [avatarMediaId, setAvatarMediaId] = useState('');
   const [bgVideoMediaId, setBgVideoMediaId] = useState('');
@@ -66,6 +80,7 @@ export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
         setCountry(persona.country ?? '');
         setMemberNames(persona.memberNames.join(', '));
         setGenreSlugs(persona.genres.map((genre) => genre.slug));
+        setSocialLinks(persona.socialLinks);
         setIsFeatured(persona.isFeatured);
         setIsDuo(persona.isDuo);
         setHeroMediaId(persona.heroMediaId ?? '');
@@ -86,6 +101,20 @@ export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
     );
   }
 
+  function addSocialLink(): void {
+    const used = new Set(socialLinks.map((link) => link.platform));
+    const next = SOCIAL_PLATFORMS.find((platform) => !used.has(platform)) ?? '';
+    setSocialLinks((current) => [...current, { platform: next, url: '', handle: null, isPrimary: false }]);
+  }
+
+  function updateSocialLink(index: number, patch: Partial<SocialLinkRow>): void {
+    setSocialLinks((current) => current.map((link, i) => (i === index ? { ...link, ...patch } : link)));
+  }
+
+  function removeSocialLink(index: number): void {
+    setSocialLinks((current) => current.filter((_, i) => i !== index));
+  }
+
   async function onSubmit(event: React.SyntheticEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setError(null);
@@ -103,6 +132,14 @@ export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
           ? memberNames.split(',').map((name) => name.trim()).filter(Boolean)
           : undefined,
         genreSlugs,
+        socialLinks: socialLinks
+          .filter((link) => link.platform && link.url)
+          .map((link) => ({
+            platform: link.platform,
+            url: link.url,
+            handle: link.handle,
+            isPrimary: link.isPrimary,
+          })),
         heroMediaId: heroMediaId || null,
         avatarMediaId: avatarMediaId || null,
         bgVideoMediaId: bgVideoMediaId || null,
@@ -277,6 +314,83 @@ export function PersonaForm({ id }: { id?: string }): React.JSX.Element {
               </label>
             ))}
           </div>
+        </div>
+        <div>
+          <span className="text-fg-strong text-sm font-medium">Social links</span>
+          {socialLinks.length > 0 ? (
+            <ul className="border-border bg-surface mt-1 divide-y divide-border rounded-md border">
+              {socialLinks.map((link, index) => (
+                <li key={index} className="space-y-2 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={link.platform}
+                      onChange={(event) => {
+                        updateSocialLink(index, { platform: event.target.value });
+                      }}
+                      className="rounded border border-border bg-bg px-2 py-1 text-xs text-fg-strong"
+                    >
+                      {SOCIAL_PLATFORMS.map((platform) => (
+                        <option key={platform} value={platform}>
+                          {platform}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="url"
+                      required
+                      placeholder="https://…"
+                      value={link.url}
+                      onChange={(event) => {
+                        updateSocialLink(index, { url: event.target.value });
+                      }}
+                      className="min-w-0 flex-1 rounded border border-border bg-bg px-2 py-1 text-xs text-fg-strong"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        removeSocialLink(index);
+                      }}
+                      className="text-danger shrink-0 text-xs underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      placeholder="Handle (optional, e.g. @djfelicitous)"
+                      value={link.handle ?? ''}
+                      onChange={(event) => {
+                        updateSocialLink(index, { handle: event.target.value || null });
+                      }}
+                      className="w-56 rounded border border-border bg-bg px-2 py-1 text-xs text-fg-strong"
+                    />
+                    <label className="flex items-center gap-1.5 text-xs text-fg-secondary">
+                      <input
+                        type="checkbox"
+                        checked={link.isPrimary}
+                        onChange={(event) => {
+                          updateSocialLink(index, { isPrimary: event.target.checked });
+                        }}
+                        className="h-3.5 w-3.5"
+                      />
+                      Primary
+                    </label>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-fg-muted mt-1 text-xs">No social links yet — add one below.</p>
+          )}
+          <button
+            type="button"
+            onClick={addSocialLink}
+            disabled={socialLinks.length >= SOCIAL_PLATFORMS.length}
+            className="text-accent mt-2 text-xs underline disabled:opacity-40"
+          >
+            Add social link →
+          </button>
         </div>
         <MediaSelect
           label="Hero image"
