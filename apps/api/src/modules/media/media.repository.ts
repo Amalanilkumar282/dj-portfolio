@@ -242,7 +242,17 @@ export class MediaRepository {
       client.program.count({ where: { heroId: id } }),
       client.seoMeta.count({ where: { ogImageId: id } }),
       client.siteSettings.count({ where: { OR: [{ logoId: id }, { defaultOgImageId: id }] } }),
-      client.galleryItem.count({ where: { mediaId: id } }),
+      // `GalleryItem` has no `deletedAt` of its own (only `Gallery` is a
+      // soft-delete model), and Prisma's soft-delete extension only narrows
+      // queries on the model it's actually scoped to — a relation filter
+      // like `gallery: {...}` here is a query on `GalleryItem`, not on
+      // `Gallery`, so it is NOT auto-narrowed. Without `deletedAt: null`
+      // spelled out explicitly, a gallery the admin deleted (soft-deleted:
+      // `Gallery.deletedAt` set, but its `GalleryItem` rows untouched —
+      // there is no cascading soft-delete for them) would count as "still
+      // referencing" its media forever, permanently blocking deletion of an
+      // asset the admin had already removed every visible reference to.
+      client.galleryItem.count({ where: { mediaId: id, gallery: { deletedAt: null } } }),
     ]);
 
     const galleryItems = counts.pop() ?? 0;

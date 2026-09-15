@@ -2932,3 +2932,50 @@ track to a release and confirm it saves and shows on the release's public
 page; add a social link to a persona and confirm it round-trips; and set
 a `soundcloudTrackId` on a track via the new field and confirm it actually
 plays.
+
+## Media delete falsely blocked by a deleted gallery (this session, later)
+
+The user unpublished and deleted a gallery, then tried to delete the
+image it had used from the Media library — still got `409 Still
+referenced by published content — cannot delete`.
+
+**Root cause:** `Gallery` is a soft-delete model; its child `GalleryItem`
+rows are **not** — `GalleryItem` has no `deletedAt` column at all, and
+isn't in `packages/db/src/models.ts`'s `SOFT_DELETE_MODELS`. So
+soft-deleting a gallery (`GalleriesRepository.softDelete()`, which the
+soft-delete Prisma extension turns into `UPDATE ... SET deletedAt = now()`
+on the `Gallery` row only) never touches its `GalleryItem` children —
+Postgres's `onDelete: Cascade` on that FK only fires for a real `DELETE`,
+which this never issues. The items stay live, still pointing at the media
+asset via `mediaId`. `MediaRepository.countReferences()`
+(`apps/api/src/modules/media/media.repository.ts`) counted
+`galleryItem.count({ where: { mediaId: id } })` with no awareness of the
+parent gallery's deletion, so a "deleted" gallery kept blocking its
+photos from ever being deleted — permanently, since there's no in-app
+path to detach a `GalleryItem` other than deleting the whole gallery,
+which the user had already done.
+
+**Fix:** that count now joins through the parent —
+`galleryItem.count({ where: { mediaId: id, gallery: { deletedAt: null } } })`.
+The soft-delete extension only auto-narrows queries on the model it's
+actually applied to (`Gallery`); a relation filter from `GalleryItem`
+doesn't inherit that narrowing automatically, so this has to be spelled
+out explicitly rather than assumed. `listReferences()` (the 409 body's
+named-references list) never queried `galleryItem` in the first place, so
+needed no change.
+
+**Not fixed, flagged as a smaller follow-up, not blocking:** `GalleryItem`
+still isn't a real soft-delete model — a *published, non-deleted* gallery
+that removes one photo (not the whole gallery) doesn't soft-delete that
+item either; it appears to be handled today via `GalleryForm`'s
+add/remove picker actually detaching the item outright (worth confirming
+against the actual removal code path, not re-checked this pass). The
+gallery-level bug above is what the user hit and is what's fixed;
+item-level trash/restore parity, if wanted, would need a real schema
+change (a migration adding `GalleryItem.deletedAt` and registering it in
+`SOFT_DELETE_MODELS`) — deliberately not done in this pass since the
+narrower query fix above fully resolves the reported bug without one.
+
+Verified: `pnpm --filter @dj/api typecheck`/`lint`/`build` all clean. Not
+verified against a real database — next session/user should confirm the
+originally-stuck image now deletes cleanly.
