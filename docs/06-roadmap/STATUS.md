@@ -2501,3 +2501,65 @@ handler — so there is no nested form, no bubbling, and no native
 submission path to fall back to. Re-verified with `pnpm --filter
 @dj/admin typecheck` and `lint`, both clean. Still not verified against a
 real browser/Cloudinary — same handoff item as above.
+
+## `apps/web` UI/UX pass (this session, after the admin upload fix)
+
+The user reported 4 issues against the deployed public site. All 4 fixed;
+`pnpm --filter @dj/web typecheck` and `lint` both pass clean. None
+re-verified in a real browser (no browser available this session) — flagged
+per issue below.
+
+1. **Mobile persona hero title cropped** (e.g. `/trinitrocosmic` at ~390px):
+   `h1#persona-title` (`app/(marketing)/[persona]/page.tsx`) wraps its text
+   in `.dj-rise-mask` (`app/globals.css`), which needs `overflow: hidden` for
+   its scroll-driven reveal animation. A single long, unbreakable stage name
+   had nowhere to wrap, so the overflow silently clipped it instead. Fixed by
+   adding `overflow-wrap: break-word; hyphens: auto;` to `.dj-rise-mask` —
+   the same element, wrapping instead of clipping. `--text-display`'s
+   existing `clamp()` in `packages/ui/src/styles/theme.css` was already
+   responsive and did not need to change.
+2. **Persona nav dropdown unclickable** (`components/header.tsx`): the
+   trigger was a bare `<span className="cursor-default">`, and the panel
+   opened only via a `group-hover-hover` CSS variant scoped to
+   `@media (hover: hover) and (pointer: fine)` — so on any device without a
+   fine, hover-capable pointer it was inert to both click *and* hover,
+   exactly as reported, and even on a mouse it was never focusable via
+   keyboard. Replaced with a native `<details>`/`<summary>` disclosure (the
+   same zero-JS mechanism `MobileNav` already uses for the mobile drawer) —
+   works via click, tap and keyboard with no JS. `[&::-webkit-details-marker]:hidden`
+   plus `list-none` suppress the native disclosure triangle, matching
+   `MobileNav`'s existing style.
+3. **Track wall too long to scroll**
+   (`components/home/track-wall.tsx`): the whole catalogue rendered in one
+   ungated grid. Rather than adding a server round trip — the file's own
+   comment already argues a fetch-once, filter-client-side design for a
+   catalogue this size (19 tracks today; `server/queries/tracks.ts` fetches
+   up to 100, and the API's cursor pagination — see
+   `apps/api/src/modules/tracks/tracks.controller.ts` — is available if the
+   catalogue ever needs a second server page past that cap, but isn't yet) —
+   added client-side paging over the already-fetched array: 9 cards render
+   initially, a "Load more (N left)" button reveals the rest 9 at a time,
+   and switching the persona filter resets the page. No new endpoint, no
+   new query.
+4. **3D gig map's arc animation looked odd**
+   (`components/home/gig-map.tsx`): the dashed travel arcs from the home
+   city were animated with `field-drift` — a keyframe built for a full-bleed
+   background's slow scale/pan, reused here by mistake. On a thin SVG path
+   this reads as the arc visibly snapping between `scale(1)` and
+   `scale(1.12)` at every 6s loop boundary, not a smooth flow. Added a
+   dedicated `gig-arc-flow` keyframe (`app/globals.css`) that animates
+   `stroke-dashoffset` instead — matched to the arcs' own `2 3` dash pattern
+   (period 5) so a `-10` offset loops with no visible seam — and pointed the
+   arc's `motion-ok:animate-[...]` utility at it instead. The map's other
+   two "3D" pieces this could have meant — `deck-scene.tsx`'s procedural CDJ
+   and `shader-canvas.tsx`'s generative field — were both already
+   correctly delta-scaled via `useFrame`'s `delta` and were left untouched;
+   the map (pure SVG, no `three`, per its own doc comment) was the one
+   actual bug.
+
+**Not verified live** — no browser was available this session to confirm
+any of the 4 fixes visually (the wrap behavior, the dropdown's click/tap/
+keyboard behavior, the load-more paging, or the new arc animation timing).
+Verified by reading the changed code and by `typecheck`/`lint` only. Next
+session with a browser should check all 4 on a real phone-width viewport
+and desktop.

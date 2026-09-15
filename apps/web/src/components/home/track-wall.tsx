@@ -19,6 +19,11 @@ export interface WallTrack extends PlayerTrack {
   playable: boolean;
 }
 
+/** How many cards render before a "Load more" click reveals the rest — long
+ * enough that a light catalogue never shows the button, short enough that a
+ * full one doesn't force a long scroll to reach the page footer. */
+const PAGE_SIZE = 9;
+
 /**
  * Act 3 — the whole catalogue, playable in place.
  *
@@ -29,7 +34,10 @@ export interface WallTrack extends PlayerTrack {
  *
  * The filter is client-side over an already-loaded list — 19 rows is far too
  * few to justify a round trip, and filtering without a navigation is what
- * makes the wall feel like a deck rather than a directory.
+ * makes the wall feel like a deck rather than a directory. Pagination below
+ * is the same idea applied to length instead of breadth: the whole catalogue
+ * is still fetched and filtered in one pass, just revealed a page at a time
+ * so the wall doesn't force a long scroll past everything at once.
  */
 export function TrackWall({
   tracks,
@@ -39,17 +47,25 @@ export function TrackWall({
   personas: { slug: string; stageName: string }[];
 }): React.JSX.Element {
   const [filter, setFilter] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const { current, isPlaying } = usePlayer();
 
   const visible = useMemo(
     () => (filter === null ? tracks : tracks.filter((t) => t.personaSlug === filter)),
     [tracks, filter],
   );
+  const shown = visible.slice(0, page * PAGE_SIZE);
+  const hasMore = shown.length < visible.length;
+
+  function selectFilter(next: string | null): void {
+    setFilter(next);
+    setPage(1);
+  }
 
   return (
     <div>
       <div className="mb-8 flex flex-wrap gap-2" role="group" aria-label="Filter tracks by persona">
-        <FilterChip label="All" count={tracks.length} active={filter === null} onSelect={() => { setFilter(null); }} />
+        <FilterChip label="All" count={tracks.length} active={filter === null} onSelect={() => { selectFilter(null); }} />
         {personas.map((persona) => {
           const count = tracks.filter((t) => t.personaSlug === persona.slug).length;
           if (count === 0) return null;
@@ -59,14 +75,14 @@ export function TrackWall({
               label={persona.stageName}
               count={count}
               active={filter === persona.slug}
-              onSelect={() => { setFilter(persona.slug); }}
+              onSelect={() => { selectFilter(persona.slug); }}
             />
           );
         })}
       </div>
 
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map((track) => {
+        {shown.map((track) => {
           const playing = current?.id === track.id && isPlaying;
           return (
             <li
@@ -109,6 +125,20 @@ export function TrackWall({
           );
         })}
       </ul>
+
+      {hasMore ? (
+        <div className="mt-8 flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              setPage((current) => current + 1);
+            }}
+            className={chipClass({ tone: 'muted', size: 'md', interactive: true })}
+          >
+            Load more ({visible.length - shown.length} left)
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

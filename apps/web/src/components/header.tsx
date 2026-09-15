@@ -34,11 +34,18 @@ export async function Header(): Promise<React.JSX.Element> {
         </Link>
 
         <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">
-          <div className="group relative">
-            <span className="text-fg-secondary hover-hover:hover:text-fg-strong cursor-default text-sm font-medium">
+          {/* A native `<details>` disclosure, not a hover-only group: hover
+              alone left this dropdown fully inert for anyone without a
+              fine, hover-capable pointer (any touch device, and some
+              laptops), and its trigger was a plain `<span>` — not
+              focusable or clickable by itself. `<details>`/`<summary>`
+              gets click, tap and keyboard activation for free, with no JS,
+              the same reasoning `MobileNav` already uses. */}
+          <details className="group relative">
+            <summary className="text-fg-secondary hover-hover:hover:text-fg-strong list-none text-sm font-medium marker:content-none [&::-webkit-details-marker]:hidden cursor-pointer">
               Personas
-            </span>
-            <div className="invisible absolute left-0 top-full flex flex-col gap-1 rounded-(--radius-md) border border-border bg-surface p-2 opacity-0 shadow-lg group-hover-hover:visible group-hover-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+            </summary>
+            <div className="absolute left-0 top-full z-10 mt-1 flex flex-col gap-1 rounded-(--radius-md) border border-border bg-surface p-2 shadow-lg">
               {personas.map((persona) => (
                 <Link
                   key={persona.id}
@@ -49,7 +56,7 @@ export async function Header(): Promise<React.JSX.Element> {
                 </Link>
               ))}
             </div>
-          </div>
+          </details>
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}

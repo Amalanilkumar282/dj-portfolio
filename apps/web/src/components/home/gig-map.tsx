@@ -82,7 +82,7 @@ export function GigMap({ venues }: { venues: MapVenue[] }): React.JSX.Element {
               fill="none"
               strokeWidth={0.35}
               vectorEffect="non-scaling-stroke"
-              className="stroke-accent/50 motion-ok:[stroke-dasharray:2_3] motion-ok:animate-[field-drift_6s_linear_infinite]"
+              className="stroke-accent/50 motion-ok:[stroke-dasharray:2_3] motion-ok:animate-[gig-arc-flow_1.4s_linear_infinite]"
             />
           );
         })}

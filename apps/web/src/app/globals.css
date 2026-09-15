@@ -40,6 +40,20 @@
   }
 }
 
+/* Gig-map travel arcs: a dashed stroke flowing along the path. The dash
+   pattern is "2 3" (period 5), so offsetting by a multiple of 5 loops with
+   no visible seam — unlike `field-drift` above (built for a full-bleed
+   background scale/pan, not a thin path), which is what this replaced: on
+   an SVG arc it produced a visible scale "jump" back to 1 at every loop. */
+@keyframes gig-arc-flow {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
 /* Marquee: the track duplicates an aria-hidden copy, so -50% loops seamlessly. */
 @keyframes marquee-x {
   from {
@@ -119,11 +133,17 @@
 }
 
 /* A mask wrapper for rising display type — overflow hidden, no clipping of
-   descenders (the extra bottom padding is reclaimed by a negative margin). */
+   descenders (the extra bottom padding is reclaimed by a negative margin).
+   `overflow-wrap`/`hyphens` let a single long stage name (e.g.
+   "Trinitrocosmic") wrap onto a second line at narrow widths instead of
+   being clipped by the overflow:hidden this mask needs for the reveal
+   animation below. */
 .dj-rise-mask {
   overflow: hidden;
   padding-bottom: 0.12em;
   margin-bottom: -0.12em;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 /* The rhythm field's per-bar pulse. Period is set from the track's real BPM
