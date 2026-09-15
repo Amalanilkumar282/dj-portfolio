@@ -44,6 +44,7 @@ const CHECK_CONSTRAINT_MESSAGES: Record<string, string> = {
 
 @Catch(
   Prisma.PrismaClientKnownRequestError,
+  Prisma.PrismaClientUnknownRequestError,
   Prisma.PrismaClientValidationError,
   Prisma.PrismaClientInitializationError,
 )
@@ -164,6 +165,35 @@ export class PrismaExceptionFilter implements ExceptionFilter {
             code: ERROR_CODES.INTERNAL,
           };
       }
+    }
+
+    // A CHECK constraint defined only in `post-migrate.sql` (not in
+    // `schema.prisma` itself) is sometimes reported by Prisma as this class
+    // rather than a `PrismaClientKnownRequestError` with code P2004 — same
+    // underlying Postgres error, different wrapper. Without this branch it
+    // fell through to the generic 500 below with no indication a CHECK
+    // constraint (e.g. `media_assets_image_alt_text`, requiring alt text on
+    // an image before it can be saved) was ever involved.
+    if (exception instanceof Prisma.PrismaClientUnknownRequestError) {
+      const name = this.extractConstraintName(exception.message);
+      if (name) {
+        return {
+          ...base,
+          type: problemTypeFor(422),
+          title: titleFor(422),
+          status: 422,
+          detail: CHECK_CONSTRAINT_MESSAGES[name] ?? 'The request violates a database constraint.',
+          code: ERROR_CODES.CHECK_CONSTRAINT,
+        };
+      }
+      return {
+        ...base,
+        type: problemTypeFor(500),
+        title: titleFor(500),
+        status: 500,
+        detail: 'A database error occurred.',
+        code: ERROR_CODES.INTERNAL,
+      };
     }
 
     // A validation error means we built a malformed query — always our bug.

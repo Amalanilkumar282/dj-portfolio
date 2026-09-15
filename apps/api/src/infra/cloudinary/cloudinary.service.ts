@@ -6,6 +6,24 @@ import { ERROR_CODES } from '../../common/problems';
 import type { Env } from '../../config/env.schema';
 
 /**
+ * The Cloudinary Node SDK rejects Admin API calls with a plain object
+ * (`{ error: { message, http_code } }`), not an `Error` instance — so
+ * without this, a real Cloudinary failure (bad Admin API permissions, an
+ * add-on not enabled, a transient lookup miss) reaches
+ * `AllExceptionsFilter`'s final catch-all and is reported to the client as
+ * an opaque "An unexpected error occurred", discarding the actual reason.
+ */
+function cloudinaryErrorMessage(error: unknown): string {
+  if (error && typeof error === 'object' && 'error' in error) {
+    const inner = (error as { error?: unknown }).error;
+    if (inner && typeof inner === 'object' && 'message' in inner) {
+      return String((inner as { message?: unknown }).message);
+    }
+  }
+  return error instanceof Error ? error.message : 'Unknown Cloudinary error.';
+}
+
+/**
  * The subset of Cloudinary's Admin API `resource()` response `MediaService`
  * needs, typed by what is actually optional at runtime rather than by the
  * SDK's `UploadApiResponse` — which declares fields like `pages` and
@@ -131,6 +149,13 @@ export class CloudinaryService implements OnModuleInit {
    * `MediaService.confirm()` calls this instead of trusting whatever the
    * client claims about bytes/format/dimensions — see ADR
    * docs/01-decisions/0008-cloudinary-signed-direct-upload.md.
+   *
+   * `colors: true` is a nice-to-have (an optional dominant-colour swatch) —
+   * not every Cloudinary plan/account has colour analysis enabled, and that
+   * add-on being unavailable used to fail the *entire* confirm with an
+   * opaque 500. It is requested first, but a failure there falls back to a
+   * plain re-read with no colour data rather than failing the whole upload.
+   * Only a failure with colours turned off is a real, reportable error.
    */
   async fetchResource(
     publicId: string,
@@ -138,11 +163,31 @@ export class CloudinaryService implements OnModuleInit {
   ): Promise<CloudinaryResourceMetadata> {
     this.assertConfigured();
 
-    return cloudinary.api.resource(publicId, {
-      resource_type: resourceType,
-      colors: true,
-      image_metadata: false,
-    }) as Promise<CloudinaryResourceMetadata>;
+    try {
+      return (await cloudinary.api.resource(publicId, {
+        resource_type: resourceType,
+        colors: true,
+        image_metadata: false,
+      })) as CloudinaryResourceMetadata;
+    } catch (error) {
+      this.logger.warn(
+        `Cloudinary resource() with colour analysis failed for "${publicId}" (${cloudinaryErrorMessage(error)}); retrying without it.`,
+      );
+    }
+
+    try {
+      return (await cloudinary.api.resource(publicId, {
+        resource_type: resourceType,
+        image_metadata: false,
+      })) as CloudinaryResourceMetadata;
+    } catch (error) {
+      const message = cloudinaryErrorMessage(error);
+      this.logger.error(`Cloudinary resource() failed for "${publicId}": ${message}`);
+      throw new ServiceUnavailableException({
+        message: `Could not read the uploaded asset back from Cloudinary: ${message}`,
+        code: ERROR_CODES.SERVICE_UNAVAILABLE,
+      });
+    }
   }
 
   /** Fetches the small blur derivative as base64, for `blurDataUrl`. */

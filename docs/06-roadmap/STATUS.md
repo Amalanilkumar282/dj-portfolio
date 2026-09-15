@@ -2563,3 +2563,49 @@ keyboard behavior, the load-more paging, or the new arc animation timing).
 Verified by reading the changed code and by `typecheck`/`lint` only. Next
 session with a browser should check all 4 on a real phone-width viewport
 and desktop.
+
+## Media confirm 500, actual root cause found (this session, later)
+
+The Cloudinary colour-analysis fallback above did **not** fix it — the user
+retested against a real local API (`localhost:4111`, real Cloudinary
+credentials, cloud `fpkuwabf`) with the network panel open and the same
+`POST admin/media` 500 still happened, with one very telling detail: a
+**video** upload to the same `homeHeroVideoMediaId` field succeeded cleanly,
+only **images** failed.
+
+**Actual root cause:** `media_assets_image_alt_text` is a real DB `CHECK`
+constraint (`packages/db/prisma/sql/post-migrate.sql`, applied only to
+`resourceType = IMAGE`) — one of CLAUDE.md's own documented invariants
+("In-page images always have alt text"). `InlineUploader`
+(`apps/admin/src/components/media/inline-uploader.tsx`) never collected alt
+text at all, so every image it confirmed had `altText: null`, which the
+database correctly rejects — video has no such constraint, hence the
+image/video split. Two compounding bugs, not one:
+
+1. **The constraint violation was reaching the client as an opaque 500, not
+   the intended 422.** `PrismaExceptionFilter`
+   (`apps/api/src/common/filters/prisma-exception.filter.ts`) only
+   `@Catch()`-es `PrismaClientKnownRequestError` (mapping its `P2004`/`P2010`
+   codes to a friendly 422). A CHECK constraint defined only in
+   `post-migrate.sql` — unknown to Prisma's own schema metadata — can
+   surface as `PrismaClientUnknownRequestError` instead, which this filter
+   was never watching for, so it fell through to `AllExceptionsFilter`'s
+   generic catch-all 500. Fixed: the filter now also catches
+   `PrismaClientUnknownRequestError`, runs the same constraint-name
+   extraction against its message, and returns the same friendly 422 (or,
+   if no known constraint name is found at all, still logs and reports a
+   real 500 rather than silently reclassifying every unknown DB error as a
+   client mistake).
+2. **Even with the correct 422, there was still no way to successfully
+   upload an image through `InlineUploader`** — it had no alt-text field to
+   fill in, unlike `MediaLibrary`'s own upload form, which always had one.
+   Fixed: `InlineUploader` now detects when the chosen file is an image
+   (`file.type.startsWith('image/')`), shows a required "Alt text" input for
+   it, and blocks the Upload click client-side with a clear message until
+   it's filled in — so images fail fast with an actionable prompt instead of
+   a round trip to a 422 (or, before today, a 500).
+
+Verified: `pnpm --filter @dj/api typecheck`/`lint` and `pnpm --filter
+@dj/admin typecheck`/`lint` all pass clean. **Not yet re-verified against a
+real upload** — the user should retry an image upload from a Persona (or
+any entity) form now; it should prompt for alt text and then succeed.

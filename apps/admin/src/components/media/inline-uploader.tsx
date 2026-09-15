@@ -22,6 +22,14 @@ import { type UploadedAsset, useMediaUpload } from './use-media-upload';
  * access token and re-runs the silent-refresh bootstrap from cold, which is
  * what made this look like "clicking upload logs me out". A plain button
  * with a click handler can't trigger any of that.
+ *
+ * Alt text is asked for up front, and required before the Upload button
+ * will submit an image: the database enforces `media_assets_image_alt_text`
+ * (every image needs alt text, a real accessibility invariant — see
+ * CLAUDE.md's invariants table), so an image confirmed with none was
+ * failing at the database, not at Cloudinary. `MediaLibrary`'s own upload
+ * form already asks for this; this picker previously did not, so there was
+ * no way to successfully upload an image through it at all.
  */
 export function InlineUploader({
   purpose,
@@ -34,6 +42,8 @@ export function InlineUploader({
 }): React.JSX.Element {
   const { upload, uploading, progress, error, setError } = useMediaUpload();
   const [open, setOpen] = useState(false);
+  const [isImage, setIsImage] = useState(false);
+  const [altText, setAltText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function onUploadClick(): Promise<void> {
@@ -42,9 +52,16 @@ export function InlineUploader({
       setError('Choose a file first.');
       return;
     }
+    if (file.type.startsWith('image/') && altText.trim().length === 0) {
+      setError('Alt text is required for images — describe what is in the picture.');
+      return;
+    }
     try {
-      const asset = await upload(file, { purpose, entityType });
+      const trimmedAlt = altText.trim();
+      const asset = await upload(file, { purpose, entityType, ...(trimmedAlt ? { altText: trimmedAlt } : {}) });
       if (fileInputRef.current) fileInputRef.current.value = '';
+      setAltText('');
+      setIsImage(false);
       setOpen(false);
       onUploaded(asset);
     } catch {
@@ -68,7 +85,33 @@ export function InlineUploader({
 
   return (
     <div className="border-border bg-surface mt-2 space-y-2 rounded-md border p-3">
-      <input ref={fileInputRef} type="file" required className="w-full text-xs text-fg-strong" />
+      <input
+        ref={fileInputRef}
+        type="file"
+        required
+        onChange={(event) => {
+          setIsImage(event.target.files?.[0]?.type.startsWith('image/') ?? false);
+          setError(null);
+        }}
+        className="w-full text-xs text-fg-strong"
+      />
+      {isImage ? (
+        <div>
+          <label htmlFor="inline-uploader-alt" className="text-fg-strong text-xs font-medium">
+            Alt text
+          </label>
+          <input
+            id="inline-uploader-alt"
+            required
+            value={altText}
+            onChange={(event) => {
+              setAltText(event.target.value);
+            }}
+            placeholder="Describe what is in the picture"
+            className="mt-1 w-full rounded border border-border bg-bg px-2 py-1 text-xs text-fg-strong"
+          />
+        </div>
+      ) : null}
       {error ? (
         <p role="alert" className="text-danger text-xs">
           {error}
