@@ -2738,3 +2738,116 @@ real browser** — no browser available this session, so the actual crop
 behaviour, avatar placement, and lightbox interaction haven't been seen
 rendering. Next session with a browser should check all three, especially
 the hero image's object-position/crop on a few different screen sizes.
+
+## Avatar sizing/placement follow-up, and the SoundCloud player "stuck after track 2" bug (this session, later)
+
+**Avatar tweak:** bumped from 64–80px to 96–112px (h-24/h-28 → h-32/h-40),
+and switched mobile layout from a left-aligned row to a centered column
+(avatar above the title, `self-center`) — the title's own width was what
+mattered on a narrow screen, and a side-by-side avatar was competing with
+it. Row layout (avatar left of title) returns from `sm:` up.
+
+**Player bug — root cause:** `player-context.tsx`'s SoundCloud-widget
+effect swapped the invisible iframe's `src` on every track change (causing
+the browser to navigate that iframe to a brand-new document), then called
+`SC.Widget(iframe)` and immediately treated the result as live —
+`widgetRef.current` was assigned synchronously, before the widget's own
+`READY` event had ever fired on the new document. A `toggle()`/`seek()`
+click landing in that very real gap (iframe loading → widget actually
+interactive) silently did nothing, because the SDK drops calls made before
+`READY`. First track always looked fine because that gap resolves before
+a first-time visitor has anything loaded to click; every track after that
+had one, hence "stuck from the second track onward" specifically.
+
+**Fix** (`player-context.tsx`): `widgetRef.current` is now assigned only
+inside the widget's `READY` handler, never synchronously — a control click
+during the loading gap is now a clean no-op (the widget's own `auto_play`
+still starts playback regardless, and its real `PLAY` event reconciles UI
+state once it does) instead of a silently swallowed command that permanently
+desynced local state from the real widget. Each effect run's listeners are
+now also explicitly `unbind()`-ed on cleanup rather than left to accumulate
+across switches.
+
+**Also added, as requested:**
+- **Mute/unmute**, end to end: `SoundCloudWidget.setVolume` typed in
+  `soundcloud.ts` (wasn't there before — mute was genuinely unimplemented,
+  not just unwired), `isMuted`/`toggleMute` added to `PlayerState`, applied
+  to both the SoundCloud widget (`setVolume(0|100)`, re-applied to every
+  new widget once it's `READY`, so mute survives a track switch) and the
+  `<audio>` element (`muted` prop) paths. Mute button added to the
+  mini-player.
+- **Per-card transport controls**: track cards in `track-wall.tsx`
+  previously had only a bare play/pause toggle (`PlayButton variant=
+  "inline"`). New `player/track-transport.tsx` renders a seek bar + mute
+  button under a card once it's the *active* track (mirroring how the
+  mini-player itself only ever appears for `current`) — idle cards stay
+  uncluttered. The mini-player's own seek slider was extracted into a
+  shared `player/seek.tsx` so both surfaces use one implementation, not two.
+
+Verified: `pnpm --filter @dj/web typecheck`/`lint` clean, and a full
+production build succeeds with route budgets still met (`/` 130 kB,
+`/[persona]` 128 kB — both under budget). **Not verified in a real
+browser against live SoundCloud playback** — no browser available this
+session, so the actual track-switch/seek/mute behaviour hasn't been heard
+or seen working. This is the most important thing for the next session
+(or the user) to verify directly: play track 1, let it run, switch to
+track 2, and confirm play/pause/seek/mute all respond immediately with no
+stuck window.
+
+## Player fix was incomplete, and introduced a crash — real architectural fix (this session, later still)
+
+The previous "gate on READY" fix reduced but did not eliminate the stuck-
+after-switch bug, and closing the mini-player now crashed the whole app
+(`TypeError: Cannot read properties of null (reading 'addEventListener')`,
+Next.js error overlay). Root cause of both, and it's the same underlying
+mistake: the widget-wiring effect re-ran **on every track change**, and
+track switches worked by reassigning the SoundCloud iframe's own `src`.
+
+Reassigning an `<iframe>`'s `src` makes the browser navigate that iframe to
+a **brand-new document** — which tears down whatever the SoundCloud widget
+had wired up inside it. So every single track switch was destroying and
+rebuilding the widget from scratch: a new `SC.Widget(iframe)`, a new set of
+bindings, a new wait for a new `READY`. The READY-gating fix from earlier
+this session correctly stopped calls from hitting a *not-yet-ready* widget,
+but a fast switch (or `close()`, which unmounted the iframe entirely) could
+also leave code reaching into an iframe document the browser had *already
+torn down* — `unbind()` (or an async callback still in flight) touching a
+dead document, which is what threw and crashed the page on close.
+
+**The actual fix, not a patch on top:** SoundCloud's Widget API has a
+documented way to change the loaded track *without* touching the iframe at
+all — `widget.load(url, { auto_play: true })`, called on the same
+long-lived widget instance. `player-context.tsx` now:
+- Creates the iframe **once**, with a `src` fixed to whichever track
+  happens to be the first one played in the session (`initialTrackIdRef`),
+  and never changes that attribute again.
+- Binds the widget **once**, in an effect keyed on a one-way
+  `hasSoundCloud` flag (false → true, never back), not on the current
+  track id.
+- `play()` now calls `widget.load(...)` for every track after the first,
+  operating on the same widget/iframe/document the whole session.
+- `close()` no longer tears anything down — it only pauses. The widget
+  and iframe now stay mounted for the life of the session (closing the
+  mini-player is a UI state change, not a teardown), which is also what
+  removes the crash: there is no longer a live document to lose mid-call.
+- The unbind-on-cleanup path (now only reachable on a real provider
+  unmount) is wrapped in `try/catch` as well, belt-and-suspenders, so a
+  widget method touching an already-gone document can never surface as an
+  uncaught exception again.
+
+Also this pass: mobile title/avatar alignment — the avatar was centered
+but the title stayed left-aligned next to it, reading inconsistently.
+`h1#persona-title` is now `text-center sm:text-left`, matching the
+avatar's `self-center`, which only applies below the `sm:` breakpoint
+where the layout is a stacked column; the row layout from `sm:` up is
+unaffected. Avatar also sized up again (128px → 160px content box, was
+96–112px) per a second "still looks small" request.
+
+Verified: `pnpm --filter @dj/web typecheck`/`lint` clean, full production
+`build` succeeds, route budgets unchanged (`/[persona]` 128 kB). **Still
+not verified against live SoundCloud playback in a real browser** — no
+browser available this session. This is now the second attempt at the
+same bug without live verification, so treat it as high-priority to
+actually test before trusting it further: play track 1, switch to track
+2 and 3, confirm seek/pause/mute all work on each, then click the
+mini-player's close (✕) and confirm no crash.

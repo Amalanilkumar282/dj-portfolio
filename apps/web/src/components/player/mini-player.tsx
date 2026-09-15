@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 import { usePlayer } from './player-context';
 import { RhythmField } from './rhythm-field';
+import { Seek } from './seek';
 
 /** Real height of the bar below, kept as one constant rather than measured. */
 const DOCK_CLEARANCE_PX = 88;
@@ -24,7 +25,7 @@ const DOCK_CLEARANCE_PX = 88;
  *   interface to position
  */
 export function MiniPlayer(): React.JSX.Element | null {
-  const { current, isPlaying, progress, durationMs, toggle, close, seek } = usePlayer();
+  const { current, isPlaying, progress, durationMs, isMuted, toggle, close, seek, toggleMute } = usePlayer();
 
   // The WhatsApp/call dock (`<ContactDock>`) reads this to lift itself clear
   // of the transport bar rather than sitting underneath it — set here,
@@ -87,6 +88,15 @@ export function MiniPlayer(): React.JSX.Element | null {
 
         <button
           type="button"
+          onClick={toggleMute}
+          aria-label={isMuted ? 'Unmute' : 'Mute'}
+          className="text-fg-muted hover-hover:hover:text-fg-strong shrink-0 text-sm"
+        >
+          <span aria-hidden="true">{isMuted ? '🔇' : '🔊'}</span>
+        </button>
+
+        <button
+          type="button"
           onClick={close}
           aria-label="Close player"
           className="text-fg-muted hover-hover:hover:text-fg-strong shrink-0 text-sm"
@@ -94,64 +104,6 @@ export function MiniPlayer(): React.JSX.Element | null {
           <span aria-hidden="true">✕</span>
         </button>
       </div>
-    </div>
-  );
-}
-
-function formatClock(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return '0:00';
-  const total = Math.floor(ms / 1000);
-  const minutes = Math.floor(total / 60);
-  const seconds = total % 60;
-  return `${String(minutes)}:${String(seconds).padStart(2, '0')}`;
-}
-
-/** Spoken as "1 minute 24 seconds of 6 minutes", not as a bare percentage. */
-function spokenPosition(positionMs: number, durationMs: number): string {
-  if (durationMs <= 0) return 'Position unknown';
-  return `${formatClock(positionMs)} of ${formatClock(durationMs)}`;
-}
-
-function Seek({
-  progress,
-  positionMs,
-  durationMs,
-  onSeek,
-}: {
-  progress: number;
-  positionMs: number;
-  durationMs: number;
-  onSeek: (ratio: number) => void;
-}): React.JSX.Element {
-  const percent = Math.round(progress * 100);
-
-  function onKeyDown(event: React.KeyboardEvent): void {
-    const step = event.key === 'ArrowRight' ? 0.02 : event.key === 'ArrowLeft' ? -0.02 : 0;
-    if (step === 0) return;
-    event.preventDefault();
-    onSeek(progress + step);
-  }
-
-  return (
-    <div
-      role="slider"
-      tabIndex={0}
-      aria-label="Seek"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={percent}
-      aria-valuetext={spokenPosition(positionMs, durationMs)}
-      onKeyDown={onKeyDown}
-      onClick={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        onSeek((event.clientX - rect.left) / rect.width);
-      }}
-      className="bg-border relative hidden h-1.5 w-40 cursor-pointer rounded-full md:block lg:w-64"
-    >
-      <span
-        className="bg-accent absolute inset-y-0 left-0 rounded-full"
-        style={{ width: `${String(percent)}%` }}
-      />
     </div>
   );
 }

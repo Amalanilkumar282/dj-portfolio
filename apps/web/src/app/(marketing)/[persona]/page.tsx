@@ -152,19 +152,20 @@ export default async function PersonaPage({
             {persona.primaryGenreLabel ? ` · ${persona.primaryGenreLabel}` : ''}
           </p>
 
-          <div className="mt-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-            {/* Stacked above the title on mobile, not beside it — a
-                side-by-side avatar was eating into the width the title
-                itself needs on a narrow screen, on top of the display
-                type already being tight there (see `.dj-rise-mask`'s
-                wrap fix). Row layout returns from `sm:` up, where there's
-                room for both. */}
+          <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+            {/* Stacked above the title and centered on mobile, not beside
+                it — a side-by-side avatar was eating into the width the
+                title itself needs on a narrow screen, on top of the
+                display type already being tight there (see
+                `.dj-rise-mask`'s wrap fix). `self-center` only matters on
+                the mobile column layout; row layout from `sm:` up already
+                centers it via `sm:items-center` on the row itself. */}
             {persona.avatarImage ? (
-              <div className="border-border/60 relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 sm:h-28 sm:w-28">
-                <CloudinaryImage image={persona.avatarImage} sizes="112px" fill className="object-cover" />
+              <div className="border-border/60 relative h-32 w-32 shrink-0 self-center overflow-hidden rounded-full border-2 sm:h-40 sm:w-40">
+                <CloudinaryImage image={persona.avatarImage} sizes="160px" fill className="object-cover" />
               </div>
             ) : null}
-            <h1 id="persona-title" className="font-display text-display text-fg-strong dj-rise-mask min-w-0">
+            <h1 id="persona-title" className="font-display text-display text-fg-strong dj-rise-mask min-w-0 text-center sm:text-left">
               <span>{persona.stageName}</span>
             </h1>
           </div>

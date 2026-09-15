@@ -9,6 +9,7 @@ import { PlayButton } from '../player/play-button';
 import { usePlayer } from '../player/player-context';
 import type { PlayerTrack } from '../player/player-context';
 import { RhythmField } from '../player/rhythm-field';
+import { TrackTransport } from '../player/track-transport';
 
 export interface WallTrack extends PlayerTrack {
   type: string;
@@ -119,6 +120,8 @@ export function TrackWall({
                     {track.musicalKey !== null ? <span>{track.musicalKey}</span> : null}
                     {track.durationSec !== null ? <span>{formatLength(track.durationSec)}</span> : null}
                   </p>
+
+                  {track.playable ? <TrackTransport track={track} /> : null}
                 </div>
               </div>
             </li>

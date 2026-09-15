@@ -15,21 +15,34 @@ export interface SoundCloudWidget {
   play: () => void;
   pause: () => void;
   seekTo: (milliseconds: number) => void;
+  /** 0–100, per the Widget API — not 0–1. */
+  setVolume: (volume: number) => void;
+  /**
+   * Swaps the currently loaded sound *within the same widget instance* —
+   * the documented way to change tracks. Re-pointing the iframe's own `src`
+   * instead (what this codebase used to do) makes the browser navigate the
+   * iframe to a brand-new document each time, which tears down and rebuilds
+   * the widget every track and reliably breaks after the first switch — see
+   * `player-context.tsx`'s doc comment for the full account.
+   */
+  load: (url: string, options?: { auto_play?: boolean }) => void;
   getPosition: (callback: (position: number) => void) => void;
   getDuration: (callback: (duration: number) => void) => void;
   bind: (event: string, callback: () => void) => void;
   unbind: (event: string) => void;
 }
 
+export interface SoundCloudEvents {
+  READY: string;
+  PLAY: string;
+  PAUSE: string;
+  FINISH: string;
+  PLAY_PROGRESS: string;
+}
+
 interface SoundCloudGlobal {
   Widget: ((element: HTMLIFrameElement) => SoundCloudWidget) & {
-    Events: {
-      READY: string;
-      PLAY: string;
-      PAUSE: string;
-      FINISH: string;
-      PLAY_PROGRESS: string;
-    };
+    Events: SoundCloudEvents;
   };
 }
 
@@ -48,7 +61,7 @@ declare global {
  */
 export function soundcloudWidgetUrl(trackId: string, autoPlay: boolean): string {
   const params = new URLSearchParams({
-    url: `https://api.soundcloud.com/tracks/${trackId}`,
+    url: soundcloudTrackApiUrl(trackId),
     auto_play: String(autoPlay),
     hide_related: 'true',
     show_comments: 'false',
@@ -62,6 +75,11 @@ export function soundcloudWidgetUrl(trackId: string, autoPlay: boolean): string 
     download: 'false',
   });
   return `https://w.soundcloud.com/player/?${params.toString()}`;
+}
+
+/** The track URL `widget.load()` expects — the same one `soundcloudWidgetUrl` embeds as `url=`. */
+export function soundcloudTrackApiUrl(trackId: string): string {
+  return `https://api.soundcloud.com/tracks/${trackId}`;
 }
 
 let scriptPromise: Promise<void> | null = null;
