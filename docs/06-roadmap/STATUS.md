@@ -2481,3 +2481,23 @@ Cloudinary was not exercised in a browser this session; verified by
 reading the code path end to end and by typecheck/lint only. The next
 session with real credentials and a browser should upload one asset from
 a Persona form and one from Gallery to confirm.
+
+**Follow-up fix, same session:** the user reported that after the above
+fix, clicking Upload (after choosing a file) still redirected to `/login`
+— now in the same tab, not a new one. Root cause: `InlineUploader`'s
+picker was itself a `<form>`, and every caller places it inside the
+entity's own `<form>` (`persona-form.tsx`, `track-form.tsx`, etc., and
+`gallery-form.tsx`). A `<form>` nested inside a `<form>` is invalid HTML;
+the inner submit can bubble into the outer form's own submit handler, or
+in some browsers fall through to a real native form submission instead of
+the React handler entirely — either way, a real page reload. A reload
+wipes the in-memory access token (`auth-context.tsx` keeps it in memory
+only, by design) and re-runs the silent-refresh bootstrap from cold;
+losing that race lands on `/login` via `dashboard-shell.tsx`'s
+`!user → redirect` guard, which reads exactly like "upload logs me out."
+Fixed by rewriting `inline-uploader.tsx` to render no `<form>` at all —
+a plain `<div>` with `type="button"` elements and a manual `onClick`
+handler — so there is no nested form, no bubbling, and no native
+submission path to fall back to. Re-verified with `pnpm --filter
+@dj/admin typecheck` and `lint`, both clean. Still not verified against a
+real browser/Cloudinary — same handoff item as above.
