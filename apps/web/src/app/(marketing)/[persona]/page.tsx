@@ -15,7 +15,7 @@ import { Marquee } from '../../../components/home/marquee';
 import { TrackWall, type WallTrack } from '../../../components/home/track-wall';
 import { MagneticLink } from '../../../components/magnetic-link';
 import { JsonLd, type JsonLdNode } from '../../../lib/json-ld';
-import { cloudinaryOgUrl, SIZES } from '../../../lib/media';
+import { cloudinaryOgUrl } from '../../../lib/media';
 import { absoluteUrl } from '../../../lib/site';
 import { getPersonaPage } from '../../../server/queries/personas';
 import { getTracks } from '../../../server/queries/tracks';
@@ -136,34 +136,38 @@ export default async function PersonaPage({
         aria-labelledby="persona-title"
         className="relative isolate flex min-h-[88svh] items-end overflow-hidden pb-16"
       >
+        {/* The hero photo is now the full-bleed background layer itself
+            (matching exactly how `bgVideoUrl` already fills this box) rather
+            than a separate in-flow block above the title — it used to sit
+            here as its own `aspect-video` card, cropped to a fraction of the
+            hero instead of covering it. `StageBackdrop` shows the image only
+            when there is no video (video wins when a persona has both). */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
-          <StageBackdrop videoUrl={persona.bgVideoUrl} />
+          <StageBackdrop videoUrl={persona.bgVideoUrl} heroImage={persona.heroImage} />
         </div>
 
         <Container>
-          {persona.heroImage ? (
-            <div className="relative mb-10 aspect-video w-full overflow-hidden rounded-lg">
-              <CloudinaryImage
-                image={persona.heroImage}
-                sizes={SIZES.heroFull}
-                priority
-                fill
-                className="object-cover"
-              />
-            </div>
-          ) : null}
-
           <p className="text-eyebrow text-accent font-semibold tracking-(--text-eyebrow--letter-spacing) uppercase">
             {persona.homeCity ?? 'Bengaluru'}
             {persona.primaryGenreLabel ? ` · ${persona.primaryGenreLabel}` : ''}
           </p>
 
-          <h1
-            id="persona-title"
-            className="font-display text-display text-fg-strong dj-rise-mask mt-4"
-          >
-            <span>{persona.stageName}</span>
-          </h1>
+          <div className="mt-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+            {/* Stacked above the title on mobile, not beside it — a
+                side-by-side avatar was eating into the width the title
+                itself needs on a narrow screen, on top of the display
+                type already being tight there (see `.dj-rise-mask`'s
+                wrap fix). Row layout returns from `sm:` up, where there's
+                room for both. */}
+            {persona.avatarImage ? (
+              <div className="border-border/60 relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 sm:h-28 sm:w-28">
+                <CloudinaryImage image={persona.avatarImage} sizes="112px" fill className="object-cover" />
+              </div>
+            ) : null}
+            <h1 id="persona-title" className="font-display text-display text-fg-strong dj-rise-mask min-w-0">
+              <span>{persona.stageName}</span>
+            </h1>
+          </div>
 
           {persona.subtitle ? (
             <p className="text-lead text-fg-secondary dj-reveal mt-6 max-w-xl">{persona.subtitle}</p>

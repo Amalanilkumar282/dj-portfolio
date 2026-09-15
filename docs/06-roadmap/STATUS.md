@@ -2693,3 +2693,48 @@ nothing is actually truncated.
 
 Verified: `pnpm --filter @dj/admin typecheck`/`lint` clean. Not yet
 re-verified live.
+
+## `apps/web`: hero image full-bleed, avatar wired up, gallery lightbox (this session)
+
+Three follow-up requests once uploads actually worked end to end, all
+in `apps/web`:
+
+1. **Persona hero image wasn't filling the hero like the video does.**
+   `StageBackdrop` (`components/cinematic/stage-backdrop.tsx`) only ever
+   accepted `videoUrl`; `persona.heroImage` was rendered separately, as a
+   normal in-flow `aspect-video` block above the title in
+   `[persona]/page.tsx` — a small cropped card, not a background. Fixed:
+   `StageBackdrop` now takes an optional `heroImage: MediaImage | null` and
+   renders it via `CloudinaryImage` in the exact same
+   `absolute inset-0 object-cover` box the video uses (same vignette too),
+   shown only when there's no video (video still wins if a persona has
+   both). The old in-flow block in `page.tsx` is gone.
+2. **Avatar image uploaded but rendered nowhere.** Confirmed it was
+   fetched on `PersonaDetail` but had zero consuming UI anywhere in
+   `apps/web` — not a rendering bug, a missing feature. Added a small
+   circular avatar next to the stage name in the persona hero
+   (`[persona]/page.tsx`) — the lowest-risk placement, since `PersonaDetail`
+   already carries `avatarImage` there with no contract change needed.
+   (The homepage channel switcher would be the more prominent spot, but
+   `avatarImage` isn't on `PersonaSummary` yet, which is what it queries —
+   a contract change, deliberately not made in this pass; flag if wanted.)
+3. **Gallery images had no click-to-expand**, only the small grid card —
+   confirmed via STATUS.md's own history that a lightbox was never built
+   at any point, not removed or half-done. Added
+   `components/gallery/gallery-grid.tsx`, a client component (following the
+   same overlay pattern `CommandPalette` already established: `fixed
+   inset-0` backdrop, `role="dialog"`, nothing rendered until opened) that
+   owns both the masonry grid and a full-screen lightbox — click a photo,
+   arrow keys or on-screen ‹/› to move between photos, Escape or backdrop
+   click to close. `gallery/[slug]/page.tsx` now renders this instead of a
+   static grid; still a Server Component itself, per
+   `dj/no-client-in-route-files`.
+
+Verified: `pnpm --filter @dj/web typecheck`/`lint` clean, and a full
+production build (`pnpm --filter @dj/web build`) succeeds — all pages
+prerender, including `/[persona]` (127 kB, under its 155 kB budget) and
+`/gallery/[slug]` (109 kB, under its 120 kB budget). **Not verified in a
+real browser** — no browser available this session, so the actual crop
+behaviour, avatar placement, and lightbox interaction haven't been seen
+rendering. Next session with a browser should check all three, especially
+the hero image's object-position/crop on a few different screen sizes.
