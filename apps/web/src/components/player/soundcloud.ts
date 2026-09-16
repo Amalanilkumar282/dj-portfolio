@@ -24,8 +24,17 @@ export interface SoundCloudWidget {
    * iframe to a brand-new document each time, which tears down and rebuilds
    * the widget every track and reliably breaks after the first switch — see
    * `player-context.tsx`'s doc comment for the full account.
+   *
+   * `callback` fires once the new sound has actually finished loading —
+   * `player-context.tsx` uses it as the ONLY trigger to call `.play()`,
+   * deliberately never combining it with `auto_play: true` here. The two
+   * are two independent commands to "start this sound", sent at slightly
+   * different times over the same postMessage channel; racing them against
+   * each other is what caused a track switch to intermittently report
+   * "playing" with no real audio, or fail to start at all, in no
+   * reproducible pattern — see the doc comment above `play()`.
    */
-  load: (url: string, options?: { auto_play?: boolean }) => void;
+  load: (url: string, options?: { auto_play?: boolean; callback?: () => void }) => void;
   getPosition: (callback: (position: number) => void) => void;
   getDuration: (callback: (duration: number) => void) => void;
   bind: (event: string, callback: () => void) => void;

@@ -2979,3 +2979,228 @@ narrower query fix above fully resolves the reported bug without one.
 Verified: `pnpm --filter @dj/api typecheck`/`lint`/`build` all clean. Not
 verified against a real database — next session/user should confirm the
 originally-stuck image now deletes cleanly.
+
+## Mobile player controls, and dropdowns not closing on outside click (this session, later)
+
+Two more `apps/web` reports: the mini-player's controls didn't work on
+small screens, and both the header's desktop "Personas" dropdown and the
+mobile "Menu" disclosure only closed by clicking their own trigger again,
+not by tapping/clicking anywhere else on the page.
+
+**Mini-player on mobile — not broken, just invisible.** `Seek`
+(`components/player/seek.tsx`)'s default styling is `hidden ... md:block`
+— sized to sit inline next to the play/mute/close buttons, which there
+isn't room for below `md` (~768px), so it was simply never rendered on
+a phone at all. That reads as "the player doesn't work on mobile" because
+there was nothing to seek with, not because anything actually malfunctioned.
+Fixed in `mini-player.tsx`: the layout is now a column below `sm`
+(button row, then a full-width seek bar on its own row underneath) and
+returns to the original single inline row from `sm` up. Two `<Seek>`
+instances exist (one per breakpoint, each `hidden` in the other's range)
+rather than one trying to serve both a full-width mobile row and a fixed-
+width desktop inline slot — simpler than a single instance juggling both
+shapes. The close button also gained `ml-auto` on mobile so it doesn't
+end up sandwiched between title and seek in the button row.
+`track-transport.tsx` (the per-card seek/mute added earlier this session)
+already used a `w-full`, un-hidden `Seek` and needed no change — that one
+was already correct on mobile.
+
+**Dropdowns not closing on outside click.** Both the header's "Personas"
+dropdown and `MobileNav`'s "Menu" disclosure are native
+`<details>`/`<summary>` elements (deliberately — zero-JS, full keyboard/
+click/tap support for free, per their own doc comments). What `<details>`
+does *not* do on its own is close when you interact anywhere outside it —
+only its own `<summary>` toggles it. New shared hook
+`components/use-close-on-outside-interaction.ts`
+(`useCloseOnOutsideInteraction`) adds a `pointerdown`/Escape listener that
+closes the ref'd `<details>` on an outside interaction. The header's
+dropdown markup moved into its own small client component,
+`components/persona-menu.tsx` (`PersonaMenu`) — it needed to become a
+client island to hold the ref/effect, where before it was inert markup
+inside the otherwise-server `Header`. `MobileNav` (already a client
+component) just gained the same hook alongside its existing close-on-
+link-click behaviour.
+
+Verified: `pnpm --filter @dj/web typecheck`/`lint` clean, full production
+`build` succeeds, route budgets unchanged (`/` still 130 kB — the two new
+files are tiny and `PersonaMenu`/`MobileNav` were already client code on
+this route). **Not verified in a real browser** — no browser available
+this session. Next session/user should check: the mini-player's seek bar
+is visible and draggable on a phone-width viewport; tapping outside the
+Personas dropdown (desktop) and outside the mobile Menu panel closes each;
+Escape closes both; and neither regressed on desktop/tablet widths.
+
+## "Can't play/pause on real mobile" + a real loading-state gap (this session, later still)
+
+Two more reports: play/pause still didn't work on a real mobile viewport
+even after the seek-bar fix above (the user's own test: works if the page
+was loaded at desktop width and then resized down; doesn't work landing
+fresh at mobile width), and separately, pressing play "feels like a bug"
+— the button flips as if playing but nothing audible happens for a beat.
+
+**Investigated thoroughly; no viewport-conditional code path exists
+anywhere in the player.** `useCapability`/`useCoarsePointer` (`packages/
+motion`) key off device-memory hints and `matchMedia('pointer: coarse')`
+with live listeners, never `window.innerWidth`/`resize`; no button or its
+ancestors have a breakpoint-hidden or `pointer-events` class; every
+full-bleed decorative layer near the player is confirmed
+`pointer-events-none` and confined to its own stacking context. There is
+no code here that behaves differently based on "loaded already narrow"
+vs. "resized narrow" — grep for `window.innerWidth`/`resize` across
+`apps/web/src` and the motion package turned up nothing relevant. Top
+remaining theory, unconfirmed without a real device to test against: a
+**hydration-timing race** — the marketing route hydrates as one
+synchronous pass with no `Suspense`/streaming boundaries, and on a slower
+mobile CPU a tap landing before React has attached listeners is simply
+swallowed; a resize on an already-loaded desktop page has no such window,
+which would explain the exact symptom without needing any viewport
+-conditional logic to exist. Not fixed outright this session — genuinely
+needs a real mobile device or profiled trace to confirm, which wasn't
+available. Two things were still done: `touch-manipulation` added to
+every player button (rules out an unrelated but real class of "first tap
+does nothing" bugs — legacy double-tap-to-zoom delay on some mobile
+browsers for elements without it), and, more substantively:
+
+**The loading-state fix likely explains a real chunk of the reported
+symptom on its own.** `isPlaying` was being set **optimistically and
+synchronously on click**, before the transport had confirmed anything —
+so the button flipped to "playing" (pause icon, `RhythmField` starts
+animating) the instant it was pressed, while the actual SoundCloud widget
+was still buffering, which is exactly the user's second complaint ("feels
+like it started but nothing's playing") and, on a slower mobile
+connection with a longer buffering window, would read as "doesn't work at
+all" if that gap is long enough for the user to give up or interpret it as
+inert. Fixed in `player-context.tsx`: a new `loadingTrackId` (exposed as
+`isLoading`) is set the moment play is requested, and `isPlaying` is now
+**only** ever set from a real transport confirmation — the SoundCloud
+widget's `PLAY` event (with `PLAY_PROGRESS` as a safety net, in case a
+`PLAY` event is ever missed) or the `<audio>` element's `onPlaying`.
+`play-button.tsx` and `mini-player.tsx` now show a small spinner (new
+shared `Spinner` component) during that window instead of a premature
+pause icon, so a genuinely slow start now visibly reads as "starting…"
+rather than looking broken either way.
+
+Verified: `pnpm --filter @dj/web typecheck`/`lint` clean, full production
+`build` succeeds, budgets unchanged. **Not verified on a real mobile
+device** — this is the most important open item: if play/pause still
+doesn't respond at all (not just "delayed/unclear") on a real phone after
+this deploys, the hydration-timing theory needs to be tested directly
+(e.g. Chrome DevTools' Performance panel with CPU throttling on a real
+mobile-class trace, watching for the gap between first paint and
+`hydrated`/listener-attach), since nothing in the code itself points at a
+more specific cause.
+
+## Mobile: not unresponsive, infinitely loading — new information, real fix (this session, later)
+
+The user's follow-up narrowed things down a lot: on mobile the button
+*does* respond (the spinner from the fix above appears), it just never
+resolves — "loads infinitely." That rules out the hydration-timing theory
+above (a swallowed tap would show nothing happening at all, not a
+spinner) and points squarely at the transport itself: the tap registers,
+`play()` runs, but the SoundCloud widget never confirms playback, so
+`isLoading` never clears.
+
+**Most likely cause, given it's mobile-specific:** mobile browsers
+(iOS Safari in particular, but not only) are stricter than desktop about
+autoplaying unmuted, cross-origin iframe content — this app's very first
+SoundCloud track relies entirely on the iframe's own `auto_play=true` URL
+param to start itself once its document loads, which several mobile
+browsers are known to silently ignore even when the iframe was created
+directly from a tap. This is a widely-documented, engine-level limitation
+of postMessage-driven third-party widgets (SoundCloud/YouTube/Vimeo
+alike) on mobile Safari specifically, not something fixable purely from
+this app's code — but the actual bug this session could fix regardless of
+that limitation is that **there was no way out of it**: a blocked or
+missed autoplay left `loadingTrackId` set forever with nothing to ever
+clear it.
+
+**Two changes, in `player-context.tsx`:**
+
+1. **A watchdog timeout** (`LOAD_TIMEOUT_MS`, 8s): every play request now
+   arms a timer; if the transport hasn't confirmed within it, `isLoading`
+   clears and a new `isStalled` state takes over. This is the actual fix
+   for "infinite" — the spinner now always resolves one way or another,
+   never spins forever regardless of the underlying cause. `PlayButton`
+   and `MiniPlayer` show a red "retry" (⟳) state when stalled; clicking it
+   calls `play()` again rather than `toggle()`, so it's a real second
+   attempt, not a no-op.
+2. **An explicit `widget.play()` call the instant a widget becomes
+   `READY`** — a free second attempt at starting audio, on top of the
+   iframe's own `auto_play` param, for exactly the "browser silently
+   ignored the URL param" failure mode. Harmless if `auto_play` already
+   worked (just restarts the same track at position 0, which the user
+   will not perceive since it hadn't started).
+
+Both are genuinely defensive fixes, not confirmed root-cause fixes — this
+session has no mobile device or ability to trace whether the *reason*
+autoplay fails is the cross-origin-gesture limitation above, a
+transient network issue, or something else in this app's control. What
+*is* now guaranteed regardless of cause: the UI will never spin forever
+again, and every stall is retryable and visibly explained instead of
+silent.
+
+Verified: `pnpm --filter @dj/web typecheck`/`lint` clean, full production
+`build` succeeds, budgets essentially unchanged (`/[persona]` 129 kB,
+`/` 131 kB). **Not verified on a real mobile device.** If tracks still
+never actually play after 8 seconds (button turns to retry, tapping it
+also fails every time), that confirms the deeper cross-origin autoplay
+limitation and the real fix becomes: require an explicit tap-to-unlock
+the very first time audio is requested each session (a one-time "Enable
+sound" prompt whose own click handler calls `widget.play()` synchronously
+within a guaranteed, single-frame user gesture) — not attempted this
+session since it's a real UX/architecture change, not a safe drop-in
+fix, and shouldn't be built speculatively without confirming the timeout
+actually fires in practice first.
+
+## Actual root cause found: a genuine double-trigger race, not just mobile policy (this session, later still)
+
+The timeout fix above made the symptom visible and diagnosable rather
+than an actual root-cause fix, and the user's next report confirmed it
+was masking something real: switching tracks would alternate between
+"UI says playing but silent", "stalls, then a retry/next-track fixes
+it" — a flaky, non-reproducible pattern across attempts, not a clean
+"works" or "doesn't". That inconsistency is the signature of a race, not
+of a browser policy consistently blocking something (a policy block
+would fail the same way every time).
+
+**Found it:** the previous session's own "extra nudge" fix
+(`widget.play()` called explicitly inside the `READY` handler) was
+**racing against `auto_play: true`**, which was *also* still set on both
+the initial iframe's URL and every `.load()` call for subsequent tracks.
+Two independent "start this sound" commands were being sent over the same
+postMessage channel, moments apart, for every single track: SoundCloud's
+own `auto_play` handling internally, and this app's explicit
+`widget.play()`. Which one "won" — or whether they interfered with each
+other and left the widget in an inconsistent state (reporting `PLAY` from
+one attempt while the actual audio came from, or was interrupted by, the
+other) — was a timing coincidence, not a decision. That is exactly why it
+looked random: sometimes fine, sometimes "playing" with no sound,
+sometimes genuinely stuck.
+
+**Fix, in `player-context.tsx` and `soundcloud.ts`:** every track start
+now has exactly **one** trigger, never two.
+- `soundcloud.ts`'s `SoundCloudWidget.load()` gained a `callback` option —
+  the Widget API's own documented way to know precisely when a `.load()`'d
+  sound has finished loading and is ready to play.
+- The iframe's own URL (`soundcloudWidgetUrl(...)`) is now built with
+  `auto_play: false` — it no longer tries to start itself.
+- `play()`'s track-switch branch now calls `.load(url, { callback: () =>
+  widgetRef.current?.play() })` — `auto_play` is gone from that call
+  entirely; `callback` is the sole trigger.
+- The `READY` handler's `widget.play()` (added last session) is now the
+  *only* thing that starts the very first track — since the iframe no
+  longer races it with its own `auto_play` attempt.
+
+This is a real fix, not another mitigation layered on top — the loading/
+stalled timeout from the previous entry stays as a legitimate safety net
+(a genuinely blocked or failed load should still resolve to a retryable
+state, not spin forever), but it should now rarely if ever actually fire,
+since there's no more race to intermittently lose.
+
+Verified: `pnpm --filter @dj/web typecheck`/`lint` clean, full production
+`build` succeeds, budgets unchanged. **Not verified on a real mobile
+device** — please retest the exact repro: play a track, switch to
+another, and another, several times in a row, and confirm every switch
+now either plays correctly or (rarely) shows a genuine, one-time retry
+prompt — not the alternating success/silent-play/stall pattern from
+before.

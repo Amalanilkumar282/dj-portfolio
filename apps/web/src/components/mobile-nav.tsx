@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useRef } from 'react';
 
+import { useCloseOnOutsideInteraction } from './use-close-on-outside-interaction';
+
 /**
  * The mobile menu disclosure.
  *
@@ -18,6 +20,12 @@ import { useRef } from 'react';
  * keyboard activation for free, and a click handler on a non-interactive
  * container is both an a11y lint error and, on a phone, slower than
  * necessary (the browser has to bubble the event before anything runs).
+ *
+ * Also closes on an outside tap or Escape (`useCloseOnOutsideInteraction`)
+ * — a bare `<details>` only ever closes via its own `<summary>`, which
+ * meant tapping anywhere else on the page while the menu was open did
+ * nothing, reading as a stuck/broken menu rather than one that just needed
+ * a second tap on "Menu" specifically.
  */
 export function MobileNav({
   personas,
@@ -27,6 +35,7 @@ export function MobileNav({
   navLinks: { href: string; label: string }[];
 }): React.JSX.Element {
   const ref = useRef<HTMLDetailsElement>(null);
+  useCloseOnOutsideInteraction(ref);
 
   function close(): void {
     if (ref.current) ref.current.open = false;

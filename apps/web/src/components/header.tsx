@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getPersonas } from '../server/queries/personas';
 
 import { MobileNav } from './mobile-nav';
+import { PersonaMenu } from './persona-menu';
 
 const NAV_LINKS = [
   { href: '/music', label: 'Music' },
@@ -34,29 +35,7 @@ export async function Header(): Promise<React.JSX.Element> {
         </Link>
 
         <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">
-          {/* A native `<details>` disclosure, not a hover-only group: hover
-              alone left this dropdown fully inert for anyone without a
-              fine, hover-capable pointer (any touch device, and some
-              laptops), and its trigger was a plain `<span>` — not
-              focusable or clickable by itself. `<details>`/`<summary>`
-              gets click, tap and keyboard activation for free, with no JS,
-              the same reasoning `MobileNav` already uses. */}
-          <details className="group relative">
-            <summary className="text-fg-secondary hover-hover:hover:text-fg-strong list-none text-sm font-medium marker:content-none [&::-webkit-details-marker]:hidden cursor-pointer">
-              Personas
-            </summary>
-            <div className="absolute left-0 top-full z-10 mt-1 flex flex-col gap-1 rounded-(--radius-md) border border-border bg-surface p-2 shadow-lg">
-              {personas.map((persona) => (
-                <Link
-                  key={persona.id}
-                  href={`/${persona.slug}`}
-                  className="text-fg-secondary hover-hover:hover:text-fg-strong hover-hover:hover:bg-surface-raised whitespace-nowrap rounded-(--radius-sm) px-3 py-1.5 text-sm"
-                >
-                  {persona.stageName}
-                </Link>
-              ))}
-            </div>
-          </details>
+          <PersonaMenu personas={personas} />
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}

@@ -33,6 +33,21 @@ export interface PlayerTrack {
 interface PlayerState {
   current: PlayerTrack | null;
   isPlaying: boolean;
+  /**
+   * True from the moment a play was requested (a fresh track, or resuming
+   * the loaded one) until the transport actually confirms it started.
+   * Distinct from `isPlaying` on purpose — see `play()`/`toggle()`'s doc
+   * comments for why conflating the two made a still-buffering track look
+   * like "started but silent" instead of visibly loading.
+   */
+  isLoading: boolean;
+  /**
+   * Set when a play request has waited too long to be confirmed (see
+   * `LOAD_TIMEOUT_MS`) — most commonly a mobile browser silently blocking
+   * the SoundCloud iframe's autoplay. Distinct from `isLoading` so the UI
+   * can show "couldn't start, tap to retry" instead of spinning forever.
+   */
+  isStalled: boolean;
   /** 0–1. Drives the deck platter and the seek control. */
   progress: number;
   durationMs: number;
@@ -43,6 +58,14 @@ interface PlayerState {
   seek: (ratio: number) => void;
   toggleMute: () => void;
 }
+
+/** How long a play request can go unconfirmed before treating it as stuck.
+ * Generous — a slow mobile connection can take a real few seconds to buffer
+ * — but never infinite: a widget that has been silently blocked (a common
+ * mobile-browser autoplay-policy outcome) or that never emits its own
+ * `READY`/`PLAY` for some other reason would otherwise spin forever with
+ * no way out, which is worse than a slightly-too-generous timeout. */
+const LOAD_TIMEOUT_MS = 8000;
 
 const PlayerContext = createContext<PlayerState | null>(null);
 
@@ -62,6 +85,13 @@ const PlayerContext = createContext<PlayerState | null>(null);
 export function PlayerProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
   const [current, setCurrent] = useState<PlayerTrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  /** The id of the track currently waiting to actually start — see
+   * `PlayerState.isLoading`'s doc comment. */
+  const [loadingTrackId, setLoadingTrackId] = useState<string | null>(null);
+  /** The id of a track whose play request timed out unconfirmed — see
+   * `LOAD_TIMEOUT_MS`. */
+  const [stalledTrackId, setStalledTrackId] = useState<string | null>(null);
+  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [progress, setProgress] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -85,6 +115,32 @@ export function PlayerProvider({ children }: { children: React.ReactNode }): Rea
   useEffect(() => {
     currentRef.current = current;
   }, [current]);
+
+  /** Starts (replacing any prior) the stall watchdog for a play request. */
+  function armLoadTimeout(trackId: string): void {
+    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+    loadTimeoutRef.current = setTimeout(() => {
+      setLoadingTrackId((current) => (current === trackId ? null : current));
+      setStalledTrackId(trackId);
+    }, LOAD_TIMEOUT_MS);
+  }
+
+  /** Called whenever a play request is actually confirmed (or abandoned) —
+   * cancels the watchdog so it doesn't fire late over a track that has
+   * since started fine, or been swapped for a different one. */
+  function clearLoadTimeout(): void {
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+      loadTimeoutRef.current = null;
+    }
+  }
+
+  useEffect(
+    () => () => {
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+    },
+    [],
+  );
 
   // Mount the SoundCloud widget exactly once, on the first SoundCloud track
   // played, and never again — this is the whole fix for "playback gets
@@ -122,21 +178,50 @@ export function PlayerProvider({ children }: { children: React.ReactNode }): Rea
         if (cancelled) return;
         widgetRef.current = widget;
         widget.setVolume(isMutedRef.current ? 0 : 100);
+
+        // The very first track has no `.load()` call to hang a `callback`
+        // off — it starts via the iframe's own `src`, so this is its one
+        // and only "now actually start it" trigger, fired exactly once.
+        // A previous version of this ALSO relied on the iframe URL's own
+        // `auto_play=true` param at the same time, i.e. two independent
+        // "start this sound" commands sent over the same postMessage
+        // channel moments apart. That race is what caused the exact
+        // symptom reported: a track switch would intermittently report
+        // "playing" (an early command's PLAY event) with no real audio, or
+        // silently fail, in no reproducible pattern — because which
+        // command "won" was a timing coincidence, not a decision. Every
+        // start of every track now has exactly one trigger: this one for
+        // the first track, `.load()`'s own `callback` for every track
+        // after it (see `play()` below) — never both.
+        widget.play();
       });
       widget.bind(events.PLAY, () => {
         setIsPlaying(true);
+        setLoadingTrackId(null);
+        setStalledTrackId(null);
+        clearLoadTimeout();
         widget.getDuration((value) => {
           setDurationMs(value);
         });
       });
       widget.bind(events.PAUSE, () => {
         setIsPlaying(false);
+        setLoadingTrackId(null);
+        clearLoadTimeout();
       });
       widget.bind(events.FINISH, () => {
         setIsPlaying(false);
+        setLoadingTrackId(null);
+        clearLoadTimeout();
         setProgress(1);
       });
       widget.bind(events.PLAY_PROGRESS, () => {
+        // Progress only advances while genuinely playing — a safety net for
+        // `loadingTrackId` in case a `PLAY` event was ever missed, so a
+        // spinner can't get stuck showing over audio that's audibly playing.
+        setLoadingTrackId(null);
+        setStalledTrackId(null);
+        clearLoadTimeout();
         widget.getPosition((position) => {
           widget.getDuration((total) => {
             if (total > 0) setProgress(position / total);
@@ -167,52 +252,89 @@ export function PlayerProvider({ children }: { children: React.ReactNode }): Rea
     };
   }, [hasSoundCloud]);
 
+  // `isPlaying` used to be set optimistically, synchronously, on click —
+  // which meant the button flipped to its "playing" state (and, on a
+  // track switch, `RhythmField` started animating) before the transport
+  // had actually started any audio. On a slow mobile connection, where
+  // the SoundCloud widget can take a real, perceptible moment to buffer
+  // and start, that read as "it says it's playing but nothing's coming
+  // out" — indistinguishable from the button being broken. `isPlaying` is
+  // now only ever set from a transport's own confirmation (the widget's
+  // `PLAY` event, or the `<audio>` element's `onPlaying`); `play()`/
+  // `toggle()` set `loadingTrackId` instead, so the UI can show a distinct
+  // "starting…" state instead of a premature "playing" one.
   const play = useCallback((track: PlayerTrack) => {
     const previous = currentRef.current;
 
     // Re-pressing play on the track already loaded should resume it, not
     // reload anything or lose the position.
     if (previous?.id === track.id) {
+      setLoadingTrackId(track.id);
+      setStalledTrackId(null);
+      armLoadTimeout(track.id);
       widgetRef.current?.play();
       void audioRef.current?.play();
-      setIsPlaying(true);
       return;
     }
 
     setProgress(0);
     setDurationMs(0);
     setCurrent(track);
-    setIsPlaying(true);
+    setLoadingTrackId(track.id);
+    setStalledTrackId(null);
+    armLoadTimeout(track.id);
 
     if (track.soundcloudTrackId) {
       if (!initialTrackIdRef.current) {
         // First SoundCloud track this session: this is what the iframe
-        // mounts with (its `src`, set once below) and its `auto_play`
-        // starts it — nothing further to call here.
+        // mounts with (its `src`, set once below). The widget's own
+        // `READY` handler above calls `.play()` once it's actually
+        // interactive — nothing further to trigger here.
         initialTrackIdRef.current = track.soundcloudTrackId;
         setHasSoundCloud(true);
       } else {
         // Widget already exists — swap the loaded sound in place.
-        widgetRef.current?.load(soundcloudTrackApiUrl(track.soundcloudTrackId), { auto_play: true });
+        // `auto_play` is deliberately omitted: `callback` is the one and
+        // only trigger that starts it, once loading is actually done —
+        // see the `READY` handler's doc comment for why never both.
+        widgetRef.current?.load(soundcloudTrackApiUrl(track.soundcloudTrackId), {
+          callback: () => {
+            widgetRef.current?.play();
+          },
+        });
       }
     }
   }, []);
 
   const toggle = useCallback(() => {
     if (widgetRef.current) {
-      if (isPlaying) widgetRef.current.pause();
-      else widgetRef.current.play();
+      if (isPlaying) {
+        widgetRef.current.pause();
+      } else {
+        if (currentRef.current) {
+          setLoadingTrackId(currentRef.current.id);
+          setStalledTrackId(null);
+          armLoadTimeout(currentRef.current.id);
+        }
+        widgetRef.current.play();
+      }
       return;
     }
 
     const element = audioRef.current;
     if (!element) return;
     if (element.paused) {
+      if (currentRef.current) {
+        setLoadingTrackId(currentRef.current.id);
+        setStalledTrackId(null);
+        armLoadTimeout(currentRef.current.id);
+      }
       void element.play();
-      setIsPlaying(true);
     } else {
       element.pause();
       setIsPlaying(false);
+      setLoadingTrackId(null);
+      clearLoadTimeout();
     }
   }, [isPlaying]);
 
@@ -226,6 +348,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }): Rea
     audioRef.current?.pause();
     setCurrent(null);
     setIsPlaying(false);
+    setLoadingTrackId(null);
+    setStalledTrackId(null);
+    clearLoadTimeout();
     setProgress(0);
   }, []);
 
@@ -255,9 +380,25 @@ export function PlayerProvider({ children }: { children: React.ReactNode }): Rea
     });
   }, []);
 
+  const isLoading = loadingTrackId !== null && loadingTrackId === current?.id;
+  const isStalled = stalledTrackId !== null && stalledTrackId === current?.id;
+
   const value = useMemo(
-    () => ({ current, isPlaying, progress, durationMs, isMuted, play, toggle, close, seek, toggleMute }),
-    [current, isPlaying, progress, durationMs, isMuted, play, toggle, close, seek, toggleMute],
+    () => ({
+      current,
+      isPlaying,
+      isLoading,
+      isStalled,
+      progress,
+      durationMs,
+      isMuted,
+      play,
+      toggle,
+      close,
+      seek,
+      toggleMute,
+    }),
+    [current, isPlaying, isLoading, isStalled, progress, durationMs, isMuted, play, toggle, close, seek, toggleMute],
   );
 
   return (
@@ -271,12 +412,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }): Rea
           re-`READY`-raced) on every track. Its `src` is set once, to
           whichever track happened to be the first played this session;
           every track after that changes via `widget.load()` in `play()`
-          above, never by touching this attribute again. */}
+          above, never by touching this attribute again.
+
+          `auto_play` in the URL is deliberately `false` — the widget's own
+          `READY` handler is what starts it, exactly once, exactly the same
+          way every subsequent track starts via `.load()`'s `callback`. See
+          that handler's doc comment for why this used to be `true` here
+          *and* triggered again explicitly, and why that was the actual bug. */}
       {hasSoundCloud && initialTrackIdRef.current ? (
         <iframe
           ref={iframeRef}
           title="Audio player"
-          src={soundcloudWidgetUrl(initialTrackIdRef.current, true)}
+          src={soundcloudWidgetUrl(initialTrackIdRef.current, false)}
           allow="autoplay"
           className="pointer-events-none absolute h-0 w-0 border-0 opacity-0"
           aria-hidden="true"
@@ -295,8 +442,21 @@ export function PlayerProvider({ children }: { children: React.ReactNode }): Rea
             const element = event.currentTarget;
             if (element.duration > 0) setProgress(element.currentTime / element.duration);
           }}
+          onPlaying={() => {
+            setIsPlaying(true);
+            setLoadingTrackId(null);
+            setStalledTrackId(null);
+            clearLoadTimeout();
+          }}
+          onPause={() => {
+            setIsPlaying(false);
+            setLoadingTrackId(null);
+            clearLoadTimeout();
+          }}
           onEnded={() => {
             setIsPlaying(false);
+            setLoadingTrackId(null);
+            clearLoadTimeout();
           }}
           className="hidden"
         />
