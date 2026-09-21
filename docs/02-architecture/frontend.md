@@ -135,16 +135,16 @@ enters the marketing bundle.
 
 `global-error.tsx` (brand-styled last resort), `(marketing)/error.tsx` (retry +
 navigation), and per-section `<ErrorBoundary>` around **optional** sections —
-visualiser, gig map, live stats — so a single data hiccup never blanks a whole
-page. `not-found.tsx` is a "no signal" CRT-static screen with search and top
-links.
+visualiser, the catalogue browse wheel, live stats — so a single data hiccup
+never blanks a whole page. `not-found.tsx` is a "no signal" CRT-static screen
+with search and top links.
 
 ---
 
 ## Client components that are actually warranted
 
 `MiniPlayer`, `WaveformPlayer`, `PersonaChannelSwitcher`, `MobileNav`,
-`Lightbox`, `BookingWizard`, `FilterBar`, `GigMap`, `Visualizer`,
+`Lightbox`, `BookingWizard`, `FilterBar`, `BrowseWheel`, `Visualizer`,
 `SmoothScrollProvider`, Radix `Accordion`/`Tabs`, `CounterOnView`,
 `CommandPalette`.
 

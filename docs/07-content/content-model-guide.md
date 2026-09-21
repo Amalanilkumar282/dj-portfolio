@@ -77,8 +77,9 @@ confirmed.
 
 A place you have played. Create it once; every event there links to it.
 
-Venues get their own pages and appear on the gig map, so **latitude and
-longitude matter** — they are seeded approximately and should be corrected.
+Venues get their own pages, and **latitude and longitude matter** for the
+JSON-LD `GeoCoordinates` a venue page emits — they are seeded approximately
+and should be corrected.
 
 ### Program
 

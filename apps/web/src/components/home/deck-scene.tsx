@@ -15,6 +15,8 @@ import { useAccentRgb } from '@dj/motion';
 
 import { usePlayer } from '../player/player-context';
 
+import { useTokenColor } from './three-token-color';
+
 /**
  * Act 4 — a procedurally built deck.
  *
@@ -27,21 +29,12 @@ import { usePlayer } from '../player/player-context';
  * audio is actually playing, and dragging it seeks the real transport. It is
  * an instrument, not an ornament — which is also why it is desktop/full-tier
  * only and never the sole way to reach a control.
- */
-
-/**
- * Every colour on the deck is read back out of the token layer at runtime.
  *
- * three.js needs a real colour value, and `dj/no-raw-color-literals` rightly
- * forbids writing one here — so the same `getComputedStyle` probe the shader
- * field uses resolves each token, whatever format it is authored in. The
- * happy side effect is that the deck retunes when the visitor switches
- * channel, with no per-theme branch.
+ * Every colour on it is read back out of the token layer at runtime via
+ * `useTokenColor` (`three-token-color.ts`) — `dj/no-raw-color-literals`
+ * rightly forbids writing one here, and the happy side effect is that the
+ * deck retunes when the visitor switches channel, with no per-theme branch.
  */
-function useTokenColor(host: React.RefObject<HTMLElement | null>, property: string): Color {
-  const [r, g, b] = useAccentRgb(host, property);
-  return useMemo(() => new Color(r, g, b), [r, g, b]);
-}
 
 function Deck({ spinning, accentHost }: { spinning: boolean; accentHost: React.RefObject<HTMLElement | null> }): React.JSX.Element {
   const platterRef = useRef<Group>(null);

@@ -7,10 +7,10 @@ import type { Channel } from '../../components/cinematic/channel-switcher';
 import { StageBackdrop } from '../../components/cinematic/stage-backdrop';
 import { StageProvider } from '../../components/cinematic/stage-context';
 import { Container, Section } from '../../components/container';
+import { BrowseAct } from '../../components/home/browse-act';
 import { ChannelAct } from '../../components/home/channel-act';
 import { CountUp } from '../../components/home/count-up';
 import { DeckAct } from '../../components/home/deck-act';
-import { GigMap, type MapVenue } from '../../components/home/gig-map';
 import { Marquee } from '../../components/home/marquee';
 import { TrackWall, type WallTrack } from '../../components/home/track-wall';
 import { MagneticLink } from '../../components/magnetic-link';
@@ -31,14 +31,20 @@ import { getVenues } from '../../server/queries/venues';
  *
  * Most promoters never open a second page, so every area of the site is
  * represented here with **real content**, not a teaser: the whole catalogue
- * is playable in place, the residencies are the real weekly nights, the map
- * pins are the venues' real coordinates. Nine acts, one continuous scroll.
+ * is playable in place, and the residencies are the real weekly nights. Nine
+ * acts, one continuous scroll.
  *
  * This file stays a Server Component (`dj/no-client-in-route-files`). The
  * heavy visuals are six client islands, every one lazy and gated: the stage
- * backdrop, the channel switcher, the track wall, the deck, the map and the
- * counters. Nothing autoplays sound, and no island is the only route to a
- * piece of information.
+ * backdrop, the channel switcher, the track wall, the deck, the browse wheel
+ * and the counters. Nothing autoplays sound, and no island is the only route
+ * to a piece of information.
+ *
+ * There used to be a seventh: a 2.5D map plotting real venue coordinates.
+ * Removed deliberately, not because it was broken — three cities read as
+ * thin rather than well-travelled on a homepage, which is the wrong first
+ * impression for a site whose whole pitch is booking more of them. See
+ * ADR 0023.
  *
  * There is deliberately **no "upcoming shows" section**: the catalogue has
  * zero events because no real gig dates existed to seed, and the honest —
@@ -109,27 +115,6 @@ export default async function HomePage(): Promise<React.JSX.Element> {
     isFeatured: track.isFeatured,
     playable: track.soundcloudTrackId !== null,
   }));
-
-  // Bengaluru first: the map draws its arcs outward from the first pin, and
-  // that is where five of the seven venues actually are.
-  const mapVenues: MapVenue[] = venues
-    .filter(
-      (venue): venue is typeof venue & { latitude: number; longitude: number } =>
-        venue.latitude !== null && venue.longitude !== null,
-    )
-    .map((venue) => ({
-      id: venue.id,
-      slug: venue.slug,
-      name: venue.name,
-      city: venue.city,
-      state: venue.state,
-      latitude: venue.latitude,
-      longitude: venue.longitude,
-      capacity: venue.capacity,
-    }))
-    .sort((a, b) => Number(b.city === 'Bengaluru') - Number(a.city === 'Bengaluru'));
-
-  const cityCount = new Set(mapVenues.map((venue) => venue.city)).size;
 
   const genreLabels = [
     ...new Set(personas.flatMap((persona) => persona.genres.map((genre) => genre.name))),
@@ -291,21 +276,24 @@ export default async function HomePage(): Promise<React.JSX.Element> {
         </Container>
       </Section>
 
-      {/* Act 5 - Where I play */}
-      <Section aria-labelledby="map-title">
-        <Container className="grid gap-12 lg:grid-cols-[1fr_1.1fr]">
-          <div>
-            <ActHeader
-              id="map-title"
-              eyebrow="On the road"
-              title="Where the nights happen"
-              description={`${String(mapVenues.length)} rooms across ${String(cityCount)} cities - clubs, resorts and private estates.`}
-            />
-            <Link href="/venues" className={buttonClass({ variant: 'ghost', size: 'md' })}>
-              All venues
-            </Link>
-          </div>
-          <GigMap venues={mapVenues} />
+      {/* Act 5 - Browse the crate. `min-w-0` on both grid children below is
+          load-bearing on mobile: a CSS grid item's default `min-width` is
+          `auto` (its content's own min-content size), so without it this
+          two-column grid's single mobile column grows to fit the widest
+          content rather than the viewport - the same class of bug the
+          codebase already documents for flex children elsewhere, just on
+          the grid axis instead. Act 4 above never hit this because that
+          whole section is `hidden` on mobile; this one isn't. */}
+      <Section aria-labelledby="browse-title">
+        <Container className="grid items-center gap-12 lg:grid-cols-2">
+          <ActHeader
+            id="browse-title"
+            eyebrow="Dig in"
+            title="Load something new"
+            description="Can't decide where to start? Browse the catalogue and load whatever comes up next."
+            className="min-w-0"
+          />
+          <BrowseAct tracks={wallTracks} />
         </Container>
       </Section>
 
@@ -479,14 +467,16 @@ function ActHeader({
   eyebrow,
   title,
   description,
+  className,
 }: {
   id: string;
   eyebrow: string;
   title: string;
   description?: string;
+  className?: string;
 }): React.JSX.Element {
   return (
-    <div className="mb-10 max-w-2xl">
+    <div className={['mb-10 max-w-2xl', className].filter(Boolean).join(' ')}>
       <p className="text-eyebrow text-accent mb-3 font-semibold tracking-(--text-eyebrow--letter-spacing) uppercase">
         {eyebrow}
       </p>

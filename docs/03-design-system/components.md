@@ -18,7 +18,7 @@ packages/ui/src/
 ├─ composites/     SectionHeader Card MediaCard TrackCard EventCard PersonaCard
 │                  ServiceCard TestimonialCard StatCounter Marquee Lightbox
 │                  WaveformPlayer MiniPlayer VideoPlayer Masonry Timeline
-│                  FilterBar CTABand PriceTable FaqAccordion GigMap GearGrid
+│                  FilterBar CTABand PriceTable FaqAccordion BrowseWheel GearGrid
 │                  RichText CopyButton EmptyState ShareRow
 ├─ layout/         Container Stack Grid Section Hero Split Bleed
 └─ index.ts        subpath exports: @dj/ui, @dj/ui/primitives, @dj/ui/composites

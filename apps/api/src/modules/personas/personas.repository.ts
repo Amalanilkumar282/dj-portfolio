@@ -388,11 +388,9 @@ export class PersonasRepository {
   }
 
   /**
-   * Venues this persona has played, with a per-venue event count.
-   *
-   * Drives the venue cloud and the gig map. Grouped in the database rather
-   * than counted in JavaScript, so it stays one query however many events
-   * exist.
+   * Venues this persona has played, with a per-venue event count. Grouped in
+   * the database rather than counted in JavaScript, so it stays one query
+   * however many events exist.
    */
   async listVenuesPlayed(personaId: string, take = 30) {
     const grouped = await this.prisma.client.event.groupBy({

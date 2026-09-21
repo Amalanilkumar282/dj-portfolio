@@ -1,5 +1,5 @@
 /**
- * Domain-aware compositions (TrackCard, EventCard, GigMap…).
+ * Domain-aware compositions (TrackCard, EventCard, BrowseWheel…).
  *
  * Empty for now: the cinematic components built in Phase 10 live in
  * `apps/web/src/components/` because they are app compositions wired to that

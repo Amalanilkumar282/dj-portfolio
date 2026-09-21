@@ -202,10 +202,12 @@ forced `saveData` run each render a complete, beautiful page with ≤60KB JS; IN
 
 **Status:** shipped in the visual-layer session — `packages/motion`, the
 three-tier gate, real fonts, the WebGL persona field, the channel switcher,
-the nine-act homepage, the persona pages, a procedural 3D deck, a projected
-gig map, scroll-driven reveals, and a player rebuilt on the SoundCloud
-Widget API. The generative direction was forced by there being **no photos,
-video or fonts in the repo at all**, and turned out to be the right one.
+the nine-act homepage, the persona pages, a procedural 3D deck, scroll-driven
+reveals, and a player rebuilt on the SoundCloud Widget API. The generative
+direction was forced by there being **no photos, video or fonts in the repo
+at all**, and turned out to be the right one. A projected gig map originally
+shipped in Act 5 was replaced with a rotary catalogue browse wheel in a later
+session — see [ADR 0023](../01-decisions/0023-remove-homepage-gig-map.md).
 Budgets measured green (`/` 123 kB, `/[persona]` 126 kB). **Still open:**
 View Transitions and the custom cursor, and — the important one — nothing
 in this layer has been observed in a real browser, so the `≤60KB JS` and

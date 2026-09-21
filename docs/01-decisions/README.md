@@ -30,3 +30,5 @@ Format: Context → Decision → Consequences → Alternatives rejected.
 | [0019](0019-scheduled-at-and-published-check-on-every-publishable-model.md) | `scheduledAt` + `published_has_date` on every publishable model | Accepted |
 | [0020](0020-any-deletion-state-for-uniqueness-checks.md)                    | Uniqueness pre-checks must see soft-deleted rows                | Accepted |
 | [0021](0021-auth-coverage-gap-and-inert-threshold.md)                       | `auth/` coverage gate was inert; partially closed, not all      | Accepted |
+| [0022](0022-webgl-tier-on-capable-touch-devices.md)                         | Motion tier gates on memory/cores, not pointer type              | Accepted |
+| [0023](0023-remove-homepage-gig-map.md)                                    | Remove the gig map; Act 5 is a catalogue browse wheel            | Accepted |

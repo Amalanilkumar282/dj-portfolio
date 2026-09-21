@@ -40,20 +40,6 @@
   }
 }
 
-/* Gig-map travel arcs: a dashed stroke flowing along the path. The dash
-   pattern is "2 3" (period 5), so offsetting by a multiple of 5 loops with
-   no visible seam — unlike `field-drift` above (built for a full-bleed
-   background scale/pan, not a thin path), which is what this replaced: on
-   an SVG arc it produced a visible scale "jump" back to 1 at every loop. */
-@keyframes gig-arc-flow {
-  from {
-    stroke-dashoffset: 0;
-  }
-  to {
-    stroke-dashoffset: -10;
-  }
-}
-
 /* Marquee: the track duplicates an aria-hidden copy, so -50% loops seamlessly. */
 @keyframes marquee-x {
   from {

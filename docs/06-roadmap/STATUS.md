@@ -7,19 +7,21 @@
 > honest "blocked" line is far more useful to the next session than an
 > optimistic tick.
 
-**Last updated:** 2026-09-13 (CI fixes session)
+**Last updated:** 2026-09-21 (homepage gig map removed → catalogue browse wheel)
 **Current phase:** The **cinematic visual layer** — Phase 10 done properly.
-Until this session `apps/web` was functionally complete and visually flat:
-no hero, no shader, no persona switcher, no 3D, and a play button that
-structurally never rendered. The homepage is now a nine-act scroll with a
-WebGL persona field, a channel switcher that repaints the whole viewport
-from CMS colours, a playable 19-track wall on the real SoundCloud Widget
-API, a procedural 3D deck and a projected gig map — each with a finished
-(not degraded) fallback at two lower tiers. **Both route budgets measured
-green.** What is not done is browser verification: nothing in this layer
-has been seen rendering. Manual screen-reader testing, a production launch,
-load testing and a restore drill remain the user-facing handoff items from
-Group F.
+Until the visual-layer session `apps/web` was functionally complete and
+visually flat: no hero, no shader, no persona switcher, no 3D, and a play
+button that structurally never rendered. The homepage is now a nine-act
+scroll with a WebGL persona field, a channel switcher that repaints the
+whole viewport from CMS colours, a playable 19-track wall on the real
+SoundCloud Widget API, and a procedural 3D deck — each with a finished (not
+degraded) fallback at two lower tiers. **Both route budgets measured
+green.** A projected gig map originally occupied Act 5; it was removed this
+session (see "Homepage gig map removed" below, and
+[ADR 0023](../01-decisions/0023-remove-homepage-gig-map.md)) and replaced
+with a rotary catalogue browse wheel. Manual screen-reader testing, a
+production launch, load testing and a restore drill remain the user-facing
+handoff items from Group F.
 **Phases complete:** 0, 1, 2, 4, 5 (code), 6 (code), 7, 8 (scoped), 9 (scoped), 10 (scoped), 11 (scoped, all content types), 12 (scoped), 13 (scoped — see below)
 **Phase 3:** complete except one gap — see "What is not done" below
 
@@ -3251,3 +3253,148 @@ another, and another, several times in a row, and confirm every switch
 now either plays correctly or (rarely) shows a genuine, one-time retry
 prompt — not the alternating success/silent-play/stall pattern from
 before.
+
+## Homepage gig map removed, replaced with a catalogue browse wheel (2026-09-21)
+
+The artist asked for `GigMap` (the homepage's "Where the nights happen" Act 5
+and the equivalent "Rooms played" section on persona pages) to be removed
+outright: the real catalogue is seven venues in three cities, and a map makes
+that count the first thing a visitor's eye lands on — reading as "barely
+played anywhere" rather than "three strong residencies," the opposite of the
+impression the rest of the page earns. Full reasoning and alternatives in
+[ADR 0023](../01-decisions/0023-remove-homepage-gig-map.md).
+
+**Removed:** `components/home/gig-map.tsx`, `components/home/india-outline.ts`,
+the `gig-arc-flow` keyframes in `globals.css`, and both call sites
+(`(marketing)/page.tsx` Act 5, `(marketing)/[persona]/page.tsx`'s "Rooms
+played" section). `Venue.latitude`/`longitude` and `Persona.venuesPlayed` are
+unchanged in the API/contracts layer — they still drive the real
+`GeoCoordinates` JSON-LD on each venue's own page — only code comments were
+updated to stop citing the removed map as their reason to exist. `/venues`
+itself (footer + command palette) is unaffected.
+
+**Added, homepage only — not persona pages, which never carried a 3D island
+either:** `components/home/browse-act.tsx` + `browse-scene.tsx`, a rotary
+"browse wheel": the one physical control a real CDJ spends the most space on,
+and the one interaction neither Act 3 (a flat, filterable track list) nor
+Act 4 (scrubs whatever is already loaded) already covers. Dragging it
+horizontally loads the next/previous catalogue track (`stepTrackIndex()`,
+shared between the 3D scene and its fallback so "what's next" can't drift
+between the two); a `Prev`/`Next` button pair is the accessible, keyboard-
+reachable route to the identical action — the same decorative-visual-plus-
+real-control discipline `GigMap` itself used. A small `useTokenColor` hook
+was extracted out of `deck-scene.tsx` into `three-token-color.ts` so the new
+scene doesn't duplicate it — the deck itself is otherwise untouched.
+
+**Mobile/desktop balance done more correctly than the precedent it copies.**
+`frontend.md`'s budget table exempts 3D islands to ≤200KB "desktop-gated,"
+and Act 4's existing implementation of that (a `hidden lg:block` Tailwind
+wrapper around the whole section) does not actually stop the `three` chunk
+from being requested on a capable narrow-viewport device — a CSS-hidden node
+still mounts, and `MotionGate`'s capability tier is memory/cores per ADR
+0022, not viewport width. `BrowseAct` instead checks
+`window.matchMedia('(min-width: 64rem)')` in JS before the `dynamic(() =>
+import('./browse-scene'), { ssr: false })` import is ever referenced, so the
+module is genuinely never requested off a narrow screen, and `useCoarsePointer()`
+excludes touch even on a wide, capable tablet where a drag-to-rotate gesture
+has no real equivalent. Every excluded tier — light, static, coarse-pointer,
+narrow-viewport — gets the identical `BrowseFallback`: the existing
+`RhythmField` (CSS-driven, no canvas, no WebGL) plus the same Prev/Next
+control. This is a genuine improvement over the pre-existing `hidden
+lg:block` pattern, not just parity with it; **Act 4 itself was left
+unchanged**, since fixing it wasn't asked for and it is a separate, already-
+shipped feature.
+
+**Verified:** `pnpm --filter @dj/web typecheck` and `lint` both clean (two
+import-order warnings auto-fixed). A full production `pnpm --filter @dj/web
+build` against the live, already-running local API succeeded — **36/36**
+static/dynamic routes generated with no fetch or contract-validation errors,
+confirming both `page.tsx` and `[persona]/page.tsx` still render correctly
+with `mapVenues`/`venuesPlayed` removed. Route budgets: `/` 131 kB (was
+123 kB), `/[persona]` 128 kB (was 126 kB) — both still comfortably inside
+the ≤100KB-per-island guidance once the always-desktop-gated 3D chunk is
+excluded. Also curled the already-running dev server directly: `/` returns
+200 with a "Turn the wheel" Act 5 and zero remaining `gig-map`/`GigMap`
+references in the rendered HTML; a real persona page (`/felicitous-x-geetz`)
+returns 200 with no "Rooms played" section.
+
+**Not verified:** anything requiring an actual browser — the wheel's drag
+gesture, its visual rotation/ridge rendering, the `Prev`/`Next` buttons'
+click behaviour, and the `matchMedia`/coarse-pointer gating's real behaviour
+on an actual phone or tablet were reasoned through and code-reviewed, not
+driven interactively. No mobile device was available this session, matching
+every other 3D-adjacent gap already on record above.
+
+## Follow-up: real mobile-width overflow found and fixed with an actual browser (2026-09-21, later)
+
+The artist reported the mobile view "goes out of the screen border," and
+that the Act 5 copy still said "turn the wheel" when mobile has no wheel to
+turn — correctly calling out that the "not verified... no mobile device"
+line above was a real gap, not just a formality. This machine turned out to
+have a real Chrome install (`C:\Program Files\Google\Chrome\Application\
+chrome.exe`), unlike the "headless Chromium temporarily installed" sessions
+referenced elsewhere in this file — so this pass drove it directly via the
+Chrome DevTools Protocol (a raw WebSocket to a `--headless=new
+--remote-debugging-port` instance, Node 24's built-in `WebSocket`, no
+Playwright/Puppeteer install needed) with `Emulation.setDeviceMetricsOverride`
+pinned to a real 390×844 mobile viewport, rather than reasoning from code
+alone.
+
+**Real bug found, precisely:** `document.body.scrollWidth` measured **427px
+against a 390px viewport** — genuine horizontal overflow, and bisecting the
+DOM tree (walking from `<body>` down through whichever child's own
+`getBoundingClientRect()` was widest, skipping past any element that scrolls
+its own overflow by design — the channel-switcher carousel from Group E,
+which is *supposed* to be wider than the viewport) landed exactly on Act 5's
+`ActHeader` wrapper and `BrowseFallback`'s root, both measured at 411px
+wide. Root cause: a CSS grid item's default `min-width` is `auto` (its own
+min-content size), not `0` — the identical bug class `track-wall.tsx` and
+`gig-map.tsx` already document for **flex** children, just on the grid axis
+instead, and one this session's own Act 5 grid (`grid items-center gap-12
+lg:grid-cols-2`, copied from Act 4) newly exposed on mobile because Act 5,
+unlike Act 4, isn't `hidden` below `lg`. Fixed by adding `min-w-0` to
+`ActHeader` (now accepts a `className` prop) and to both `BrowseFallback`'s
+and `BrowseScene`'s root elements. Re-measured after the fix: `body.
+scrollWidth` is now exactly `390`, matching the viewport, with only the
+pre-existing invisible channel-wipe transition div (`opacity-0`, clipped by
+its own ancestor, not actually visible or scrollable) left in the offender
+scan.
+
+**Copy fixed to match what mobile actually shows:** Act 5's page-level
+title/description are server-rendered and shared by every tier — they
+can't know client-side which tier will render, so they can't say "turn the
+wheel" when a touch/narrow-viewport visitor gets `BrowseFallback` (Prev/Next
+buttons, no 3D object at all). Changed to tier-agnostic copy ("Load
+something new" / "Browse the catalogue and load whatever comes up next").
+`BrowseScene`'s own internal caption ("Turn the wheel to browse") was left
+as-is — it only ever renders inside the 3D scene itself, so it's accurate by
+construction.
+
+**Also visually verified, unprompted correction of the earlier "not
+verified" claim above:** screenshotted the real hero `<h1>` at 390px and
+initially misread anti-aliased, downscaled PNG text as clipped ("Four
+sound," "s." apparently missing) — cross-checked with `Range.
+getClientRects()` on the actual span and found it genuinely wraps onto two
+clean lines, both well inside the viewport. That was a screenshot-reading
+error on this session's part, not a bug; recorded here so a future session
+doesn't rediscover the same false alarm. The hero itself needed no change.
+
+**Genuinely observed, not fixed — flagged for the artist to decide:** the
+same mobile screenshot pass showed the `ConsentBanner`'s "Decline" button
+partially obscured by `ContactDock`'s WhatsApp button on first visit, before
+either has been dismissed. `consent-banner.tsx`'s own doc comment describes
+a `--consent-clearance` coordination mechanism meant to prevent exactly
+this, so this reads like an existing, unrelated bug in that stacking logic
+rather than anything caused by this session's changes — left alone since it
+wasn't part of what was asked and touching two other components' fixed-
+positioning coordination is a separate piece of work.
+
+**Verified, this follow-up:** `pnpm --filter @dj/web typecheck`/`lint` clean;
+full production `build` succeeds (36/36 routes, budgets unchanged from
+above); real headless-Chrome measurement at a pinned 390×844 viewport
+confirms zero horizontal overflow anywhere on the homepage; a screenshot of
+the scrolled-to Act 5 section shows the fixed layout, the new copy, and the
+Prev/Next fallback controls all rendering correctly within the viewport.
+**Not verified:** the wheel's actual drag gesture and rotation on a real
+touch/desktop input device — CDP measured layout and computed styles, not
+a physical pointer/touch interaction.

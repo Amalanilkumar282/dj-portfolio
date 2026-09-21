@@ -583,7 +583,8 @@ export const VenueCreateInput = inputObject({
   country: z.string().max(120).optional(),
   addressLine: z.string().max(300).nullish(),
   postalCode: z.string().max(20).nullish(),
-  // Coordinates drive the gig map and Place structured data.
+  // Coordinates drive Place structured data (JSON-LD `GeoCoordinates`) on
+  // the venue's own page.
   latitude: z.number().min(-90).max(90).nullish(),
   longitude: z.number().min(-180).max(180).nullish(),
   websiteUrl: z.string().url().nullish(),

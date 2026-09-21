@@ -43,8 +43,9 @@ export function toVenueSummary(row: VenueRow): VenueSummary {
     city: row.city,
     state: row.state,
     country: row.country,
-    // Coordinates drive the gig map and the Place structured data. Seeded
-    // approximately, so they are correctable in admin.
+    // Coordinates drive the Place structured data (JSON-LD `GeoCoordinates`)
+    // on the venue's own page. Seeded approximately, so they are correctable
+    // in admin.
     latitude: row.latitude,
     longitude: row.longitude,
     capacity: row.capacity,

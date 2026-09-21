@@ -10,7 +10,6 @@ import { StageBackdrop } from '../../../components/cinematic/stage-backdrop';
 import { StageProvider } from '../../../components/cinematic/stage-context';
 import { CloudinaryImage } from '../../../components/cloudinary-image';
 import { Container, Section } from '../../../components/container';
-import { GigMap, type MapVenue } from '../../../components/home/gig-map';
 import { Marquee } from '../../../components/home/marquee';
 import { TrackWall, type WallTrack } from '../../../components/home/track-wall';
 import { MagneticLink } from '../../../components/magnetic-link';
@@ -73,7 +72,7 @@ export default async function PersonaPage({
   if (!page) notFound();
   const personaTracks = await getTracks({ personaSlug: slug });
 
-  const { persona, playlists, programs, venuesPlayed, releases } = page;
+  const { persona, playlists, programs, releases } = page;
   const url = absoluteUrl(`/${slug}`);
 
   const wallTracks: WallTrack[] = personaTracks.map((track) => ({
@@ -91,22 +90,6 @@ export default async function PersonaPage({
     isFeatured: track.isFeatured,
     playable: track.soundcloudTrackId !== null,
   }));
-
-  const mapVenues: MapVenue[] = venuesPlayed
-    .filter(
-      (venue): venue is typeof venue & { latitude: number; longitude: number } =>
-        venue.latitude !== null && venue.longitude !== null,
-    )
-    .map((venue) => ({
-      id: venue.id,
-      slug: venue.slug,
-      name: venue.name,
-      city: venue.city,
-      state: venue.state,
-      latitude: venue.latitude,
-      longitude: venue.longitude,
-      capacity: venue.capacity,
-    }));
 
   const bpmRange =
     persona.bpmRangeLow !== null && persona.bpmRangeHigh !== null
@@ -337,27 +320,6 @@ export default async function PersonaPage({
                 </li>
               ))}
             </ul>
-          </Container>
-        </Section>
-      ) : null}
-
-      {/* Rooms played */}
-      {mapVenues.length > 0 ? (
-        <Section aria-labelledby="persona-venues-title">
-          <Container className="grid gap-12 lg:grid-cols-[1fr_1.1fr]">
-            <div>
-              <h2
-                id="persona-venues-title"
-                className="font-display text-h2 text-fg-strong dj-reveal mb-6"
-              >
-                Rooms played
-              </h2>
-              <p className="text-lead text-fg-secondary">
-                {mapVenues.length} venues across{' '}
-                {new Set(mapVenues.map((venue) => venue.city)).size} cities.
-              </p>
-            </div>
-            <GigMap venues={mapVenues} />
           </Container>
         </Section>
       ) : null}
