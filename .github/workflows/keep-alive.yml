@@ -42,5 +42,8 @@ jobs:
           echo "Pinging $API_HEALTH_URL"
           # --fail turns a non-2xx response into a failed step (so a real
           # outage shows up as a red run you'd notice), -sS keeps output
-          # quiet on success but shows the real error on failure.
-          curl --fail -sS --max-time 30 "$API_HEALTH_URL"
+          # quiet on success but shows the real error on failure. 90s
+          # --max-time gives Render's documented 30-60s cold-start margin,
+          # since a missed run (cron jitter, manual redeploy) can leave the
+          # next ping hitting an asleep instance.
+          curl --fail -sS --max-time 90 "$API_HEALTH_URL"
