@@ -5,9 +5,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../lib/api-client';
 import { useAuth } from '../../lib/auth-context';
 
+import { MediaCard } from './media-card';
 import { useMediaUpload } from './use-media-upload';
 
-interface MediaAsset {
+export interface MediaAsset {
   id: string;
   publicId: string;
   resourceType: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'RAW';
@@ -213,26 +214,13 @@ export function MediaLibrary(): React.JSX.Element {
           <p className="text-fg-muted text-sm">No media uploaded yet.</p>
         ) : (
           assets.map((asset) => (
-            <div key={asset.id} className="border-border bg-surface rounded-md border p-3">
-              {asset.resourceType === 'IMAGE' ? (
-                // eslint-disable-next-line @next/next/no-img-element -- a raw admin thumbnail from a live Cloudinary URL, not a `MediaImage`-shaped public-site image
-                <img src={asset.secureUrl} alt={asset.altText ?? ''} className="aspect-square w-full rounded object-cover" />
-              ) : (
-                <div className="bg-bg flex aspect-square w-full items-center justify-center rounded text-xs text-fg-muted">
-                  {asset.resourceType}
-                </div>
-              )}
-              <p className="text-fg-muted mt-2 truncate text-xs">{asset.publicId}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  void remove(asset);
-                }}
-                className="text-danger mt-1 text-xs underline"
-              >
-                Delete
-              </button>
-            </div>
+            <MediaCard
+              key={asset.id}
+              asset={asset}
+              onDelete={() => {
+                void remove(asset);
+              }}
+            />
           ))
         )}
       </div>
