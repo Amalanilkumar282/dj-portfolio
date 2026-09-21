@@ -83,7 +83,15 @@ export default async function HomePage(): Promise<React.JSX.Element> {
     accentColorSecondary: persona.accentColorSecondary,
     gradientCss: persona.gradientCss,
     trackCount: tracks.filter((track) => track.personaSlug === persona.slug).length,
+    avatarImage: persona.avatarImage,
   }));
+
+  // The homepage isn't scoped to one persona, so there's no single "right"
+  // hero photo — the site-wide `homeHeroImage` (set in admin Settings) is
+  // the deliberate choice for this slot; the first persona's hero image is
+  // a last-resort fallback so the hero isn't left showing only the
+  // generative shader when the artist hasn't set either.
+  const fallbackHeroImage = settings.homeHeroImage ?? personas[0]?.heroImage ?? null;
 
   const wallTracks: WallTrack[] = tracks.map((track) => ({
     id: track.id,
@@ -182,7 +190,7 @@ export default async function HomePage(): Promise<React.JSX.Element> {
         className="relative isolate flex min-h-svh items-end overflow-hidden pb-20"
       >
         <div className="absolute inset-0 -z-10 overflow-hidden">
-          <StageBackdrop videoUrl={settings.homeHeroVideoUrl} />
+          <StageBackdrop videoUrl={settings.homeHeroVideoUrl} heroImage={fallbackHeroImage} />
         </div>
 
         <Container>

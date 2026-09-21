@@ -508,6 +508,7 @@ model MediaAsset {
   settingsLogos      SiteSettings[] @relation("SettingsLogo")
   settingsOgImages   SiteSettings[] @relation("SettingsOgImage")
   settingsHomeHeroVideos SiteSettings[] @relation("SettingsHomeHeroVideo")
+  settingsHomeHeroImages SiteSettings[] @relation("SettingsHomeHeroImage")
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -1656,6 +1657,13 @@ model SiteSettings {
   /// Persona row.
   homeHeroVideoMediaId String?
   homeHeroVideoMedia   MediaAsset? @relation("SettingsHomeHeroVideo", fields: [homeHeroVideoMediaId], references: [id], onDelete: SetNull)
+
+  /// A static fallback for the homepage hero — shown when no
+  /// `homeHeroVideoMediaId` is set (or on the `static`/`light` motion
+  /// tiers, which never play video). Same "homepage isn't tied to one
+  /// persona" rationale as the video field above.
+  homeHeroImageMediaId String?
+  homeHeroImageMedia   MediaAsset? @relation("SettingsHomeHeroImage", fields: [homeHeroImageMediaId], references: [id], onDelete: SetNull)
 
   // Contact / NAP - kept consistent with the Google Business Profile for
   // local SEO.

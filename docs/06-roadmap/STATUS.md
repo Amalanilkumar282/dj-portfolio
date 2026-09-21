@@ -2718,6 +2718,53 @@ in `apps/web`:
    (The homepage channel switcher would be the more prominent spot, but
    `avatarImage` isn't on `PersonaSummary` yet, which is what it queries —
    a contract change, deliberately not made in this pass; flag if wanted.)
+
+   **Follow-up (later session): the homepage channel switcher and hero
+   were also closed.** The homepage's `page.tsx` already re-fetches full
+   `PersonaDetail` per persona (for the switcher's genre labels), so no
+   contract change was needed there either — `avatarImage` was already in
+   hand and just never mapped onto the `Channel` objects the switcher
+   consumes. Added `avatarImage: MediaImage | null` to the `Channel`
+   interface (`components/cinematic/channel-switcher.tsx`), populated it
+   in `page.tsx`'s `channels` mapping, and rendered a small circular
+   avatar next to the stage name on each channel card, matching the
+   treatment already used on `[persona]/page.tsx`. Separately, the
+   homepage's Act 1 hero (`page.tsx` line ~184) only ever passed
+   `settings.homeHeroVideoUrl` into `StageBackdrop` — an unrelated
+   site-wide setting — with no image fallback at all, so a site with no
+   hero video configured showed only the generative shader with no
+   photographic layer even though personas have hero images set. Fixed by
+   passing the first persona's `heroImage` as `StageBackdrop`'s
+   `heroImage` fallback (video still wins when the site-wide setting is
+   set). Not verified against a real browser this session — verify the
+   avatar crops correctly and the hero fallback image actually renders
+   before calling this done.
+
+   **Follow-up (same later session): a real admin field for the homepage
+   hero image, not just an implicit persona fallback.** The artist asked
+   for this directly — there was no way to *choose* the homepage hero
+   photo from admin at all, only the persona-fallback behaviour above.
+   Added `homeHeroImageMediaId`/`homeHeroImage` end to end, mirroring the
+   existing `homeHeroVideoMediaId` field on `SiteSettings` exactly (same
+   singleton row, same nullable-FK-to-`MediaAsset` shape) but mapped as a
+   full `MediaImage` via `toMediaImage()`/`MEDIA_IMAGE_SELECT` — the
+   `logo`/`defaultOgImage` pattern — rather than the video field's bare
+   `secureUrl` string, since this is a still image that needs
+   width/height/alt/blur/focal-point. Migration
+   `20260921000000_add_home_hero_image` applied and verified live against
+   the real Neon database (`prisma migrate deploy` + `post-migrate.sql`
+   both ran clean). Touches: `schema.prisma`, the new migration,
+   `packages/contracts/src/site.ts` (`SiteSettingsDetail`/
+   `SiteSettingsAdminDetail`/`SiteSettingsUpdateInput`), the API's
+   `settings.repository.ts`/`settings.mapper.ts`/`settings.service.ts`,
+   a new "Homepage hero background image" `MediaSelect` in
+   `apps/admin/src/components/settings-form.tsx`, and the homepage now
+   prefers `settings.homeHeroImage` over the persona fallback
+   (`apps/web/src/app/(marketing)/page.tsx`). `apps/api/openapi.json`
+   regenerated via `pnpm --filter @dj/api openapi:update` (passed).
+   Typecheck and lint clean across `@dj/api`/`@dj/admin`/`@dj/web`. Not
+   verified in a real browser — confirm the new admin field saves and
+   that the homepage picks up the image before calling this done.
 3. **Gallery images had no click-to-expand**, only the small grid card —
    confirmed via STATUS.md's own history that a lightbox was never built
    at any point, not removed or half-done. Added

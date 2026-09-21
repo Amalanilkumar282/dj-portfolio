@@ -10,6 +10,7 @@ interface SettingsDetail {
   siteName: string;
   siteTagline: string | null;
   homeHeroVideoMediaId: string | null;
+  homeHeroImageMediaId: string | null;
   contactEmail: string;
   bookingEmail: string | null;
   contactPhone: string | null;
@@ -31,6 +32,7 @@ const EMPTY: Values = {
   siteName: '',
   siteTagline: '',
   homeHeroVideoMediaId: '',
+  homeHeroImageMediaId: '',
   contactEmail: '',
   bookingEmail: '',
   contactPhone: '',
@@ -67,6 +69,7 @@ export function SettingsForm(): React.JSX.Element {
           siteName: settings.siteName,
           siteTagline: settings.siteTagline ?? '',
           homeHeroVideoMediaId: settings.homeHeroVideoMediaId ?? '',
+          homeHeroImageMediaId: settings.homeHeroImageMediaId ?? '',
           contactEmail: settings.contactEmail,
           bookingEmail: settings.bookingEmail ?? '',
           contactPhone: settings.contactPhone ?? '',
@@ -103,6 +106,7 @@ export function SettingsForm(): React.JSX.Element {
           siteName: values.siteName,
           siteTagline: values.siteTagline || undefined,
           homeHeroVideoMediaId: values.homeHeroVideoMediaId || null,
+          homeHeroImageMediaId: values.homeHeroImageMediaId || null,
           contactEmail: values.contactEmail,
           bookingEmail: values.bookingEmail || undefined,
           contactPhone: values.contactPhone || undefined,
@@ -172,6 +176,16 @@ export function SettingsForm(): React.JSX.Element {
           }}
           mediaType="VIDEO"
           hint="An optional looping, muted background clip for the homepage hero — upload an MP4 on the Media library page first, then pick it here. Leave empty to keep the generated colour background. The homepage isn't tied to one persona, so this is the one place to set it (a persona's own page uses that persona's own hero video field instead)."
+        />
+
+        <MediaSelect
+          label="Homepage hero background image"
+          value={values.homeHeroImageMediaId}
+          onChange={(value) => {
+            setField('homeHeroImageMediaId', value);
+          }}
+          mediaType="IMAGE"
+          hint="A static fallback for the homepage hero, shown when there's no hero video set above (or for visitors on a reduced-motion / low-power view, which never plays video). Leave empty to keep the generated colour background."
         />
 
         <div className="flex items-center gap-2">

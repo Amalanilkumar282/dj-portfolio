@@ -7,6 +7,7 @@ interface SettingsRow {
   siteTagline: string | null;
   logo: MediaAssetRow | null;
   homeHeroVideoMedia: { secureUrl: string } | null;
+  homeHeroImageMedia: MediaAssetRow | null;
   contactEmail: string;
   bookingEmail: string | null;
   contactPhone: string | null;
@@ -31,6 +32,7 @@ interface SettingsRow {
   responseTimePromise: string | null;
   updatedAt: Date;
   homeHeroVideoMediaId: string | null;
+  homeHeroImageMediaId: string | null;
 }
 
 export function toSettingsDetail(row: SettingsRow): SiteSettingsDetail {
@@ -39,6 +41,7 @@ export function toSettingsDetail(row: SettingsRow): SiteSettingsDetail {
     siteTagline: row.siteTagline,
     logo: toMediaImage(row.logo),
     homeHeroVideoUrl: row.homeHeroVideoMedia?.secureUrl ?? null,
+    homeHeroImage: toMediaImage(row.homeHeroImageMedia),
     contactEmail: row.contactEmail,
     bookingEmail: row.bookingEmail,
     contactPhone: row.contactPhone,
@@ -69,5 +72,6 @@ export function toSettingsAdminDetail(row: SettingsRow): SiteSettingsAdminDetail
     ...toSettingsDetail(row),
     updatedAt: row.updatedAt,
     homeHeroVideoMediaId: row.homeHeroVideoMediaId,
+    homeHeroImageMediaId: row.homeHeroImageMediaId,
   };
 }

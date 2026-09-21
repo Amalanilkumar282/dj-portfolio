@@ -44,6 +44,7 @@ export class SettingsService {
     if (input.siteTagline !== undefined) data.siteTagline = input.siteTagline;
     if (input.logoId !== undefined) data.logoId = input.logoId;
     if (input.homeHeroVideoMediaId !== undefined) data.homeHeroVideoMediaId = input.homeHeroVideoMediaId;
+    if (input.homeHeroImageMediaId !== undefined) data.homeHeroImageMediaId = input.homeHeroImageMediaId;
     if (input.contactEmail !== undefined) data.contactEmail = input.contactEmail;
     if (input.bookingEmail !== undefined) data.bookingEmail = input.bookingEmail;
     if (input.contactPhone !== undefined) data.contactPhone = input.contactPhone;

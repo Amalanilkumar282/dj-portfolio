@@ -7,6 +7,7 @@ const INCLUDE = {
   logo: { select: MEDIA_IMAGE_SELECT },
   defaultOgImage: { select: MEDIA_IMAGE_SELECT },
   homeHeroVideoMedia: { select: { secureUrl: true } },
+  homeHeroImageMedia: { select: MEDIA_IMAGE_SELECT },
 } as const;
 
 const SINGLETON_ID = 'singleton';
@@ -17,6 +18,7 @@ export interface SettingsUpdateData {
   siteTagline?: string | null;
   logoId?: string | null;
   homeHeroVideoMediaId?: string | null;
+  homeHeroImageMediaId?: string | null;
   contactEmail?: string;
   bookingEmail?: string | null;
   contactPhone?: string | null;

@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { MediaImage } from '@dj/contracts';
 import { Chip } from '@dj/ui/primitives';
 
 import { personaThemeName } from '../../lib/site';
+import { CloudinaryImage } from '../cloudinary-image';
 
 /**
  * The channel switcher — the signature module.
@@ -34,6 +36,7 @@ export interface Channel {
   accentColorSecondary: string | null;
   gradientCss: string | null;
   trackCount: number;
+  avatarImage: MediaImage | null;
 }
 
 const ACCENT_PROPS = ['--color-accent', '--color-accent-strong', '--gradient-persona'] as const;
@@ -159,13 +162,26 @@ export function ChannelSwitcher({
                   ) : null}
                 </span>
 
-                <span className="mt-6 block">
-                  <span className="font-display text-h3 text-fg-strong block leading-none">
-                    {channel.stageName}
-                  </span>
-                  {channel.subtitle ? (
-                    <span className="text-fg-secondary mt-2 block text-sm">{channel.subtitle}</span>
+                <span className="mt-6 flex items-center gap-3">
+                  {channel.avatarImage ? (
+                    <span className="border-border/60 relative block size-12 shrink-0 overflow-hidden rounded-full border">
+                      <CloudinaryImage
+                        image={channel.avatarImage}
+                        sizes="48px"
+                        width={48}
+                        height={48}
+                        className="size-full object-cover"
+                      />
+                    </span>
                   ) : null}
+                  <span className="block">
+                    <span className="font-display text-h3 text-fg-strong block leading-none">
+                      {channel.stageName}
+                    </span>
+                    {channel.subtitle ? (
+                      <span className="text-fg-secondary mt-2 block text-sm">{channel.subtitle}</span>
+                    ) : null}
+                  </span>
                 </span>
 
                 <span className="mt-4 flex items-center justify-between gap-3">

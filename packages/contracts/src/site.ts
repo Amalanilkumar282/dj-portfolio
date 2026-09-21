@@ -83,6 +83,9 @@ export const SiteSettingsDetail = z.object({
   logo: MediaImageSchema.nullable(),
   /** An optional looping muted clip behind the homepage hero. */
   homeHeroVideoUrl: z.string().nullable(),
+  /** Static fallback for the homepage hero, shown when there's no video
+   * (or on motion tiers that never play one). */
+  homeHeroImage: MediaImageSchema.nullable(),
   contactEmail: z.string(),
   bookingEmail: z.string().nullable(),
   contactPhone: z.string().nullable(),
@@ -112,6 +115,7 @@ export const SiteSettingsAdminDetail = SiteSettingsDetail.extend({
   updatedAt: z.coerce.date(),
   /** Raw id, admin-only — see PersonaAdminDetail's identical comment for why. */
   homeHeroVideoMediaId: Id.nullable(),
+  homeHeroImageMediaId: Id.nullable(),
 });
 export type SiteSettingsAdminDetail = z.infer<typeof SiteSettingsAdminDetail>;
 
@@ -124,6 +128,7 @@ export const SiteSettingsUpdateInput = inputObject({
   siteTagline: z.string().max(200).nullish(),
   logoId: Id.nullish(),
   homeHeroVideoMediaId: Id.nullish(),
+  homeHeroImageMediaId: Id.nullish(),
   contactEmail: z.string().email().optional(),
   bookingEmail: z.string().email().nullish(),
   contactPhone: z.string().max(20).nullish(),

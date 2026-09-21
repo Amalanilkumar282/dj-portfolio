@@ -3280,6 +3280,11 @@
             "nullable": true,
             "type": "string"
           },
+          "homeHeroImageMediaId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
           "homeHeroVideoMediaId": {
             "nullable": true,
             "pattern": "^[a-z0-9]{20,32}$",
