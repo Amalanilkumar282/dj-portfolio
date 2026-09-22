@@ -45,7 +45,32 @@ without a developer.**
 | `apps/admin` | admin.djfelicitous.com | The CMS. **This is the product.**                   |
 | `apps/api`   | api.djfelicitous.com   | NestJS. Owns the database and business rules.       |
 
-## Current state (2026-09-12, cinematic visual layer session)
+## Current state (2026-09-22, homepage revamp session)
+
+**Most recent work — read STATUS.md's last section first.** The homepage was
+rebuilt around the artist's own sketches and is now shows-first: eleven
+sections, each hidden when it has no content and each switchable from admin
+Settings. `/events` became a poster-rail browse rather than a text list.
+The **`Video` module was built from scratch** (the Prisma model and its RBAC
+resource had sat unused since Phase 1, exactly as `Gallery` had). `Event`
+gained real ticketing phases (`onSaleFrom`, `earlyBirdUntil`,
+`earlyBirdPriceMax`) read through one pure helper, `resolveShowPhase()` in
+`@dj/utils`. The 3D CDJ and rotary browse wheel are no longer imported by the
+homepage (files kept) — [ADR 0024](docs/01-decisions/0024-homepage-revamp-shows-first.md).
+
+Three bugs that only running it could find: `ADMIN_SEED_PASSWORD` was being
+silently truncated by dotenv at an unquoted `#` (which had broken e2e login
+entirely, and is probably what an earlier session mistook for a locked admin
+account); `Video` has no `SeoMeta` relation, so every `GET /videos` 500'd; and
+the hourly `isPast` cron the schema has always claimed exists **did not**, so
+a backfilled past gig advertised itself as upcoming. All three fixed.
+
+**The shows and video features are built and proven but empty** — there is no
+real event, flyer or video content yet, and none was invented.
+
+---
+
+## Earlier state (2026-09-12, cinematic visual layer session)
 
 Groups A through F (all 13 phases) now have code written, each **scoped**
 rather than built to the masterplan's full literal breadth — see
@@ -350,6 +375,12 @@ to cover.
 - **Cache tags live in two places and must stay symmetrical** —
   `packages/contracts/src/cache-tags.ts` and the API's `TAG_MAP`. An asymmetry
   fails silently as "I published but nothing changed".
+- **Quote any `.env` value containing a `#`.** dotenv treats an unquoted `#`
+  as the start of a comment and silently truncates the value at it. This bit
+  `ADMIN_SEED_PASSWORD` in `apps/api/.env.local`: the app received 8 of 15
+  characters while the database held all 15, so **every e2e run failed at
+  login** with a plain 401 — which reads exactly like a locked account. If the
+  e2e suite cannot log in, check the quoting before assuming a lockout.
 - **A new "is this credential configured" check must match this repo's
   actual placeholder values, not just the documented pattern.**
   `apps/api/.env.local` uses `test`/`re_test`, not `replace-me`, for several

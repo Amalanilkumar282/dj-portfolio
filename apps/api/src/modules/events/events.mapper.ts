@@ -24,6 +24,9 @@ interface EventRow {
   ticketUrl: string | null;
   ticketPriceMin: DecimalLike;
   ticketPriceMax: DecimalLike;
+  onSaleFrom: Date | null;
+  earlyBirdUntil: Date | null;
+  earlyBirdPriceMax: DecimalLike;
   currency: string;
   ageRestriction: string | null;
   venueNameOverride: string | null;
@@ -85,6 +88,9 @@ export function toEventSummary(row: EventRow): EventSummary {
     ticketUrl: row.ticketUrl,
     ticketPriceMin: toNumber(row.ticketPriceMin),
     ticketPriceMax: toNumber(row.ticketPriceMax),
+    onSaleFrom: row.onSaleFrom,
+    earlyBirdUntil: row.earlyBirdUntil,
+    earlyBirdPriceMax: toNumber(row.earlyBirdPriceMax),
     currency: row.currency as EventSummary['currency'],
     ageRestriction: row.ageRestriction,
     // A linked Venue wins over the one-off override, which exists only for

@@ -41,6 +41,20 @@ export interface SettingsUpdateData {
   bookingFormEnabled?: boolean;
   maintenanceMode?: boolean;
   responseTimePromise?: string | null;
+  homeHeroEyebrow?: string | null;
+  homeHeroHeadline?: string | null;
+  homeHeroSubheadline?: string | null;
+  homeClosingHeadline?: string | null;
+  homeClosingSubheadline?: string | null;
+  homeShowIdentities?: boolean;
+  homeShowShows?: boolean;
+  homeShowDiscography?: boolean;
+  homeShowResidencies?: boolean;
+  homeShowVenues?: boolean;
+  homeShowGallery?: boolean;
+  homeShowVideos?: boolean;
+  homeShowServices?: boolean;
+  homeShowTestimonials?: boolean;
 }
 
 @Injectable()

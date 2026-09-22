@@ -55,7 +55,10 @@ const CSP = [
   "img-src 'self' data: https://res.cloudinary.com",
   "font-src 'self' data:",
   "connect-src 'self' https://plausible.io",
-  "frame-src 'self' https://challenges.cloudflare.com https://w.soundcloud.com https://open.spotify.com https://www.youtube-nocookie.com",
+  // player.vimeo.com joins the list with the Video module: the contract
+  // offers VIMEO as a provider, and a provider the CSP forbids would fail
+  // as a silently blank iframe with nothing in the server logs.
+  "frame-src 'self' https://challenges.cloudflare.com https://w.soundcloud.com https://open.spotify.com https://www.youtube-nocookie.com https://player.vimeo.com",
   "media-src 'self' https://res.cloudinary.com",
   "object-src 'none'",
   "base-uri 'self'",

@@ -19,15 +19,33 @@ export interface AuditInput {
 }
 
 /**
+ * The trail is capped at this many rows, not kept for a length of time — the
+ * oldest row is discarded to make room for the newest, like a ring buffer.
+ * Chosen over a time-based retention policy specifically to bound storage on
+ * a small managed-Postgres plan: 2 years of history has no fixed size, 1,000
+ * rows always does.
+ *
+ * This is a real trade-off, not a free lunch: on a busy admin day the trail
+ * can roll over within that same day, so "what did we change last month" may
+ * no longer be answerable from here. Nothing else in this app depends on
+ * long-lived audit history today (no compliance export, no DSAR use of this
+ * table per docs/05-operations/runbooks/dsar.md), which is what makes the
+ * trade acceptable. See ADR 0025 if that ever stops being true.
+ */
+export const AUDIT_LOG_MAX_ROWS = 1000;
+
+/**
  * Writes the audit trail.
  *
  * Actor, IP, user agent and correlation id are read from the ambient request
  * context, so callers pass only what is specific to the event. That is the
  * whole reason `RequestContextMiddleware` exists.
  *
- * **Writes never throw.** A failure to record an audit row must not fail the
- * operation the user just completed successfully — but it is logged at error
- * level, because a silent gap in the trail is its own problem.
+ * **Writes never throw.** A failure to record an audit row, or to trim the
+ * table back down to `AUDIT_LOG_MAX_ROWS` afterwards, must not fail the
+ * operation the user just completed successfully — but both are logged at
+ * error level, because a silent gap in the trail (or a silently uncapped
+ * table) is its own problem.
  *
  * See docs/02-architecture/auth-and-rbac.md
  */
@@ -61,6 +79,21 @@ export class AuditService {
     } catch (error) {
       this.logger.error(
         `audit_write_failed action=${input.action} entity=${input.entityType ?? '-'}:${input.entityId ?? '-'}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return; // Nothing to trim if the insert itself never landed.
+    }
+
+    // Trimmed on every write rather than periodically: the table can never
+    // grow past `AUDIT_LOG_MAX_ROWS + 1` between calls, which is what keeps
+    // this cheap — always a small scan over a ~1,000-row table, never one
+    // over the project's full lifetime of audit history. A failure here
+    // does not roll back the insert above; the nightly cron catches up.
+    try {
+      await this.repository.trimToLatest(AUDIT_LOG_MAX_ROWS);
+    } catch (error) {
+      this.logger.error(
+        'audit_trim_failed',
         error instanceof Error ? error.stack : String(error),
       );
     }
@@ -123,5 +156,22 @@ export class AuditService {
 
   async list(query: AuditQuery) {
     return this.repository.list(query);
+  }
+
+  /**
+   * Thin pass-throughs to the repository's trim, exposed here rather than
+   * left repository-only so that anything outside this module — an e2e test,
+   * a future "compact the audit log now" admin action — goes through the
+   * service, per `dj/prisma-only-in-repositories`'s sibling rule that
+   * cross-module access never reaches into another module's repository
+   * directly. `record()` above already uses the unlocked variant on every
+   * write; these exist for callers that aren't already inside a request.
+   */
+  async trimToLatest(maxRows: number): Promise<{ deleted: number }> {
+    return this.repository.trimToLatest(maxRows);
+  }
+
+  async trimToLatestLocked(maxRows: number): Promise<{ ran: boolean; deleted: number }> {
+    return this.repository.trimToLatestLocked(maxRows);
   }
 }

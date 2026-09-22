@@ -54,6 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/media', label: 'Media library', permission: 'media:read' },
       { href: '/galleries', label: 'Galleries', permission: 'gallery:read' },
+      { href: '/videos', label: 'Videos', permission: 'video:read' },
     ],
   },
   {
@@ -78,6 +79,25 @@ function GroupDot({ className }: { className?: string }): React.JSX.Element {
   return <span aria-hidden="true" className={`inline-block size-1.5 rounded-full ${className ?? ''}`} />;
 }
 
+/** One nav row, extracted so the collapsible-group and root cases render it identically. */
+function NavLink({ item, active }: { item: NavItem; active: boolean }): React.JSX.Element {
+  return (
+    <Link
+      href={item.href}
+      className={`relative rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
+        active
+          ? 'bg-accent-soft text-fg-strong font-semibold'
+          : 'text-fg-secondary hover:bg-surface-raised hover:text-fg-strong'
+      }`}
+    >
+      {active ? (
+        <span aria-hidden="true" className="bg-accent absolute inset-y-1 left-0 w-0.5 rounded-full" />
+      ) : null}
+      {item.label}
+    </Link>
+  );
+}
+
 /**
  * The protected shell. Auth is checked client-side (`useAuth`'s silent
  * refresh runs in the root layout, above this one) — the real enforcement
@@ -91,11 +111,65 @@ function GroupDot({ className }: { className?: string }): React.JSX.Element {
  * type ramp — so the artist recognises this as "the same brand", not a
  * separate, colder developer tool bolted onto it.
  */
+const COLLAPSE_STORAGE_KEY = 'dj-admin-nav-collapsed';
+
+/** Which group a route belongs to, so navigating somewhere always reveals it. */
+function ownerGroupLabel(pathname: string): string | null {
+  const group = NAV_GROUPS.find((g) => g.items.some((item) => item.href === pathname));
+  // `||`, deliberately not `??`: the root group's label is `''`, and an
+  // empty string must be treated the same as a missing group here.
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  return group?.label || null;
+}
+
 export function DashboardShell({ children }: { children: React.ReactNode }): React.JSX.Element | null {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  /**
+   * Which nav groups are collapsed, by label. There are 7 groups and some
+   * (Content) hold 11 items — collapsing the ones you're not using cuts a
+   * long scroll down to a glance, the same reasoning `EntityList`'s own
+   * pagination follows for a long list of rows.
+   *
+   * Persisted per browser via `localStorage`, not a runtime capability: this
+   * is a per-viewer convenience (which sections *this admin* likes open),
+   * never shared state and never read back by the server, so the simpler
+   * mechanism is the right one. Wrapped in try/catch — a private window or
+   * blocked site data can throw, and the shell must still render without it.
+   */
+  // Starts empty (everything expanded) for hydration safety — reading
+  // localStorage during the initial render would throw on the server, the
+  // same reasoning `useCapability` in @dj/motion starts at its most
+  // conservative tier and upgrades in an effect. The one-frame flash from
+  // "expanded" to "collapsed" on a repeat visit is the acceptable cost.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(COLLAPSE_STORAGE_KEY);
+      if (raw) setCollapsed(new Set(JSON.parse(raw) as string[]));
+    } catch {
+      // Private window, blocked site data, etc. — just stay expanded.
+    }
+  }, []);
+
+  function toggleGroup(label: string): void {
+    setCollapsed((current) => {
+      const next = new Set(current);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      try {
+        window.localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify([...next]));
+      } catch {
+        // Best-effort only — a blocked localStorage just means the
+        // collapsed state resets next visit, not a broken shell.
+      }
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
@@ -106,6 +180,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }): Rea
   // before it could ship the same way.
   useEffect(() => {
     setMobileNavOpen(false);
+  }, [pathname]);
+
+  // Never leave the admin looking at a page whose own nav group is hidden —
+  // landing on /events/new (say, from the dashboard's own shortcuts) must
+  // reveal "Music & shows" even if it was collapsed on the last visit.
+  useEffect(() => {
+    const owner = ownerGroupLabel(pathname);
+    if (owner) setCollapsed((current) => (current.has(owner) ? new Set([...current].filter((l) => l !== owner)) : current));
   }, [pathname]);
 
   if (loading) {
@@ -121,43 +203,61 @@ export function DashboardShell({ children }: { children: React.ReactNode }): Rea
   const siteUrl = previewUrl('/') ?? process.env.NEXT_PUBLIC_SITE_URL ?? '/';
 
   const nav = (
-    <nav className="flex flex-col gap-5">
+    <nav className="flex flex-col gap-1">
       {NAV_GROUPS.map((group) => {
         const items = group.items.filter(
           (item) => !item.permission || user.permissions.includes(item.permission),
         );
         if (items.length === 0) return null;
+
+        // The one ungrouped "Dashboard" row (empty label) is never
+        // collapsible — there's nothing to collapse, and it's the one link
+        // that should always stay one click away.
+        if (!group.label) {
+          return (
+            <div key="root" className="mb-4 flex flex-col gap-0.5">
+              {items.map((item) => (
+                <NavLink key={item.href} item={item} active={pathname === item.href} />
+              ))}
+            </div>
+          );
+        }
+
+        const isCollapsed = collapsed.has(group.label);
+        const panelId = `nav-group-${group.label.replace(/\s+/g, '-').toLowerCase()}`;
+
         return (
-          <div key={group.label || 'root'}>
-            {group.label ? (
-              <p className="text-fg-muted mb-1.5 flex items-center gap-1.5 px-3 text-[11px] font-semibold tracking-widest uppercase">
-                <GroupDot className="bg-border" />
-                {group.label}
-              </p>
-            ) : null}
-            <div className="flex flex-col gap-0.5">
-              {items.map((item) => {
-                const active = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`relative rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
-                      active
-                        ? 'bg-accent-soft text-fg-strong font-semibold'
-                        : 'text-fg-secondary hover:bg-surface-raised hover:text-fg-strong'
-                    }`}
-                  >
-                    {active ? (
-                      <span
-                        aria-hidden="true"
-                        className="bg-accent absolute inset-y-1 left-0 w-0.5 rounded-full"
-                      />
-                    ) : null}
-                    {item.label}
-                  </Link>
-                );
-              })}
+          <div key={group.label} className="mb-1">
+            <button
+              type="button"
+              aria-expanded={!isCollapsed}
+              aria-controls={panelId}
+              onClick={() => {
+                toggleGroup(group.label);
+              }}
+              className="text-fg-muted hover:text-fg-secondary flex w-full items-center gap-1.5 rounded-md px-3 py-2 text-[11px] font-semibold tracking-widest uppercase transition-colors"
+            >
+              <GroupDot className="bg-border" />
+              <span className="flex-1 text-left">{group.label}</span>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 16 16"
+                className={`size-3 shrink-0 transition-transform duration-150 ${isCollapsed ? '-rotate-90' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {/* `hidden` rather than unmounting: an unmounted panel loses its
+                scroll position and, more importantly, the active item inside
+                a collapsed-then-reopened group would otherwise remount and
+                lose focus if a keyboard user were tabbing through it. */}
+            <div id={panelId} hidden={isCollapsed} className="flex flex-col gap-0.5 pb-1">
+              {items.map((item) => (
+                <NavLink key={item.href} item={item} active={pathname === item.href} />
+              ))}
             </div>
           </div>
         );

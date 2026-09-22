@@ -108,6 +108,30 @@ export const SiteSettingsDetail = z.object({
   bookingFormEnabled: z.boolean(),
   maintenanceMode: z.boolean(),
   responseTimePromise: z.string().nullable(),
+
+  /**
+   * Homepage copy and section visibility.
+   *
+   * The homepage is the product - most booking clients never open a second
+   * page - so the artist owns its headings and which sections appear,
+   * without a developer. Null copy means "use the component's own default",
+   * so an untouched settings row renders exactly what it rendered before
+   * these fields existed.
+   */
+  homeHeroEyebrow: z.string().nullable(),
+  homeHeroHeadline: z.string().nullable(),
+  homeHeroSubheadline: z.string().nullable(),
+  homeClosingHeadline: z.string().nullable(),
+  homeClosingSubheadline: z.string().nullable(),
+  homeShowIdentities: z.boolean(),
+  homeShowShows: z.boolean(),
+  homeShowDiscography: z.boolean(),
+  homeShowResidencies: z.boolean(),
+  homeShowVenues: z.boolean(),
+  homeShowGallery: z.boolean(),
+  homeShowVideos: z.boolean(),
+  homeShowServices: z.boolean(),
+  homeShowTestimonials: z.boolean(),
 });
 export type SiteSettingsDetail = z.infer<typeof SiteSettingsDetail>;
 
@@ -154,6 +178,21 @@ export const SiteSettingsUpdateInput = inputObject({
   bookingFormEnabled: z.boolean().optional(),
   maintenanceMode: z.boolean().optional(),
   responseTimePromise: z.string().max(120).nullish(),
+
+  homeHeroEyebrow: z.string().max(80).nullish(),
+  homeHeroHeadline: z.string().max(120).nullish(),
+  homeHeroSubheadline: z.string().max(300).nullish(),
+  homeClosingHeadline: z.string().max(120).nullish(),
+  homeClosingSubheadline: z.string().max(300).nullish(),
+  homeShowIdentities: z.boolean().optional(),
+  homeShowShows: z.boolean().optional(),
+  homeShowDiscography: z.boolean().optional(),
+  homeShowResidencies: z.boolean().optional(),
+  homeShowVenues: z.boolean().optional(),
+  homeShowGallery: z.boolean().optional(),
+  homeShowVideos: z.boolean().optional(),
+  homeShowServices: z.boolean().optional(),
+  homeShowTestimonials: z.boolean().optional(),
 });
 export type SiteSettingsUpdateInput = z.infer<typeof SiteSettingsUpdateInput>;
 

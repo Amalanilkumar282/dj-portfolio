@@ -200,6 +200,15 @@
           "doorsOpenAt": {
             "nullable": true
           },
+          "earlyBirdPriceMax": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "earlyBirdUntil": {
+            "nullable": true
+          },
           "endsAt": {
             "nullable": true
           },
@@ -274,6 +283,9 @@
             },
             "maxItems": 50,
             "type": "array"
+          },
+          "onSaleFrom": {
+            "nullable": true
           },
           "personaKey": {
             "enum": [
@@ -402,6 +414,15 @@
           "doorsOpenAt": {
             "nullable": true
           },
+          "earlyBirdPriceMax": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "earlyBirdUntil": {
+            "nullable": true
+          },
           "endsAt": {
             "nullable": true
           },
@@ -476,6 +497,9 @@
             },
             "maxItems": 50,
             "type": "array"
+          },
+          "onSaleFrom": {
+            "nullable": true
           },
           "personaKey": {
             "enum": [
@@ -3280,15 +3304,67 @@
             "nullable": true,
             "type": "string"
           },
+          "homeClosingHeadline": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "homeClosingSubheadline": {
+            "maxLength": 300,
+            "nullable": true,
+            "type": "string"
+          },
+          "homeHeroEyebrow": {
+            "maxLength": 80,
+            "nullable": true,
+            "type": "string"
+          },
+          "homeHeroHeadline": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
           "homeHeroImageMediaId": {
             "nullable": true,
             "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "homeHeroSubheadline": {
+            "maxLength": 300,
+            "nullable": true,
             "type": "string"
           },
           "homeHeroVideoMediaId": {
             "nullable": true,
             "pattern": "^[a-z0-9]{20,32}$",
             "type": "string"
+          },
+          "homeShowDiscography": {
+            "type": "boolean"
+          },
+          "homeShowGallery": {
+            "type": "boolean"
+          },
+          "homeShowIdentities": {
+            "type": "boolean"
+          },
+          "homeShowResidencies": {
+            "type": "boolean"
+          },
+          "homeShowServices": {
+            "type": "boolean"
+          },
+          "homeShowShows": {
+            "type": "boolean"
+          },
+          "homeShowTestimonials": {
+            "type": "boolean"
+          },
+          "homeShowVenues": {
+            "type": "boolean"
+          },
+          "homeShowVideos": {
+            "type": "boolean"
           },
           "latitude": {
             "exclusiveMaximum": false,
@@ -4284,6 +4360,191 @@
           },
           "websiteUrl": {
             "format": "uri",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "VideoCreateDto": {
+        "properties": {
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "durationSec": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 86400,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "eventId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "hostedMediaId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "YOUTUBE",
+              "VIMEO",
+              "CLOUDINARY"
+            ],
+            "type": "string"
+          },
+          "providerVideoId": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "thumbnailId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "transcript": {
+            "maxLength": 200000,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "VideoUpdateDto": {
+        "properties": {
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "durationSec": {
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "maximum": 86400,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "eventId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "hostedMediaId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "personaKey": {
+            "enum": [
+              "FELICITOUS",
+              "TRINITROCOSMIC",
+              "TNT",
+              "COUPLE_DUO"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "YOUTUBE",
+              "VIMEO",
+              "CLOUDINARY"
+            ],
+            "type": "string"
+          },
+          "providerVideoId": {
+            "maxLength": 120,
+            "nullable": true,
+            "type": "string"
+          },
+          "scheduledAt": {
+            "nullable": true
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "sortIndex": {
+            "exclusiveMinimum": false,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          },
+          "thumbnailId": {
+            "nullable": true,
+            "pattern": "^[a-z0-9]{20,32}$",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "transcript": {
+            "maxLength": 200000,
             "nullable": true,
             "type": "string"
           }
@@ -12148,6 +12409,379 @@
         ]
       }
     },
+    "/api/v1/admin/videos": {
+      "get": {
+        "operationId": "VideosAdminController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "ARCHIVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List videos of every status, offset-paginated",
+        "tags": [
+          "admin: videos"
+        ]
+      },
+      "post": {
+        "operationId": "VideosAdminController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VideoCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a video",
+        "tags": [
+          "admin: videos"
+        ]
+      }
+    },
+    "/api/v1/admin/videos/{id}": {
+      "delete": {
+        "operationId": "VideosAdminController_remove_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete. Recoverable from the trash for 30 days.",
+        "tags": [
+          "admin: videos"
+        ]
+      },
+      "get": {
+        "operationId": "VideosAdminController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One video by id",
+        "tags": [
+          "admin: videos"
+        ]
+      },
+      "patch": {
+        "operationId": "VideosAdminController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VideoUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a video. Unmentioned fields are untouched.",
+        "tags": [
+          "admin: videos"
+        ]
+      }
+    },
+    "/api/v1/admin/videos/{id}/archive": {
+      "patch": {
+        "operationId": "VideosAdminController_archive_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive",
+        "tags": [
+          "admin: videos"
+        ]
+      }
+    },
+    "/api/v1/admin/videos/{id}/publish": {
+      "patch": {
+        "operationId": "VideosAdminController_publish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish",
+        "tags": [
+          "admin: videos"
+        ]
+      }
+    },
+    "/api/v1/admin/videos/{id}/restore": {
+      "post": {
+        "operationId": "VideosAdminController_restore_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore from the trash",
+        "tags": [
+          "admin: videos"
+        ]
+      }
+    },
+    "/api/v1/admin/videos/{id}/schedule": {
+      "patch": {
+        "operationId": "VideosAdminController_schedule_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Schedule a publish",
+        "tags": [
+          "admin: videos"
+        ]
+      }
+    },
+    "/api/v1/admin/videos/{id}/unpublish": {
+      "patch": {
+        "operationId": "VideosAdminController_unpublish_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Return to draft",
+        "tags": [
+          "admin: videos"
+        ]
+      }
+    },
+    "/api/v1/admin/videos/reorder": {
+      "patch": {
+        "operationId": "VideosAdminController_reorder_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply a new ordering in one transaction",
+        "tags": [
+          "admin: videos"
+        ]
+      }
+    },
     "/api/v1/auth/2fa/disable": {
       "post": {
         "operationId": "AuthController_disableTotp_v1",
@@ -12500,6 +13134,7 @@
               "enum": [
                 "upcoming",
                 "past",
+                "live",
                 "all"
               ],
               "type": "string"
@@ -12579,6 +13214,14 @@
           {
             "in": "query",
             "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hasFlyer",
             "required": false,
             "schema": {
               "type": "boolean"
@@ -12686,6 +13329,7 @@
               "enum": [
                 "upcoming",
                 "past",
+                "live",
                 "all"
               ],
               "type": "string"
@@ -12765,6 +13409,14 @@
           {
             "in": "query",
             "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hasFlyer",
             "required": false,
             "schema": {
               "type": "boolean"
@@ -15819,6 +16471,151 @@
         "summary": "Published venue slugs with lastmod, for prerendering and sitemaps",
         "tags": [
           "venues"
+        ]
+      }
+    },
+    "/api/v1/videos": {
+      "get": {
+        "operationId": "VideosController_list_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "exclusiveMaximum": false,
+              "exclusiveMinimum": false,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "personaSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "eventSlug",
+            "required": false,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "sortIndex"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List published videos",
+        "tags": [
+          "videos"
+        ]
+      }
+    },
+    "/api/v1/videos/{slug}": {
+      "get": {
+        "operationId": "VideosController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "One published video",
+        "tags": [
+          "videos"
+        ]
+      }
+    },
+    "/api/v1/videos/slugs": {
+      "get": {
+        "operationId": "VideosController_slugs_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Published video slugs with lastmod",
+        "tags": [
+          "videos"
         ]
       }
     },

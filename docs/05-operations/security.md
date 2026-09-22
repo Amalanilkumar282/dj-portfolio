@@ -104,8 +104,40 @@ Inventory:
 salted daily hashes, which is what keeps the analytics cookieless and
 consent-free under GDPR.
 
-Retention: raw page views 90 days · audit logs 2 years · soft-deleted content
-30 days then purged · spam enquiries 30 days.
+Retention: raw page views 90 days · audit logs **capped at 1,000 rows**
+(changed 2026-09-22 from a 2-year time window — see below) · soft-deleted
+content 30 days then purged · spam enquiries 30 days.
+
+**Audit log: a row cap, not a time window, as of 2026-09-22.** The artist
+asked specifically for this, to bound storage on a small managed-Postgres
+free-tier plan: the table keeps only the most recent `AUDIT_LOG_MAX_ROWS`
+(1,000) rows, oldest discarded first, enforced on every single write
+(`AuditService.record()` trims after each insert — see
+`apps/api/src/modules/audit/audit.service.ts`), with a nightly advisory-locked
+cron (`AuditRetentionCron`) as a safety net for anything that path can't
+cover. This is a real trade-off, stated plainly: on a busy admin day the
+trail can roll over within that same day, so "what changed last month" may
+no longer be answerable from this table. Nothing else in this app depends on
+long-lived audit history today. See
+[ADR 0025](../01-decisions/0025-audit-log-row-cap.md).
+
+**A real incident happened while building this, and real historical audit
+rows were permanently lost as a result — recorded here rather than only in
+STATUS.md, because it changes what this table can be trusted to contain.**
+An early version of the verification test for this cap computed its "how
+many real rows exist" baseline using a Prisma `{ entityType: { not: X } }`
+filter, which — standard SQL NULL semantics — silently excludes every row
+where `entityType` is `NULL` (every `LOGIN`/`LOGOUT`/`TOKEN_REFRESH` audit
+row has no entity). That undercounted the real total, which made the test's
+computed cap too low, which caused the test to delete real rows beyond the
+ones it was meant to touch. **Two runs before the bug was caught and fixed
+permanently deleted every audit row from 2026-09-14 and roughly two-thirds
+of 2026-09-15's** — real project history, not test fixtures. The bug was in
+the *test's own arithmetic*, not in the shipped trim logic (which uses a
+flat constant, never a filtered count, and was verified correct via a
+read-only SQL dry run before being trusted again). Full account, including
+how it was caught and the dry-run verification that preceded every
+subsequent live test run, in STATUS.md.
 
 Subject access request: [`runbooks/dsar.md`](runbooks/dsar.md).
 

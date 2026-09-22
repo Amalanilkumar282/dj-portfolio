@@ -4,4 +4,5 @@
  */
 
 export { Button, buttonClass, type ButtonVariants } from './button';
+export { Card, cardClass, type CardVariants } from './card';
 export { Chip, chipClass, type ChipVariants } from './chip';

@@ -41,6 +41,8 @@ export function toProgramSummary(row: ProgramRow): ProgramSummary {
     personaSlug: row.persona?.slug ?? null,
     venueName: row.venue?.name ?? null,
     venueSlug: row.venue?.slug ?? null,
+    residencyFrom: row.residencyFrom ?? null,
+    residencyTo: row.residencyTo ?? null,
     hero: toMediaImage(row.hero),
     eventCount: row._count?.events ?? 0,
   };
@@ -50,8 +52,6 @@ export function toProgramDetail(row: ProgramRow): ProgramDetail {
   return {
     ...toProgramSummary(row),
     description: row.description ?? null,
-    residencyFrom: row.residencyFrom ?? null,
-    residencyTo: row.residencyTo ?? null,
     seo: toSeoMeta(row.seoMeta),
   };
 }

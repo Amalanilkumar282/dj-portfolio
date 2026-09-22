@@ -24,14 +24,14 @@ import { AuditService } from '../audit/audit.service';
 import { PersonasService } from '../personas/personas.service';
 
 import { toEventAdminDetail, toEventDetail, toEventSummary } from './events.mapper';
-import { EventsRepository } from './events.repository';
+import { ASSUMED_RUN_HOURS, EventsRepository } from './events.repository';
 
 /**
  * The scalar columns a create or update may set.
  *
- * `isPast` is deliberately absent: the schema documents it as "maintained by
- * the hourly cron", so writing to it here would fight that single writer and
- * risk a page showing in the wrong list between cron runs.
+ * `isPast` is **derived** here, never accepted from the client — see
+ * `derivePastFlag`. It is not a field the caller may set directly, which is
+ * why it is absent from the write contracts.
  */
 interface EventScalarWrite {
   slug?: string;
@@ -54,10 +54,14 @@ interface EventScalarWrite {
   ticketUrl?: string | null;
   ticketPriceMin?: number | null;
   ticketPriceMax?: number | null;
+  onSaleFrom?: Date | null;
+  earlyBirdUntil?: Date | null;
+  earlyBirdPriceMax?: number | null;
   isFree?: boolean;
   ageRestriction?: string | null;
   isFeatured?: boolean;
   attendanceEstimate?: number | null;
+  isPast?: boolean;
   flyerId?: string | null;
   sortIndex?: number;
   currency?: Currency;
@@ -94,7 +98,7 @@ export class EventsService extends BaseContentService<EventRowBase> {
   // ── public reads ─────────────────────────────────────────────────────────
 
   async listPublic(query: {
-    when: 'upcoming' | 'past' | 'all';
+    when: 'upcoming' | 'past' | 'live' | 'all';
     personaSlug?: string | undefined;
     venueSlug?: string | undefined;
     programSlug?: string | undefined;
@@ -102,6 +106,14 @@ export class EventsService extends BaseContentService<EventRowBase> {
     city?: string | undefined;
     year?: number | undefined;
     featured?: boolean | undefined;
+    hasFlyer?: boolean | undefined;
+    /**
+     * Supplied by the controller, like every other clock read in this app.
+     * `when: 'live'` has to compare against a real instant, and `isPast` is
+     * only accurate to the hour the cron last ran - too coarse to answer
+     * "is he on stage right now".
+     */
+    now: Date;
     q?: string | undefined;
     sort: SortField[];
     limit: number;
@@ -122,6 +134,8 @@ export class EventsService extends BaseContentService<EventRowBase> {
       city: query.city,
       year: query.year,
       featured: query.featured,
+      hasFlyer: query.hasFlyer,
+      now: query.now,
       q: query.q,
       keyset,
       orderBy: this.cursors.toOrderBy(query.sort),
@@ -200,6 +214,7 @@ export class EventsService extends BaseContentService<EventRowBase> {
       slug,
       title: input.title,
       startsAt: input.startsAt,
+      isPast: this.derivePastFlag(input.startsAt, input.endsAt ?? null, now),
       ...(personaId === undefined ? {} : { personaId }),
     });
 
@@ -225,11 +240,25 @@ export class EventsService extends BaseContentService<EventRowBase> {
 
     const personaId = await this.resolvePersonaId(input.personaKey);
 
+    // Recomputed only when a date actually moved. Recomputing on every PATCH
+    // would let an unrelated edit (a typo in the title) silently undo the
+    // cron's own reconciliation in the other direction.
+    const datesChanged = input.startsAt !== undefined || input.endsAt !== undefined;
+
     await this.repository.update(id, {
       ...this.toWriteData(input, now),
       ...(slug === undefined ? {} : { slug }),
       ...(input.title === undefined ? {} : { title: input.title }),
       ...(input.startsAt === undefined ? {} : { startsAt: input.startsAt }),
+      ...(datesChanged
+        ? {
+            isPast: this.derivePastFlag(
+              input.startsAt ?? current.startsAt,
+              input.endsAt === undefined ? current.endsAt : input.endsAt,
+              now,
+            ),
+          }
+        : {}),
       ...(personaId === undefined ? {} : { personaId }),
     });
 
@@ -278,6 +307,25 @@ export class EventsService extends BaseContentService<EventRowBase> {
     return persona.id;
   }
 
+  /**
+   * Whether this event is already over, from its own dates.
+   *
+   * The hourly cron reconciles this column as time passes, but it cannot be
+   * the *only* writer: an event entered with a date in the past — the artist
+   * backfilling shows he has already played, which is exactly what fills the
+   * "Recently played" row — would be created with `isPast: false` and sit
+   * under "Upcoming" until the next cron tick. Advertising a March gig as
+   * upcoming in September is worse than a stale flag.
+   *
+   * Deliberately the same rule as `liveWhere()` and `resolveShowPhase()`:
+   * over means past its stated end, or past the assumed run length when it
+   * has no stated end.
+   */
+  private derivePastFlag(startsAt: Date, endsAt: Date | null, now: Date): boolean {
+    const end = endsAt ?? new Date(startsAt.getTime() + ASSUMED_RUN_HOURS * 60 * 60 * 1000);
+    return end.getTime() <= now.getTime();
+  }
+
   private toWriteData(input: EventCreateInput | EventUpdateInput, now: Date): EventScalarWrite {
     const data: EventScalarWrite = {};
 
@@ -304,6 +352,9 @@ export class EventsService extends BaseContentService<EventRowBase> {
     assign('ticketUrl');
     assign('ticketPriceMin');
     assign('ticketPriceMax');
+    assign('onSaleFrom');
+    assign('earlyBirdUntil');
+    assign('earlyBirdPriceMax');
     assign('currency');
     assign('isFree');
     assign('ageRestriction');

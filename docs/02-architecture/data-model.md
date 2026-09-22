@@ -168,9 +168,24 @@ pages.
 - `Event.startsAt` is stored **UTC**; `timezone` (default `Asia/Kolkata`)
   carries the display zone so `MusicEvent` JSON-LD emits a correct IST offset.
   A bare `Z` makes Google show Indian gigs at the wrong local time.
-- `Event.isPast` is maintained by an hourly cron. It exists so the "upcoming"
-  partial index can use a boolean predicate — Postgres rejects a non-immutable
-  `now()` in an index predicate outright.
+- `Event.isPast` is maintained by an hourly cron
+  (`events-past-flag.cron.ts`) **and** derived at write time. It exists so the
+  "upcoming" partial index can use a boolean predicate — Postgres rejects a
+  non-immutable `now()` in an index predicate outright.
+  - The cron did not exist until 2026-09-22, despite this line claiming it
+    did since Phase 1, so the column held whatever value the row was created
+    with and every upcoming/past split was reading a frozen flag.
+  - The write path derives it too, because an event entered with a past date
+    (backfilling shows already played) would otherwise advertise itself as
+    upcoming until the next tick.
+  - Anything needing to-the-minute accuracy compares timestamps directly
+    instead: `when=live` on the API, and `resolveShowPhase()` in `@dj/utils`.
+- **Ticketing phases**: `onSaleFrom`, `earlyBirdUntil` and `earlyBirdPriceMax`
+  are real dates and a real price, not a free-text badge — a typed-in
+  "EARLY BIRD" label never stops being true on its own, and would sit on the
+  public page quoting a price nobody can still buy. `resolveShowPhase()` is
+  the single reader; ordering is enforced by Zod refinements on
+  `EventCreateInput`.
 - `venueNameOverride` / `cityOverride` cover one-off venues not worth a row.
 - `EventLineupSlot.artistName` is free text with an optional `personaId`,
   because guest artists have no `Persona` row.
@@ -199,6 +214,14 @@ distinguishes "CDJ-3000 preferred" from "CDJ-2000NXS2 accepted".
   [ADR 0010](../01-decisions/0010-tiptap-json-storage.md). `contentText` is the
   plain-text projection feeding the search vector, reading time and meta
   fallbacks.
+- `Video` went live on 2026-09-22 (module, admin screen, homepage and
+  `/gallery` rendering). It had sat in this schema, entirely unused, since
+  Phase 1 — the same state `Gallery` was found in. `embedUrl` is **composed
+  server-side** from `provider` + `providerVideoId`, never taken from a
+  pasted URL, so the public renderer can hand it to an iframe without
+  re-deciding whether it is safe. It has no `SeoMeta` relation, and so no
+  `seo` field on its contract: videos surface inside other pages rather than
+  as standalone indexable ones.
 - `Testimonial.isVerified` gates `Review`/`AggregateRating` JSON-LD. All eight
   seeded testimonials are `false`. See
   [`../07-content/brand.md`](../07-content/brand.md).
@@ -225,6 +248,14 @@ This is the model that fixes the worst legacy bug — a form that only called
 
 `SiteSettings` (singleton, enforced by `CHECK (id = 'singleton')`), `Redirect`,
 `PageView`, `DailyMetric`.
+
+`SiteSettings` also owns the **homepage**: five nullable copy fields
+(`homeHeroEyebrow`/`Headline`/`Subheadline`, `homeClosingHeadline`/
+`Subheadline`, each falling back to the component's built-in string) and nine
+`homeShow*` booleans controlling which sections render. Deliberately not a
+page builder — section *order* is a design decision the page's flow depends
+on; headings and visibility are content decisions that belong to the artist.
+See [ADR 0024](../01-decisions/0024-homepage-revamp-shows-first.md).
 
 `PageView.visitorHash` is a salted **daily** hash; raw rows are rolled into
 `DailyMetric` and dropped after 90 days.

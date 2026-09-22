@@ -665,6 +665,14 @@ export const EventSummary = z.object({
   ticketUrl: z.string().nullable(),
   ticketPriceMin: z.number().nullable(),
   ticketPriceMax: z.number().nullable(),
+  /**
+   * Ticketing phases. Real dates rather than a free-text badge, because
+   * "EARLY BIRD" typed into a string stays on the page long after the
+   * window shuts. `resolveShowPhase()` in @dj/utils is the single reader.
+   */
+  onSaleFrom: z.coerce.date().nullable(),
+  earlyBirdUntil: z.coerce.date().nullable(),
+  earlyBirdPriceMax: z.number().nullable(),
   currency: CurrencySchema,
   ageRestriction: z.string().nullable(),
   venueName: z.string().nullable(),
@@ -707,6 +715,9 @@ const EventCreateBase = inputObject({
   ticketUrl: z.string().url().nullish(),
   ticketPriceMin: z.number().min(0).nullish(),
   ticketPriceMax: z.number().min(0).nullish(),
+  onSaleFrom: z.coerce.date().nullish(),
+  earlyBirdUntil: z.coerce.date().nullish(),
+  earlyBirdPriceMax: z.number().min(0).nullish(),
   currency: CurrencySchema.optional(),
   isFree: z.boolean().optional(),
   ageRestriction: z.string().max(20).nullish(),
@@ -742,7 +753,25 @@ export const EventCreateInput = EventCreateBase.refine(
   .refine((v) => Boolean(v.venueId) || Boolean(v.venueNameOverride), {
     message: 'Provide either a venue or a one-off venue name.',
     path: ['venueId'],
-  });
+  })
+  .refine((v) => v.earlyBirdUntil == null || v.earlyBirdUntil <= v.startsAt, {
+    message: 'Early-bird pricing must end on or before the event starts.',
+    path: ['earlyBirdUntil'],
+  })
+  .refine(
+    (v) => v.onSaleFrom == null || v.earlyBirdUntil == null || v.onSaleFrom <= v.earlyBirdUntil,
+    { message: 'Tickets must go on sale before the early-bird window closes.', path: ['onSaleFrom'] },
+  )
+  .refine(
+    (v) =>
+      v.earlyBirdPriceMax == null || v.ticketPriceMax == null
+        ? true
+        : v.earlyBirdPriceMax <= v.ticketPriceMax,
+    {
+      message: 'The early-bird price must not exceed the standard maximum price.',
+      path: ['earlyBirdPriceMax'],
+    },
+  );
 export type EventCreateInput = z.infer<typeof EventCreateInput>;
 
 /**
@@ -755,7 +784,12 @@ export type EventUpdateInput = z.infer<typeof EventUpdateInput>;
 
 export const EventQuery = PaginationSchema.and(
   z.object({
-    when: z.enum(['upcoming', 'past', 'all']).default('all'),
+    /**
+     * `live` is "on right now" - startsAt has passed and the event has not
+     * ended. It is derived from the timestamps, not from `isPast`, which
+     * only flips hourly and so cannot express "started twenty minutes ago".
+     */
+    when: z.enum(['upcoming', 'past', 'live', 'all']).default('all'),
     personaSlug: Slug.optional(),
     venueSlug: Slug.optional(),
     programSlug: Slug.optional(),
@@ -763,6 +797,8 @@ export const EventQuery = PaginationSchema.and(
     city: z.string().max(80).optional(),
     year: z.coerce.number().int().min(2000).max(2100).optional(),
     featured: z.coerce.boolean().optional(),
+    /** A poster rail is worthless without art; this lets it ask for only the events that have some. */
+    hasFlyer: z.coerce.boolean().optional(),
     q: z.string().max(120).optional(),
     sort: sortSchema(['startsAt', 'title', 'sortIndex', 'createdAt']).default('-startsAt'),
     include: includeSchema(['persona', 'venue', 'lineup', 'seo', 'program']),
@@ -788,6 +824,15 @@ export const ProgramSummary = z.object({
   personaSlug: Slug.nullable(),
   venueName: z.string().nullable(),
   venueSlug: Slug.nullable(),
+  /**
+   * Promoted from ProgramDetail to the summary for the homepage residency
+   * list: "Resident DJ, Big Pitcher (Aug 2024 - Jul 2025)" is the claim a
+   * booker actually reads, and a residency with no dates reads as a boast
+   * rather than a record. Two nullable columns already loaded by the same
+   * query - no extra cost to carry them here.
+   */
+  residencyFrom: z.coerce.date().nullable(),
+  residencyTo: z.coerce.date().nullable(),
   hero: MediaImageSchema.nullable(),
   eventCount: z.number().int(),
 });
@@ -795,8 +840,6 @@ export type ProgramSummary = z.infer<typeof ProgramSummary>;
 
 export const ProgramDetail = ProgramSummary.extend({
   description: z.string().nullable(),
-  residencyFrom: z.coerce.date().nullable(),
-  residencyTo: z.coerce.date().nullable(),
   seo: SeoMetaSchema.nullable(),
 });
 export type ProgramDetail = z.infer<typeof ProgramDetail>;
@@ -1482,3 +1525,110 @@ export type GalleryQuery = z.infer<typeof GalleryQuery>;
 
 export const GalleryAdminDetail = GalleryDetail.extend(PublishableFields);
 export type GalleryAdminDetail = z.infer<typeof GalleryAdminDetail>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Video
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const VideoProviderSchema = z.enum(['YOUTUBE', 'VIMEO', 'CLOUDINARY']);
+export type VideoProvider = z.infer<typeof VideoProviderSchema>;
+
+export const VideoSummary = z.object({
+  id: Id,
+  slug: Slug,
+  title: z.string(),
+  description: z.string().nullable(),
+  provider: VideoProviderSchema,
+  providerVideoId: z.string().nullable(),
+  /**
+   * The full embed URL, composed server-side from `provider` +
+   * `providerVideoId` when the admin supplied those, or taken verbatim from
+   * an explicitly stored `embedUrl`. Either way it is validated against a
+   * strict host allowlist on write, so the client can hand it to an iframe
+   * without re-deciding whether it is safe.
+   */
+  embedUrl: z.string().nullable(),
+  /** Set only for CLOUDINARY videos we host ourselves. */
+  hostedUrl: z.string().nullable(),
+  thumbnail: MediaImageSchema.nullable(),
+  durationSec: z.number().int().nullable(),
+  personaSlug: Slug.nullable(),
+  eventSlug: Slug.nullable(),
+  isFeatured: z.boolean(),
+});
+export type VideoSummary = z.infer<typeof VideoSummary>;
+
+/**
+ * No `seo` here, unlike most detail shapes: `model Video` carries no
+ * `SeoMeta` relation. Videos surface inside the gallery and the homepage
+ * rail rather than as standalone indexable pages, so there is nothing for
+ * per-video meta tags to title. Adding one would be a schema migration, not
+ * a contract change.
+ */
+export const VideoDetail = VideoSummary.extend({
+  transcript: z.string().nullable(),
+});
+export type VideoDetail = z.infer<typeof VideoDetail>;
+
+const VideoCreateBase = inputObject({
+  slug: Slug.optional(),
+  title: z.string().min(1).max(200),
+  description: z.string().max(4000).nullish(),
+  provider: VideoProviderSchema.optional(),
+  /** A bare id ("dQw4w9WgXcQ"), not a URL — the server composes the embed. */
+  providerVideoId: z.string().max(120).nullish(),
+  hostedMediaId: Id.nullish(),
+  thumbnailId: Id.nullish(),
+  durationSec: z.number().int().min(0).max(86_400).nullish(),
+  personaKey: PersonaKeySchema.nullish(),
+  eventId: Id.nullish(),
+  transcript: z.string().max(200_000).nullish(),
+  isFeatured: z.boolean().optional(),
+  ...PublishableInput,
+});
+
+/**
+ * A video has to be playable, and how it is playable depends on the provider.
+ * Rejecting the mismatch here means the public renderer never has to handle a
+ * YouTube row with no id — the state simply cannot be stored.
+ */
+export const VideoCreateInput = VideoCreateBase.refine(
+  (v) =>
+    (v.provider ?? 'YOUTUBE') === 'CLOUDINARY'
+      ? Boolean(v.hostedMediaId)
+      : Boolean(v.providerVideoId),
+  {
+    message:
+      'A YouTube or Vimeo video needs its provider video id; a Cloudinary video needs a hosted media asset.',
+    path: ['providerVideoId'],
+  },
+);
+export type VideoCreateInput = z.infer<typeof VideoCreateInput>;
+
+/**
+ * Partial for PATCH, and the refinement is dropped for the same reason
+ * `EventUpdateInput` drops its own: a partial cannot see the fields it would
+ * need to compare. The service re-checks the merged row before writing.
+ */
+export const VideoUpdateInput = VideoCreateBase.partial();
+export type VideoUpdateInput = z.infer<typeof VideoUpdateInput>;
+
+export const VideoQuery = PaginationSchema.and(
+  z.object({
+    personaSlug: Slug.optional(),
+    eventSlug: Slug.optional(),
+    featured: z.coerce.boolean().optional(),
+    q: z.string().max(120).optional(),
+    sort: sortSchema(['sortIndex', 'title', 'createdAt']).default('sortIndex'),
+  }),
+);
+export type VideoQuery = z.infer<typeof VideoQuery>;
+
+export const VideoAdminDetail = VideoDetail.extend(PublishableFields).extend({
+  /** Raw ids, admin-only — the public shape exposes resolved objects instead. */
+  hostedMediaId: Id.nullable(),
+  thumbnailId: Id.nullable(),
+  personaKey: PersonaKeySchema.nullable(),
+  eventId: Id.nullable(),
+});
+export type VideoAdminDetail = z.infer<typeof VideoAdminDetail>;
