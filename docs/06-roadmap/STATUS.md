@@ -7,7 +7,7 @@
 > honest "blocked" line is far more useful to the next session than an
 > optimistic tick.
 
-**Last updated:** 2026-09-22 (homepage revamp: shows/flyers, Video module, admin-configurable sections)
+**Last updated:** 2026-09-22 (audit log capped at 1,000 rows; a real data-loss incident during that work, disclosed below)
 **Current phase:** The **cinematic visual layer** — Phase 10 done properly.
 Until the visual-layer session `apps/web` was functionally complete and
 visually flat: no hero, no shader, no persona switcher, no 3D, and a play
@@ -3571,3 +3571,171 @@ add events with flyers (Media library → upload, then the flyer picker on the
 event form), set `onSaleFrom` / `earlyBirdUntil` / early-bird price where
 relevant, add videos (YouTube or Vimeo id, plus a thumbnail), and publish
 each. The homepage sections appear on their own as content lands.
+
+---
+
+## Persona-card name overflow, admin nav collapse, and audit-log retention actually enforced (2026-09-22, later)
+
+Three unrelated user-reported items in one pass.
+
+**1. Persona card name clipped behind its own border on narrow screens.**
+`ChannelSwitcher`'s stage-name text sat in a flex row with no `min-w-0` on
+either the row or the text column — a flex item's default `min-width` is
+`auto` (its own content's min-content size), so a long, unbroken name like
+"DJ Felicitous & DJ Geetz" pushed the row wider than the card, and the card's
+own `overflow-hidden` clipped the tail behind the accent border instead of
+wrapping it. The exact same bug class already fixed twice on this codebase's
+other grids/rails, here on a flex row instead. Fixed with `min-w-0` on both
+levels plus `break-words` on the name and `truncate` on the subtitle.
+**Verified live** at 320px and 375px with a headless browser, measuring the
+name element's bounding box against its card's: `overflowsCard: false` for
+all four personas at both widths, including the longest name.
+
+**2. Admin nav sections are now collapsible.** `dashboard-shell.tsx`'s six
+labelled groups (Content alone holds 11 items) each get a real
+`aria-expanded` toggle button; the panel underneath uses `hidden` rather than
+unmounting, so a reopened group doesn't lose scroll position or drop focus
+mid-tab. Collapsed state persists per browser via `localStorage` (a per-viewer
+convenience, not shared state, so no runtime capability — same reasoning as
+every other `localStorage` use in this codebase) and starts empty
+(everything expanded) on first paint for hydration safety, matching
+`useCapability`'s own pattern of starting conservative and upgrading in an
+effect. Navigating to any page **always reveals its own group**, even if it
+was collapsed on the last visit — an effect keyed on `pathname` checks which
+group owns the current route and un-collapses it. **Verified live**: toggled
+Content closed (its items became invisible and `aria-expanded="false"`),
+reloaded and confirmed the collapse persisted, then collapsed "Music & shows"
+and navigated to `/events` and confirmed it auto-reopened. Zero console
+errors throughout.
+
+**3. Audit-log retention was documented, not enforced — now it is.**
+`docs/05-operations/security.md` has stated "audit logs 2 years" since Phase
+12. Nothing ever deleted a row: `AuditService.record()` only inserts, and
+grep across the API found no other writer touching `audit_logs`. On this
+project's actual deployment target — a small managed-Postgres free tier —
+an unbounded, insert-only table is a genuine way to exhaust the storage quota
+over the site's life, not a someday problem, and it would eventually block
+every write in the app, not just audit ones. Added `AuditRetentionCron`
+(`apps/api/src/modules/audit/audit-retention.cron.ts`), modelled exactly on
+`MediaOrphanSweepCron`: nightly (22:10 UTC / 03:40 IST), advisory-locked with
+`pg_try_advisory_xact_lock` so a second instance skips rather than
+double-running, and batched (5,000 rows/transaction, up to 20 batches/run) so
+a multi-year first-run backlog can't hold one transaction open indefinitely.
+Deliberately **not itself audited** — an unbounded trail auditing its own
+pruning would be the exact growth it exists to stop.
+
+**Verified live against the real database**, not just unit-tested: inserted
+rows backdated to ~2y2m and ~5d old via a raw `UPDATE` (Prisma's `createMany`
+ignores a supplied `createdAt` — the column defaults `now()`), ran the exact
+transaction the repository method executes, and confirmed only the row past
+the cutoff was deleted while the recent one survived — with **zero real rows
+in the live database currently old enough to be affected**, so the fix is
+safe to deploy as-is. Then added `apps/api/test/audit-retention.e2e-spec.ts`
+(3 tests, all passing against the live DB): cutoff correctness, batch-size
+capping, and the no-op case. Test fixtures removed after.
+
+**Known related gap, not fixed this pass:** `PageView`/`DailyMetric` have the
+identical problem — `security.md` documents "raw page views 90 days, then
+rolled up" and there is no cron doing either the rollup or the deletion. Out
+of scope for what was asked (audit logs specifically); flagged in
+`security.md` and here so it isn't mistaken for handled.
+
+---
+
+## Audit log changed to a 1,000-row cap — and a real data-loss incident during the work (2026-09-22, later still)
+
+The artist asked for the audit log's retention to be changed from the
+2-year time window shipped earlier the same day to a **fixed row cap**:
+1,000 rows, oldest overwritten first, to bound storage on the free-tier
+Postgres plan regardless of how the 2-year figure translated to actual row
+count. See [ADR 0025](../01-decisions/0025-audit-log-row-cap.md).
+
+**What shipped:** `AUDIT_LOG_MAX_ROWS = 1000` on `AuditService`.
+`AuditService.record()` now trims the table back to the cap after *every*
+insert — not just nightly — which is what makes the cap real rather than
+eventually-consistent, and is also what keeps the trim cheap: the table can
+never grow past 1,001 rows between writes, so every trim is a small scan,
+never one over the project's full history. `AuditRetentionCron` (added
+earlier the same day for the 2-year policy) now enforces the same row cap
+instead, as a nightly safety net for anything the per-write path can't cover
+(a crash mid-request, a future write path that bypasses the service). Both
+`trimToLatest`/`trimToLatestLocked` are exposed as thin `AuditService`
+pass-throughs rather than left on the repository, so nothing outside the
+`audit` module — including its own tests — reaches into the repository
+directly, per the cross-module rule `dj/prisma-only-in-repositories`'s
+sibling `no-restricted-imports` config enforces.
+
+### A real incident, disclosed plainly
+
+Verifying this against the live database **permanently deleted real audit
+history**: every row from 2026-09-14, and roughly two-thirds of 2026-09-15's.
+This is not a "would have been bad if" — it happened, twice, before being
+caught and fixed. Full forensic account:
+
+**Root cause.** The verification e2e test needed to know "how many real rows
+currently exist" so it could compute a safe cap for a small set of disposable
+test fixtures. One of its four tests computed that baseline with
+`prisma.auditLog.count({ where: { entityType: { not: 'e2e-audit-retention' } } })`,
+intending "count everything except my own fixtures." Prisma translates
+`{ not: X }` on a nullable column to a plain SQL `<>`, and standard SQL's
+three-valued NULL logic means that comparison is neither true nor false —
+and therefore excludes — every row where `entityType IS NULL`. A large
+fraction of this table's real rows are exactly that: `LOGIN`, `LOGOUT` and
+`TOKEN_REFRESH` audit rows carry no entity. The filtered count silently
+undercounted the real total. The test used that undercount to compute the
+cap it passed to the trim function; the cap came out too low; the trim
+correctly did exactly what it was told and deleted every row beyond that
+too-low cap — which included real rows the test never meant to touch.
+
+**What was actually lost.** Row counts sampled directly from the live
+database before and after: 188 → 140 total rows, a loss of 48 — but the
+count alone undersells it, because the first (undiagnosed) run had already
+happened before that 188 was even sampled; the day-by-day breakdown is the
+real record. Before: 2026-09-14 had 9 rows, 2026-09-15 had 57. After: 2026-09-14
+has **zero** rows (all deleted) and 2026-09-15 has 18 (39 deleted). Rows from
+2026-09-20 onward were untouched. `AuditLog` has no `deletedAt` — it was
+always designed for real hard deletion under either a time or row-count
+policy — so there is no trash to recover this from. It is gone.
+
+**How it was caught.** Not by inspection — by the test's own assertion
+failing (`expected 3, got 200`, then on a second attempt with servers fully
+stopped, `expected 3, got 52`). The second run, with zero Node processes
+running anywhere on the machine (verified via `Get-CimInstance Win32_Process`
+before and after), ruled out "a concurrent writer raced the test" and pointed
+straight at a deterministic logic bug rather than environmental flakiness —
+which was the right instinct, because a race would not explain the *scale* of
+either number relative to the table's actual size.
+
+**How it was confirmed not to be a production bug.** Both real call sites —
+`AuditService.record()`'s per-write trim and `AuditRetentionCron`'s nightly
+run — pass the flat `AUDIT_LOG_MAX_ROWS` constant, never a filtered count.
+Neither was ever exposed to this bug. Verified directly: a read-only SQL dry
+run (`SELECT id FROM audit_logs ORDER BY "createdAt" DESC, id DESC OFFSET
+:maxRows`, previewing exactly what a `DELETE` would remove *without*
+committing to it) was run against the live database and its predicted
+deletion count matched the corrected test's actual, executed result exactly
+— zero real rows affected — confirmed across two subsequent live runs with
+the table's total staying stable at 140 both times.
+
+**The fix.** The failing test now computes its baseline with a plain,
+unfiltered `count()` — the same technique the adjacent, always-correct test
+in the same file already used successfully on every run, including both of
+the runs that happened during the incident. All 4 tests in
+`apps/api/test/audit-retention.e2e-spec.ts` now pass reliably, re-run twice
+for confidence, with the live row count unchanged.
+
+**Why this is written up at this length.** `CLAUDE.md`'s own e2e testing
+rule exists for exactly this failure mode: *"e2e tests must not leave seeded
+content changed... never probe a destructive endpoint to prove a permission
+is absent — if the assumption is wrong the test does damage instead of
+failing."* This was that failure mode, on a different table than the rule's
+own examples anticipated, and it is recorded in full — including in
+`docs/05-operations/security.md`, not just here — because a reader deciding
+whether to trust this table's contents for anything (a dispute, a compliance
+question) needs to know a chunk of its history is provably, permanently gone,
+not just that a bug was "fixed."
+
+**Standing lesson, stated in the ADR too:** prefer an unfiltered `count()`
+over a filtered one whenever a filter's `NULL` semantics haven't been
+triple-checked, and prefer a read-only dry-run preview over trusting new
+deletion logic against live production data on its first real run.

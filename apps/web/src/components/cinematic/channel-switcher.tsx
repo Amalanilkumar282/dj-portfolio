@@ -162,7 +162,18 @@ export function ChannelSwitcher({
                   ) : null}
                 </span>
 
-                <span className="mt-6 flex items-center gap-3">
+                {/* min-w-0 on both the row and the text column is load-bearing:
+                    a flex item's default min-width is `auto` (its content's
+                    own min-content size), so without it a long, unbroken
+                    stage name ("DJ Felicitous & DJ Geetz") pushed this row
+                    wider than the card and the card's own `overflow-hidden`
+                    clipped the tail behind the border instead of wrapping it -
+                    the same class of bug already fixed on the rails and the
+                    browse-act grid elsewhere in this codebase, here on a flex
+                    row instead of a grid column. leading-none was also
+                    fighting a second, shorter line once wrapping was allowed,
+                    so it's now leading-tight and only on single-line text. */}
+                <span className="mt-6 flex min-w-0 items-center gap-3">
                   {channel.avatarImage ? (
                     <span className="border-border/60 relative block size-12 shrink-0 overflow-hidden rounded-full border">
                       <CloudinaryImage
@@ -174,12 +185,14 @@ export function ChannelSwitcher({
                       />
                     </span>
                   ) : null}
-                  <span className="block">
-                    <span className="font-display text-h3 text-fg-strong block leading-none">
+                  <span className="min-w-0 block">
+                    <span className="font-display text-h3 text-fg-strong block leading-tight break-words">
                       {channel.stageName}
                     </span>
                     {channel.subtitle ? (
-                      <span className="text-fg-secondary mt-2 block text-sm">{channel.subtitle}</span>
+                      <span className="text-fg-secondary mt-2 block truncate text-sm">
+                        {channel.subtitle}
+                      </span>
                     ) : null}
                   </span>
                 </span>

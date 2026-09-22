@@ -33,3 +33,4 @@ Format: Context → Decision → Consequences → Alternatives rejected.
 | [0022](0022-webgl-tier-on-capable-touch-devices.md)                         | Motion tier gates on memory/cores, not pointer type              | Accepted |
 | [0023](0023-remove-homepage-gig-map.md)                                    | Remove the gig map; Act 5 is a catalogue browse wheel            | Accepted |
 | [0024](0024-homepage-revamp-shows-first.md)                                 | Homepage rebuilt around shows; deck and browse wheel retired     | Accepted |
+| [0025](0025-audit-log-row-cap.md)                                            | Audit log capped at 1,000 rows, not a 2-year window               | Accepted |
