@@ -3739,3 +3739,53 @@ not just that a bug was "fixed."
 over a filtered one whenever a filter's `NULL` semantics haven't been
 triple-checked, and prefer a read-only dry-run preview over trusting new
 deletion logic against live production data on its first real run.
+
+---
+
+## Vercel build failure: `EventSummary`'s new fields needed to tolerate a not-yet-redeployed API (2026-09-22, later)
+
+The user's Vercel build of `apps/web` failed prerendering `/api/events.ics`:
+`API 502 on events: response failed contract validation`. Root cause: the
+three ticketing-phase fields added to `Event` earlier the same session
+(`onSaleFrom`, `earlyBirdUntil`, `earlyBirdPriceMax`) were added to
+`EventSummary` as `.nullable()` — present and possibly `null`, but never
+*absent*. `apps/web` and `apps/api` deploy separately (Vercel and Railway —
+ADR 0007), so this Vercel build's `apps/web` already had the new contract
+compiled in while the API it called was still the previous deployment,
+whose response simply doesn't include those three keys. `.nullable()`
+requires the key to exist; an entirely missing key fails it — which is
+exactly what happened, and would have hit every route that reads an event
+(`/`, `/events`, `/events/[slug]`, the ICS feed), not only the one the log
+happened to report first before the build aborted.
+
+**Fixed by widening the three fields to `.nullish()`** (accepts a missing
+key the same as an explicit `null`), so a response from an
+older/not-yet-redeployed API degrades to "no early-bird badge yet" instead
+of failing the whole build. `resolveShowPhase()`'s `EventPhaseInput` type in
+`@dj/utils` needed the same widening (`Date | null | undefined`, spelled out
+explicitly — this project builds with `exactOptionalPropertyTypes`, under
+which `?` alone permits an absent key but not an explicit `undefined` value
+when the key is present).
+
+**Verified, not just typechecked:** parsed a hand-built payload matching the
+*old* API shape (the three keys omitted entirely) directly against the
+`EventSummary` Zod schema — it now parses successfully, with all three
+fields resolving to `undefined`. A full new-shape payload with real
+early-bird values was parsed too, confirming nothing was lost going forward.
+Full workspace (`pnpm test`, lint per-package, `tsc --noEmit` in all three
+apps) re-run clean.
+
+**This does not, by itself, make the ticketing UI live on the deployed
+site** — that still needs the actual API redeployed (Railway) with this
+session's migration applied to whichever database it points at. What this
+fix buys is that the *build itself* — and every other event-reading route —
+no longer breaks while that redeploy hasn't happened yet, and the site keeps
+serving events, just without early-bird/on-sale badges, until it has.
+
+**Standing lesson for this project specifically, given `apps/web` and
+`apps/api` deploy independently:** a new *required* field added to a
+public-API read contract should default to `.nullish()` unless there's a
+specific reason a missing key must be treated as an error — required-but-
+possibly-null and required-but-possibly-absent are different guarantees, and
+only the latter survives a rolling deploy across two independently-deployed
+services.

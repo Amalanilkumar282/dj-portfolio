@@ -29,8 +29,16 @@ export interface EventPhaseInput {
   endsAt?: Date | null;
   /** The EventStatus enum: ANNOUNCED | CONFIRMED | SOLD_OUT | CANCELLED | POSTPONED | COMPLETED. */
   eventStatus: string;
-  onSaleFrom?: Date | null;
-  earlyBirdUntil?: Date | null;
+  // `| undefined` spelled out explicitly, not just made optional via `?`:
+  // this project builds with `exactOptionalPropertyTypes`, under which `?`
+  // alone means "the key may be absent" but does not permit an explicit
+  // `undefined` value when the key IS present. `EventSummary`'s contract
+  // fields are `.nullish()` (accepting a missing key OR an explicit
+  // `undefined`/`null`, deliberately, for cross-deploy tolerance — see its
+  // own comment), so callers passing that shape straight through need the
+  // wider type here too.
+  onSaleFrom?: Date | null | undefined;
+  earlyBirdUntil?: Date | null | undefined;
   ticketUrl?: string | null;
 }
 
