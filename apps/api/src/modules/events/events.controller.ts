@@ -33,6 +33,9 @@ export class EventsController {
       city: query.city,
       year: query.year,
       featured: query.featured,
+      hasFlyer: query.hasFlyer,
+      // Read once here, at the boundary, as everywhere else in this app.
+      now: new Date(),
       q: query.q,
       sort: query.sort,
       limit: query.limit,

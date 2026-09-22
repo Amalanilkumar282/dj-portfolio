@@ -99,6 +99,8 @@ const TAG_MAP: Record<RevalidatableEntity, TagResolver> = {
     // Event pages render the venue name and its map position.
     tags.eventsUpcoming,
     tags.eventsPast,
+    // The homepage lists the rooms he has played.
+    tags.home,
     tags.sitemap,
   ],
 
@@ -107,6 +109,8 @@ const TAG_MAP: Record<RevalidatableEntity, TagResolver> = {
     e.slug ? tags.galleryBySlug(e.slug) : undefined,
     e.personaSlug ? tags.galleryByPersona(e.personaSlug) : undefined,
     e.personaSlug ? tags.persona(e.personaSlug) : undefined,
+    // The homepage carries a gallery rail.
+    tags.home,
     tags.sitemap,
   ],
 
@@ -114,6 +118,8 @@ const TAG_MAP: Record<RevalidatableEntity, TagResolver> = {
     tags.videos,
     e.slug ? tags.video(e.slug) : undefined,
     e.personaSlug ? tags.persona(e.personaSlug) : undefined,
+    // The homepage carries a video rail.
+    tags.home,
     tags.sitemap,
   ],
 

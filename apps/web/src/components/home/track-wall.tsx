@@ -40,21 +40,65 @@ const PAGE_SIZE = 9;
  * is still fetched and filtered in one pass, just revealed a page at a time
  * so the wall doesn't force a long scroll past everything at once.
  */
+/**
+ * The catalogue's own vocabulary, in the order the artist's sketch listed it.
+ *
+ * Derived from the `TrackType` enum but deliberately not the whole enum: MIX
+ * and PODCAST exist in the schema and have no rows, and a chip reading "0"
+ * makes a catalogue look thinner than it is. Any type present in the data but
+ * missing from this list still shows, appended — so adding a TrackType later
+ * cannot silently hide tracks.
+ */
+const TYPE_LABELS: Record<string, string> = {
+  ORIGINAL: 'Original tracks',
+  REMIX: 'Remixes',
+  LIVE_SET: 'Live sets',
+  COLLABORATION: 'Collaborations',
+  MIX: 'Mixes',
+  PODCAST: 'Podcasts',
+};
+
+const TYPE_ORDER = ['ORIGINAL', 'REMIX', 'LIVE_SET', 'COLLABORATION', 'MIX', 'PODCAST'];
+
 export function TrackWall({
   tracks,
   personas,
+  /**
+   * Swaps the filter row from "which identity" to "what kind of work" — the
+   * axis the homepage's discography section is organised by, per the
+   * artist's own sketch. Same grid, same player wiring, one filter predicate
+   * different; a separate component would have duplicated every card.
+   */
+  filterBy = 'persona',
 }: {
   tracks: WallTrack[];
   personas: { slug: string; stageName: string }[];
+  filterBy?: 'persona' | 'type';
 }): React.JSX.Element {
   const [filter, setFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const { current, isPlaying } = usePlayer();
 
-  const visible = useMemo(
-    () => (filter === null ? tracks : tracks.filter((t) => t.personaSlug === filter)),
-    [tracks, filter],
-  );
+  const visible = useMemo(() => {
+    if (filter === null) return tracks;
+    return filterBy === 'type'
+      ? tracks.filter((t) => t.type === filter)
+      : tracks.filter((t) => t.personaSlug === filter);
+  }, [tracks, filter, filterBy]);
+
+  const typeFacets = useMemo(() => {
+    const present = [...new Set(tracks.map((t) => t.type))];
+    const ordered = [
+      ...TYPE_ORDER.filter((type) => present.includes(type)),
+      ...present.filter((type) => !TYPE_ORDER.includes(type)),
+    ];
+    return ordered.map((type) => ({
+      value: type,
+      label: TYPE_LABELS[type] ?? type.toLowerCase().replace('_', ' '),
+      count: tracks.filter((t) => t.type === type).length,
+    }));
+  }, [tracks]);
+
   const shown = visible.slice(0, page * PAGE_SIZE);
   const hasMore = shown.length < visible.length;
 
@@ -65,21 +109,36 @@ export function TrackWall({
 
   return (
     <div>
-      <div className="mb-8 flex flex-wrap gap-2" role="group" aria-label="Filter tracks by persona">
+      <div
+        className="mb-8 flex flex-wrap gap-2"
+        role="group"
+        aria-label={filterBy === 'type' ? 'Filter tracks by kind' : 'Filter tracks by persona'}
+      >
         <FilterChip label="All" count={tracks.length} active={filter === null} onSelect={() => { selectFilter(null); }} />
-        {personas.map((persona) => {
-          const count = tracks.filter((t) => t.personaSlug === persona.slug).length;
-          if (count === 0) return null;
-          return (
-            <FilterChip
-              key={persona.slug}
-              label={persona.stageName}
-              count={count}
-              active={filter === persona.slug}
-              onSelect={() => { selectFilter(persona.slug); }}
-            />
-          );
-        })}
+
+        {filterBy === 'type'
+          ? typeFacets.map((facet) => (
+              <FilterChip
+                key={facet.value}
+                label={facet.label}
+                count={facet.count}
+                active={filter === facet.value}
+                onSelect={() => { selectFilter(facet.value); }}
+              />
+            ))
+          : personas.map((persona) => {
+              const count = tracks.filter((t) => t.personaSlug === persona.slug).length;
+              if (count === 0) return null;
+              return (
+                <FilterChip
+                  key={persona.slug}
+                  label={persona.stageName}
+                  count={count}
+                  active={filter === persona.slug}
+                  onSelect={() => { selectFilter(persona.slug); }}
+                />
+              );
+            })}
       </div>
 
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

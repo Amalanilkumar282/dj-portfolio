@@ -30,6 +30,20 @@ interface SettingsRow {
   bookingFormEnabled: boolean;
   maintenanceMode: boolean;
   responseTimePromise: string | null;
+  homeHeroEyebrow: string | null;
+  homeHeroHeadline: string | null;
+  homeHeroSubheadline: string | null;
+  homeClosingHeadline: string | null;
+  homeClosingSubheadline: string | null;
+  homeShowIdentities: boolean;
+  homeShowShows: boolean;
+  homeShowDiscography: boolean;
+  homeShowResidencies: boolean;
+  homeShowVenues: boolean;
+  homeShowGallery: boolean;
+  homeShowVideos: boolean;
+  homeShowServices: boolean;
+  homeShowTestimonials: boolean;
   updatedAt: Date;
   homeHeroVideoMediaId: string | null;
   homeHeroImageMediaId: string | null;
@@ -64,6 +78,20 @@ export function toSettingsDetail(row: SettingsRow): SiteSettingsDetail {
     bookingFormEnabled: row.bookingFormEnabled,
     maintenanceMode: row.maintenanceMode,
     responseTimePromise: row.responseTimePromise,
+    homeHeroEyebrow: row.homeHeroEyebrow,
+    homeHeroHeadline: row.homeHeroHeadline,
+    homeHeroSubheadline: row.homeHeroSubheadline,
+    homeClosingHeadline: row.homeClosingHeadline,
+    homeClosingSubheadline: row.homeClosingSubheadline,
+    homeShowIdentities: row.homeShowIdentities,
+    homeShowShows: row.homeShowShows,
+    homeShowDiscography: row.homeShowDiscography,
+    homeShowResidencies: row.homeShowResidencies,
+    homeShowVenues: row.homeShowVenues,
+    homeShowGallery: row.homeShowGallery,
+    homeShowVideos: row.homeShowVideos,
+    homeShowServices: row.homeShowServices,
+    homeShowTestimonials: row.homeShowTestimonials,
   };
 }
 

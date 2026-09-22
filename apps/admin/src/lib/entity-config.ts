@@ -475,6 +475,27 @@ export const ENTITIES: EntityConfig[] = [
     ],
   },
   {
+    // List-only config: the form is bespoke (components/videos/video-form.tsx)
+    // because it needs the provider switch, a media picker for the thumbnail
+    // and persona/event selects - none of which the generic scalar form can
+    // render.
+    key: 'videos',
+    label: 'Video',
+    pluralLabel: 'Videos',
+    basePath: 'admin/videos',
+    adminRoute: '/videos',
+    permissionPrefix: 'video',
+    publishable: true,
+    paginated: true,
+    reorderable: true,
+    fields: [],
+    listColumns: [
+      { key: 'title', label: 'Title' },
+      { key: 'provider', label: 'Provider' },
+      { key: 'status', label: 'Status' },
+    ],
+  },
+  {
     key: 'programs',
     label: 'Program',
     pluralLabel: 'Programs',

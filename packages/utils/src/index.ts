@@ -11,3 +11,10 @@ export {
 export { secondsToDuration, durationToSeconds, formatDurationLabel } from './duration.js';
 export { truncate, stripMarkdown, readingMinutes } from './text.js';
 export { assertNever, isDefined } from './guards.js';
+export {
+  resolveShowPhase,
+  showPhaseLabel,
+  isTicketable,
+  type ShowPhase,
+  type EventPhaseInput,
+} from './show-phase.js';

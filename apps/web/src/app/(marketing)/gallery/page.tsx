@@ -3,13 +3,15 @@ import Link from 'next/link';
 
 import { CloudinaryImage } from '../../../components/cloudinary-image';
 import { Container, Section, SectionHeader } from '../../../components/container';
+import { VideoRail } from '../../../components/home/video-rail';
 import { SIZES } from '../../../lib/media';
 import { absoluteUrl } from '../../../lib/site';
 import { getGalleries } from '../../../server/queries/galleries';
+import { getVideos } from '../../../server/queries/videos';
 
 export const metadata: Metadata = {
   title: 'Gallery',
-  description: 'Photos from the road — sets, crowds and rigs across every channel.',
+  description: 'Photos and video from the road — sets, crowds and rigs across every channel.',
   alternates: { canonical: absoluteUrl('/gallery') },
 };
 
@@ -22,12 +24,16 @@ export const metadata: Metadata = {
  * stock imagery pretending content exists.
  */
 export default async function GalleryIndexPage(): Promise<React.JSX.Element> {
-  const galleries = await getGalleries();
+  // Photos and video on one page rather than two routes, because the artist's
+  // own sketch drew them as two sections of a single "gallery" - and split
+  // across two near-empty pages neither would look worth opening.
+  const [galleries, videos] = await Promise.all([getGalleries(), getVideos({ limit: 50 })]);
 
   return (
     <Section className="pt-20">
       <Container>
         <SectionHeader
+          as="h1"
           eyebrow="On the road"
           title="Gallery"
           description="Photos from sets, crowds and rigs — added by the artist as they come in."
@@ -64,6 +70,17 @@ export default async function GalleryIndexPage(): Promise<React.JSX.Element> {
             ))}
           </div>
         )}
+
+        {videos.length > 0 ? (
+          <div className="mt-20">
+            <SectionHeader
+              eyebrow="Watch"
+              title="Videos"
+              description="Sets, recaps and clips. Nothing loads from YouTube until you press play."
+            />
+            <VideoRail videos={videos} />
+          </div>
+        ) : null}
       </Container>
     </Section>
   );

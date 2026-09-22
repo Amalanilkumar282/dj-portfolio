@@ -73,7 +73,18 @@ describe('resolveTags', () => {
   });
 
   it('invalidates the home page for content that appears there', () => {
-    for (const entity of ['event', 'testimonial', 'service', 'brand'] as const) {
+    // gallery, video and venue joined this list when the homepage revamp gave
+    // each of them a rail there. Forgetting one is exactly the silent failure
+    // this file exists to catch.
+    for (const entity of [
+      'event',
+      'testimonial',
+      'service',
+      'brand',
+      'gallery',
+      'video',
+      'venue',
+    ] as const) {
       expect(resolveTags(event({ entity })), entity).toContain(tags.home);
     }
   });

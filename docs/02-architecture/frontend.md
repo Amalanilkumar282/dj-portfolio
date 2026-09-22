@@ -194,3 +194,55 @@ never delays the largest paint.
 
 LCP ≤2.0s p75 (4G, Moto G) · INP ≤150ms · CLS ≤0.02 · Lighthouse Perf ≥92
 mobile / ≥98 desktop · A11y 100 · SEO 100.
+
+**"CI-enforced" is aspirational as of 2026-09-22** — `size-limit` is still a
+commented-out future job in `.github/workflows/ci.yml`. Measured from
+`next build` on that date:
+
+| Route        | First Load JS | Target | |
+| ------------ | ------------- | ------ | --- |
+| `/`          | 134KB         | ≤145KB | green |
+| `/[persona]` | 128KB         | ≤155KB | green |
+| `/events`    | 112KB         | ≤120KB | green |
+| `/gallery`   | 125KB         | ≤120KB | **5KB over** |
+
+`/gallery` went over when it gained the video rail: a client island pulls in
+`next/image`'s client runtime, which the page's previously all-server photo
+grid did not. Splitting the lightbox into its own lazy chunk (done) did not
+recover it, because the lightbox was never the weight. The remaining options
+are to drop SSR for the rail (`ssr: false`, costing the video titles in the
+server HTML) or to raise the target for this route; neither was chosen
+unilaterally. See STATUS.md.
+
+---
+
+## The homepage
+
+The homepage is the site — most promoters never open a second page, so every
+area of the site is represented there with real content rather than a teaser.
+Its running order, each section additionally hidden when it has no content
+and individually switchable from admin Settings:
+
+| # | Act | Source |
+| - | --- | ------ |
+| 1 | Hero — shader/video backdrop, genre chips, **Book now / Listen now** | `settings`, `personas` |
+| 2 | Musical identities — the channel switcher | `personas` |
+| 3 | **Shows & flyers** — spotlight + a poster rail per phase | `events` (live/upcoming/past) |
+| 4 | Discography — the playable track wall, filtered by kind of work | `tracks` |
+| 5 | Residencies — "Resident DJ", with real date ranges | `programs` + `experience` |
+| 6 | Recently played venues | `venues` |
+| 7 | Photo gallery rail | `galleries` |
+| 8 | Video rail — click-to-load embeds | `videos` |
+| 9 | Services |
+| 10 | Stats and testimonials |
+| 11 | Closing CTA |
+
+A procedural 3D CDJ and a rotary browse wheel used to occupy acts 4 and 5.
+They still exist as components and still work; the homepage no longer imports
+them. See
+[ADR 0024](../01-decisions/0024-homepage-revamp-shows-first.md).
+
+`/events` is the shows browse: poster rails by phase (happening now, early
+bird, on sale, announced, recently played), plus a row per recurring
+programme, with `searchParams`-driven city and kind filters resolved on the
+server so every view is crawlable and works without JavaScript.

@@ -53,6 +53,7 @@ import { TagsModule } from './modules/tags/tags.module';
 import { TestimonialsModule } from './modules/testimonials/testimonials.module';
 import { TracksModule } from './modules/tracks/tracks.module';
 import { VenuesModule } from './modules/venues/venues.module';
+import { VideosModule } from './modules/videos/videos.module';
 
 /**
  * The application root.
@@ -143,6 +144,7 @@ import { VenuesModule } from './modules/venues/venues.module';
     ServicesModule,
     BrandsModule,
     GalleriesModule,
+    VideosModule,
     StatsModule,
     SettingsModule,
     RedirectsModule,

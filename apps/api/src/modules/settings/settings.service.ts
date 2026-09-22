@@ -70,6 +70,24 @@ export class SettingsService {
     if (input.maintenanceMode !== undefined) data.maintenanceMode = input.maintenanceMode;
     if (input.responseTimePromise !== undefined) data.responseTimePromise = input.responseTimePromise;
 
+    // Homepage copy and section visibility. Same explicit-assignment shape as
+    // everything above: `undefined` means "not in this PATCH", while `null`
+    // is a real value meaning "clear it and fall back to the default copy".
+    if (input.homeHeroEyebrow !== undefined) data.homeHeroEyebrow = input.homeHeroEyebrow;
+    if (input.homeHeroHeadline !== undefined) data.homeHeroHeadline = input.homeHeroHeadline;
+    if (input.homeHeroSubheadline !== undefined) data.homeHeroSubheadline = input.homeHeroSubheadline;
+    if (input.homeClosingHeadline !== undefined) data.homeClosingHeadline = input.homeClosingHeadline;
+    if (input.homeClosingSubheadline !== undefined) data.homeClosingSubheadline = input.homeClosingSubheadline;
+    if (input.homeShowIdentities !== undefined) data.homeShowIdentities = input.homeShowIdentities;
+    if (input.homeShowShows !== undefined) data.homeShowShows = input.homeShowShows;
+    if (input.homeShowDiscography !== undefined) data.homeShowDiscography = input.homeShowDiscography;
+    if (input.homeShowResidencies !== undefined) data.homeShowResidencies = input.homeShowResidencies;
+    if (input.homeShowVenues !== undefined) data.homeShowVenues = input.homeShowVenues;
+    if (input.homeShowGallery !== undefined) data.homeShowGallery = input.homeShowGallery;
+    if (input.homeShowVideos !== undefined) data.homeShowVideos = input.homeShowVideos;
+    if (input.homeShowServices !== undefined) data.homeShowServices = input.homeShowServices;
+    if (input.homeShowTestimonials !== undefined) data.homeShowTestimonials = input.homeShowTestimonials;
+
     const updated = await this.repository.update(data);
 
     await this.audit.record({

@@ -256,13 +256,13 @@ model User {
   totpRecoveryCodes String[]  @default([]) // argon2 hashes of one-time codes
 
   // Brute-force lockout
-  failedLoginCount Int       @default(0)
-  lockedUntil      DateTime?
-  lastLoginAt      DateTime?
-  lastLoginIp      String?
+  failedLoginCount  Int       @default(0)
+  lockedUntil       DateTime?
+  lastLoginAt       DateTime?
+  lastLoginIp       String?
   /// Bumping this invalidates every refresh token issued before it, which is
   /// how "log out everywhere on password change" works without a token scan.
-  passwordChangedAt DateTime @default(now())
+  passwordChangedAt DateTime  @default(now())
 
   roles             UserRole[]
   refreshTokens     RefreshToken[]
@@ -401,32 +401,32 @@ model IdempotencyKey {
 // ============================================================================
 
 model SeoMeta {
-  id             String  @id @default(cuid(2))
+  id             String      @id @default(cuid(2))
   title          String? // <= 60 chars, enforced by the Zod contract
   description    String? // <= 160
-  keywords       String[] @default([])
+  keywords       String[]    @default([])
   canonicalUrl   String?
   ogTitle        String?
   ogDescription  String?
   ogImageId      String?
   ogImage        MediaAsset? @relation(fields: [ogImageId], references: [id], onDelete: SetNull)
-  twitterCard    String? @default("summary_large_image")
-  noIndex        Boolean @default(false)
-  noFollow       Boolean @default(false)
+  twitterCard    String?     @default("summary_large_image")
+  noIndex        Boolean     @default(false)
+  noFollow       Boolean     @default(false)
   /// JSON-LD override. Normally the graph is generated per entity type;
   /// this is the escape hatch.
   structuredData Json?
 
-  persona     Persona?
-  event       Event?
-  release     Release?
-  post        Post?
-  track       Track?
-  playlist    Playlist?
-  service     Service?
-  page        StaticPage?
-  program     Program?
-  venue       Venue?
+  persona  Persona?
+  event    Event?
+  release  Release?
+  post     Post?
+  track    Track?
+  playlist Playlist?
+  service  Service?
+  page     StaticPage?
+  program  Program?
+  venue    Venue?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -468,7 +468,7 @@ model MediaAsset {
   altText          String?
   caption          String?
   credit           String? // photographer
-  tags             String[]          @default([])
+  tags             String[] @default([])
   /// Normalised focal point (0..1) driving object-position, so cropped hero
   /// portraits never decapitate the subject.
   focalX           Float?
@@ -476,39 +476,39 @@ model MediaAsset {
   /// Precomputed peak array for audio, so the waveform renders without
   /// downloading the file.
   waveformPeaks    Json?
-  isSensitive      Boolean           @default(false)
+  isSensitive      Boolean  @default(false)
 
   uploadedById String?
   uploadedBy   User?   @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
 
   // Reverse relations - the reference counter for two-phase deletion walks
   // these to refuse deleting an asset that is still in use.
-  personaHeroes      Persona[]     @relation("PersonaHero")
-  personaAvatars     Persona[]     @relation("PersonaAvatar")
-  personaBgVideos    Persona[]     @relation("PersonaBgVideo")
-  galleryItems       GalleryItem[]
-  eventFlyers        Event[]       @relation("EventFlyer")
-  trackArtworks      Track[]       @relation("TrackArtwork")
-  trackAudios        Track[]       @relation("TrackAudio")
-  playlistCovers     Playlist[]    @relation("PlaylistCover")
-  releaseCovers      Release[]     @relation("ReleaseCover")
-  postCovers         Post[]        @relation("PostCover")
-  testimonialAvatars Testimonial[]
-  brandLogos         Brand[]       @relation("BrandLogo")
-  brandMonoLogos     Brand[]       @relation("BrandMonoLogo")
-  serviceImages      Service[]
-  pressAssets        PressAsset[]
-  videoThumbnails    Video[]       @relation("VideoThumbnail")
-  videoHosted        Video[]       @relation("VideoHosted")
-  gearImages         GearItem[]
-  experienceLogos    ExperienceEntry[]
-  venueLogos         Venue[]
-  programHeroes      Program[]     @relation("ProgramHero")
-  seoOgImages        SeoMeta[]
-  settingsLogos      SiteSettings[] @relation("SettingsLogo")
-  settingsOgImages   SiteSettings[] @relation("SettingsOgImage")
-  settingsHomeHeroVideos SiteSettings[] @relation("SettingsHomeHeroVideo")
-  settingsHomeHeroImages SiteSettings[] @relation("SettingsHomeHeroImage")
+  personaHeroes          Persona[]         @relation("PersonaHero")
+  personaAvatars         Persona[]         @relation("PersonaAvatar")
+  personaBgVideos        Persona[]         @relation("PersonaBgVideo")
+  galleryItems           GalleryItem[]
+  eventFlyers            Event[]           @relation("EventFlyer")
+  trackArtworks          Track[]           @relation("TrackArtwork")
+  trackAudios            Track[]           @relation("TrackAudio")
+  playlistCovers         Playlist[]        @relation("PlaylistCover")
+  releaseCovers          Release[]         @relation("ReleaseCover")
+  postCovers             Post[]            @relation("PostCover")
+  testimonialAvatars     Testimonial[]
+  brandLogos             Brand[]           @relation("BrandLogo")
+  brandMonoLogos         Brand[]           @relation("BrandMonoLogo")
+  serviceImages          Service[]
+  pressAssets            PressAsset[]
+  videoThumbnails        Video[]           @relation("VideoThumbnail")
+  videoHosted            Video[]           @relation("VideoHosted")
+  gearImages             GearItem[]
+  experienceLogos        ExperienceEntry[]
+  venueLogos             Venue[]
+  programHeroes          Program[]         @relation("ProgramHero")
+  seoOgImages            SeoMeta[]
+  settingsLogos          SiteSettings[]    @relation("SettingsLogo")
+  settingsOgImages       SiteSettings[]    @relation("SettingsOgImage")
+  settingsHomeHeroVideos SiteSettings[]    @relation("SettingsHomeHeroVideo")
+  settingsHomeHeroImages SiteSettings[]    @relation("SettingsHomeHeroImage")
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -531,15 +531,15 @@ model MediaAsset {
 // ============================================================================
 
 model Persona {
-  id               String     @id @default(cuid(2))
-  key              PersonaKey @unique
-  slug             String     @unique // felicitous | trinitrocosmic | tnt | felicitous-x-geetz
-  stageName        String // "Trinitrocosmic"
-  subtitle         String? // "Psychedelic Journey Guide"
-  tagline          String?
-  shortDescription String?    @db.VarChar(280)
-  bio              String     @db.Text // markdown
-  bioShort         String?    @db.Text
+  id                String     @id @default(cuid(2))
+  key               PersonaKey @unique
+  slug              String     @unique // felicitous | trinitrocosmic | tnt | felicitous-x-geetz
+  stageName         String // "Trinitrocosmic"
+  subtitle          String? // "Psychedelic Journey Guide"
+  tagline           String?
+  shortDescription  String?    @db.VarChar(280)
+  bio               String     @db.Text // markdown
+  bioShort          String?    @db.Text
   primaryGenreLabel String? // "Psytrance"
 
   /// Persona theming is CMS-driven: these feed CSS custom properties on the
@@ -665,25 +665,25 @@ model SocialLink {
 // ============================================================================
 
 model Track {
-  id          String    @id @default(cuid(2))
-  slug        String    @unique
-  title       String
+  id             String    @id @default(cuid(2))
+  slug           String    @unique
+  title          String
   /// Display credit, which may differ from the owning persona
   /// (e.g. "Trinitrocosmic / DJ Felicitous" for a collaboration).
-  artistLabel String
-  personaId   String?
-  persona     Persona?  @relation(fields: [personaId], references: [id], onDelete: SetNull)
-  releaseId   String?
-  release     Release?  @relation(fields: [releaseId], references: [id], onDelete: SetNull)
-  trackNumber Int?
-  type        TrackType @default(MIX)
-  description String?   @db.Text
-  bpm         Int?
-  musicalKey  String?
-  durationSec Int?
-  releaseDate DateTime?
-  isFeatured  Boolean   @default(false)
-  isDownloadable Boolean @default(false)
+  artistLabel    String
+  personaId      String?
+  persona        Persona?  @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  releaseId      String?
+  release        Release?  @relation(fields: [releaseId], references: [id], onDelete: SetNull)
+  trackNumber    Int?
+  type           TrackType @default(MIX)
+  description    String?   @db.Text
+  bpm            Int?
+  musicalKey     String?
+  durationSec    Int?
+  releaseDate    DateTime?
+  isFeatured     Boolean   @default(false)
+  isDownloadable Boolean   @default(false)
 
   // Third-party embeds. These are NOT MediaAssets - nothing is hosted by us.
   soundcloudTrackId String?
@@ -733,8 +733,8 @@ model Track {
 model TrackGenre {
   trackId String
   genreId String
-  track   Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  track   Track  @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
 
   @@id([trackId, genreId])
   @@index([genreId])
@@ -744,17 +744,17 @@ model TrackGenre {
 /// Curated, orderable, shareable collections of the DJ's own productions and
 /// mixes - the "listen to my work as a playlist" showcase.
 model Playlist {
-  id          String  @id @default(cuid(2))
-  slug        String  @unique
-  title       String
-  description String? @db.Text
-  personaId   String?
-  persona     Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
-  coverId     String?
-  cover       MediaAsset? @relation("PlaylistCover", fields: [coverId], references: [id], onDelete: SetNull)
-  isFeatured  Boolean @default(false)
+  id               String      @id @default(cuid(2))
+  slug             String      @unique
+  title            String
+  description      String?     @db.Text
+  personaId        String?
+  persona          Persona?    @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  coverId          String?
+  cover            MediaAsset? @relation("PlaylistCover", fields: [coverId], references: [id], onDelete: SetNull)
+  isFeatured       Boolean     @default(false)
   /// Total runtime, denormalised on write so list views need no aggregation.
-  totalDurationSec Int? @default(0)
+  totalDurationSec Int?        @default(0)
 
   tracks      PlaylistTrack[]
   streamLinks PlaylistStreamLink[]
@@ -870,12 +870,12 @@ model Release {
 // ============================================================================
 
 model Venue {
-  id           String  @id @default(cuid(2))
-  slug         String  @unique
+  id           String      @id @default(cuid(2))
+  slug         String      @unique
   name         String // "Big Pitcher Sarjapur"
   city         String // "Bangalore"
   state        String?
-  country      String  @default("India")
+  country      String      @default("India")
   addressLine  String?
   postalCode   String?
   latitude     Float?
@@ -883,7 +883,7 @@ model Venue {
   websiteUrl   String?
   instagramUrl String?
   capacity     Int?
-  notes        String? @db.Text
+  notes        String?     @db.Text
   logoId       String?
   logo         MediaAsset? @relation(fields: [logoId], references: [id], onDelete: SetNull)
 
@@ -904,8 +904,8 @@ model Venue {
   updatedBy String?
   deletedAt DateTime?
 
-  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
   @@unique([name, city])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([city])
   @@index([deletedAt])
   @@map("venues")
@@ -920,16 +920,16 @@ model Event {
   eventStatus EventStatus @default(ANNOUNCED)
   description String?     @db.Text
 
-  personaId String?
-  persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
-  venueId   String?
-  venue     Venue?   @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  personaId         String?
+  persona           Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  venueId           String?
+  venue             Venue?   @relation(fields: [venueId], references: [id], onDelete: SetNull)
   /// One-off venues that do not warrant a Venue row.
   venueNameOverride String?
   cityOverride      String?
   countryOverride   String?
-  programId String?
-  program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  programId         String?
+  program           Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
 
   /// Always stored UTC; `timezone` carries the display zone so the
   /// MusicEvent JSON-LD can emit a correct IST offset.
@@ -940,11 +940,21 @@ model Event {
   doorsOpenAt DateTime?
 
   ticketUrl      String?
-  ticketPriceMin Decimal?  @db.Decimal(10, 2)
-  ticketPriceMax Decimal?  @db.Decimal(10, 2)
-  currency       Currency  @default(INR)
-  isFree         Boolean   @default(false)
+  ticketPriceMin Decimal? @db.Decimal(10, 2)
+  ticketPriceMax Decimal? @db.Decimal(10, 2)
+  currency       Currency @default(INR)
+  isFree         Boolean  @default(false)
   ageRestriction String? // "21+"
+
+  /// Ticketing phases. These are real dates the artist sets, not a free-text
+  /// badge: a label like "EARLY BIRD" typed into a string goes stale silently
+  /// the day it expires, whereas these drive `resolveShowPhase()` in
+  /// @dj/utils and stop being true on their own.
+  /// Ordering (onSaleFrom <= earlyBirdUntil <= startsAt) is enforced by Zod
+  /// refinements on EventCreateBase, alongside the existing endsAt/price ones.
+  onSaleFrom        DateTime?
+  earlyBirdUntil    DateTime?
+  earlyBirdPriceMax Decimal?  @db.Decimal(10, 2)
 
   lineup      EventLineupSlot[]
   flyerId     String?
@@ -953,10 +963,10 @@ model Event {
   gallery     Gallery?          @relation(fields: [galleryId], references: [id], onDelete: SetNull)
   recapVideos Video[]
 
-  isFeatured Boolean @default(false)
+  isFeatured         Boolean @default(false)
   /// Maintained by the hourly cron so the "upcoming" partial index stays
   /// cheap - a WHERE on a boolean beats a WHERE on now().
-  isPast     Boolean @default(false)
+  isPast             Boolean @default(false)
   attendanceEstimate Int?
 
   seoMetaId String?  @unique
@@ -1005,24 +1015,24 @@ model EventLineupSlot {
 /// Recurring or branded nights and shows performed - "Housefull Sunday",
 /// "Big Bollywood Night", "Clubbers Friday". A residency groups many Events.
 model Program {
-  id          String  @id @default(cuid(2))
-  slug        String  @unique
-  name        String
-  subtitle    String?
-  description String? @db.Text
+  id            String      @id @default(cuid(2))
+  slug          String      @unique
+  name          String
+  subtitle      String?
+  description   String?     @db.Text
   /// "Weekly", "Monthly", "One-off season"
-  cadence     String?
-  personaId   String?
-  persona     Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
-  venueId     String?
-  venue       Venue?   @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  cadence       String?
+  personaId     String?
+  persona       Persona?    @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  venueId       String?
+  venue         Venue?      @relation(fields: [venueId], references: [id], onDelete: SetNull)
   residencyFrom DateTime?
   residencyTo   DateTime?
-  isOngoing     Boolean  @default(false)
-  heroId      String?
-  hero        MediaAsset? @relation("ProgramHero", fields: [heroId], references: [id], onDelete: SetNull)
-  galleryId   String?     @unique
-  gallery     Gallery?    @relation(fields: [galleryId], references: [id], onDelete: SetNull)
+  isOngoing     Boolean     @default(false)
+  heroId        String?
+  hero          MediaAsset? @relation("ProgramHero", fields: [heroId], references: [id], onDelete: SetNull)
+  galleryId     String?     @unique
+  gallery       Gallery?    @relation(fields: [galleryId], references: [id], onDelete: SetNull)
 
   events Event[]
 
@@ -1144,22 +1154,22 @@ model Video {
 /// those are deliberately not migrated. Fake Review markup is a Google
 /// penalty risk as well as a trust problem.
 model Testimonial {
-  id           String    @id @default(cuid(2))
+  id           String      @id @default(cuid(2))
   authorName   String
   authorRole   String?
   venueOrEvent String?
   company      String?
-  quote        String    @db.Text
+  quote        String      @db.Text
   rating       Int? // 1..5
   eventDate    DateTime?
   personaId    String?
-  persona      Persona?  @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  persona      Persona?    @relation(fields: [personaId], references: [id], onDelete: SetNull)
   avatarId     String?
   avatar       MediaAsset? @relation(fields: [avatarId], references: [id], onDelete: SetNull)
   sourceUrl    String?
-  isFeatured   Boolean   @default(false)
+  isFeatured   Boolean     @default(false)
   /// Gate for emitting Review / AggregateRating JSON-LD.
-  isVerified   Boolean   @default(false)
+  isVerified   Boolean     @default(false)
 
   status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
@@ -1179,8 +1189,8 @@ model Testimonial {
 }
 
 model Brand {
-  id         String  @id @default(cuid(2))
-  slug       String  @unique
+  id         String      @id @default(cuid(2))
+  slug       String      @unique
   name       String
   websiteUrl String?
   logoId     String?
@@ -1188,7 +1198,7 @@ model Brand {
   logoMonoId String?
   logoMono   MediaAsset? @relation("BrandMonoLogo", fields: [logoMonoId], references: [id], onDelete: SetNull)
   category   String? // venue | brand | festival | media
-  isFeatured Boolean @default(false)
+  isFeatured Boolean     @default(false)
 
   personas PersonaBrand[]
 
@@ -1250,16 +1260,16 @@ model Stat {
 /// The work-experience timeline on /about: residencies, roles, labels,
 /// production credits, teaching.
 model ExperienceEntry {
-  id           String    @id @default(cuid(2))
+  id           String      @id @default(cuid(2))
   role         String // "Resident DJ"
   /// Venue, brand, label or client.
   organisation String
   location     String?
   startDate    DateTime
   endDate      DateTime?
-  isCurrent    Boolean   @default(false)
-  summary      String?   @db.Text
-  highlights   String[]  @default([])
+  isCurrent    Boolean     @default(false)
+  summary      String?     @db.Text
+  highlights   String[]    @default([])
   logoId       String?
   logo         MediaAsset? @relation(fields: [logoId], references: [id], onDelete: SetNull)
 
@@ -1423,16 +1433,16 @@ model PressAsset {
 }
 
 model Post {
-  id      String  @id @default(cuid(2))
-  slug    String  @unique
-  title   String
-  excerpt String? @db.VarChar(400)
+  id             String      @id @default(cuid(2))
+  slug           String      @unique
+  title          String
+  excerpt        String?     @db.VarChar(400)
   /// Tiptap JSON, never HTML. The frontend renders it through a typed
   /// RichText component, so injected markup cannot reach the DOM.
-  content Json
+  content        Json
   /// Plain-text projection of `content`, used for the generated search
   /// vector, reading time and meta-description fallbacks.
-  contentText    String? @db.Text
+  contentText    String?     @db.Text
   readingMinutes Int?
   coverId        String?
   cover          MediaAsset? @relation("PostCover", fields: [coverId], references: [id], onDelete: SetNull)
@@ -1467,8 +1477,8 @@ model Post {
 model PostTag {
   postId String
   tagId  String
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([postId, tagId])
   @@index([tagId])
@@ -1522,25 +1532,25 @@ model StaticPage {
 // ============================================================================
 
 model BookingInquiry {
-  id String @id @default(cuid(2))
+  id        String @id @default(cuid(2))
   /// Human-quotable reference, INQ-2026-0042. Generated on create.
   reference String @unique
 
-  name  String
-  email String
-  phone String?
+  name             String
+  email            String
+  phone            String?
   /// Preferred contact channel; WhatsApp is the norm for this market.
   preferredChannel String? @default("WHATSAPP")
 
-  eventType     EventKind @default(PRIVATE)
-  eventDate     DateTime?
-  eventEndDate  DateTime?
-  isDateFlexible Boolean  @default(false)
-  venueText     String?
-  city          String?
-  country       String?   @default("India")
-  guestCount    Int?
-  durationHours Int?
+  eventType      EventKind @default(PRIVATE)
+  eventDate      DateTime?
+  eventEndDate   DateTime?
+  isDateFlexible Boolean   @default(false)
+  venueText      String?
+  city           String?
+  country        String?   @default("India")
+  guestCount     Int?
+  durationHours  Int?
 
   /// INR by default. Nullable because "not sure yet" is a real answer and
   /// forcing a bracket loses leads.
@@ -1548,10 +1558,10 @@ model BookingInquiry {
   budgetMax Decimal? @db.Decimal(12, 2)
   currency  Currency @default(INR)
 
-  personaId String?
-  persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  personaId   String?
+  persona     Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
   serviceSlug String?
-  message   String?  @db.Text
+  message     String?  @db.Text
 
   status       InquiryStatus @default(NEW)
   source       InquirySource @default(WEBSITE_FORM)
@@ -1562,7 +1572,7 @@ model BookingInquiry {
 
   /// Heuristic score from link count, all-caps ratio and disposable-email
   /// domains. High scores land in SPAM without notifying.
-  spamScore Int     @default(0)
+  spamScore       Int     @default(0)
   honeypotTripped Boolean @default(false)
 
   /// Null means the notification email has not gone out yet; the retry cron
@@ -1618,15 +1628,15 @@ model NewsletterSubscriber {
   name   String?
   status SubscriberStatus @default(PENDING)
 
-  confirmToken       String?   @unique
+  confirmToken        String?   @unique
   confirmTokenExpires DateTime?
-  confirmedAt        DateTime?
-  unsubscribeToken   String    @unique
-  unsubscribedAt     DateTime?
+  confirmedAt         DateTime?
+  unsubscribeToken    String    @unique
+  unsubscribedAt      DateTime?
 
-  source    String? // footer | book-page | press-kit-gate
-  ipHash    String?
-  tags      String[] @default([])
+  source String? // footer | book-page | press-kit-gate
+  ipHash String?
+  tags   String[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1645,7 +1655,7 @@ model SiteSettings {
   id String @id @default("singleton")
 
   // Brand
-  siteName    String  @default("DJ Felicitous")
+  siteName    String      @default("DJ Felicitous")
   siteTagline String?
   logoId      String?
   logo        MediaAsset? @relation("SettingsLogo", fields: [logoId], references: [id], onDelete: SetNull)
@@ -1667,16 +1677,16 @@ model SiteSettings {
 
   // Contact / NAP - kept consistent with the Google Business Profile for
   // local SEO.
-  contactEmail   String  @default("bookings@djfelicitous.com")
-  bookingEmail   String?
-  contactPhone   String? // E.164, e.g. +919847352182
-  whatsappNumber String? // digits only, for wa.me deep links
-  addressCity    String? @default("Bengaluru")
-  addressRegion  String? @default("Karnataka")
-  addressCountry String? @default("IN")
-  latitude       Float?
-  longitude      Float?
-  googleMapsUrl  String?
+  contactEmail    String  @default("bookings@djfelicitous.com")
+  bookingEmail    String?
+  contactPhone    String? // E.164, e.g. +919847352182
+  whatsappNumber  String? // digits only, for wa.me deep links
+  addressCity     String? @default("Bengaluru")
+  addressRegion   String? @default("Karnataka")
+  addressCountry  String? @default("IN")
+  latitude        Float?
+  longitude       Float?
+  googleMapsUrl   String?
   /// Free text, e.g. "Bengaluru, Karnataka and across India"
   serviceAreaText String?
 
@@ -1701,6 +1711,31 @@ model SiteSettings {
   /// this holds the "responds within" style promises.
   responseTimePromise String? @default("Replies within 24 hours")
 
+  // ── Homepage ───────────────────────────────────────────────────────────
+  // The homepage is the product: most booking clients never open a second
+  // page. These let the artist retitle and reorder-by-omission that page
+  // without a developer, which is the whole reason this project exists.
+  //
+  // Deliberately NOT a drag-and-drop page builder: section *order* is a
+  // design decision, section *visibility and copy* are content decisions.
+  // Null copy falls back to the component's own default string, so an
+  // untouched settings row renders exactly what it renders today.
+  homeHeroEyebrow        String?
+  homeHeroHeadline       String?
+  homeHeroSubheadline    String?
+  homeClosingHeadline    String?
+  homeClosingSubheadline String?
+
+  homeShowIdentities   Boolean @default(true)
+  homeShowShows        Boolean @default(true)
+  homeShowDiscography  Boolean @default(true)
+  homeShowResidencies  Boolean @default(true)
+  homeShowVenues       Boolean @default(true)
+  homeShowGallery      Boolean @default(true)
+  homeShowVideos       Boolean @default(true)
+  homeShowServices     Boolean @default(true)
+  homeShowTestimonials Boolean @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   updatedBy String?
@@ -1711,13 +1746,13 @@ model SiteSettings {
 /// Legacy URL map plus any future slug changes. Consumed by the web
 /// middleware, cached for an hour.
 model Redirect {
-  id        String       @id @default(cuid(2))
-  fromPath  String       @unique
-  toPath    String
-  kind      RedirectKind @default(PERMANENT)
-  isActive  Boolean      @default(true)
-  hitCount  Int          @default(0)
-  note      String?
+  id       String       @id @default(cuid(2))
+  fromPath String       @unique
+  toPath   String
+  kind     RedirectKind @default(PERMANENT)
+  isActive Boolean      @default(true)
+  hitCount Int          @default(0)
+  note     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1744,15 +1779,15 @@ model PageView {
 }
 
 model DailyMetric {
-  id          String   @id @default(cuid(2))
-  date        DateTime @db.Date
-  path        String
-  views       Int      @default(0)
-  uniques     Int      @default(0)
+  id       String   @id @default(cuid(2))
+  date     DateTime @db.Date
+  path     String
+  views    Int      @default(0)
+  uniques  Int      @default(0)
   /// Core Web Vitals p75 for the day, from the RUM beacon.
-  lcpP75Ms    Int?
-  inpP75Ms    Int?
-  clsP75      Float?
+  lcpP75Ms Int?
+  inpP75Ms Int?
+  clsP75   Float?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

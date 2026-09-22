@@ -7,7 +7,7 @@
 > honest "blocked" line is far more useful to the next session than an
 > optimistic tick.
 
-**Last updated:** 2026-09-21 (homepage gig map removed → catalogue browse wheel)
+**Last updated:** 2026-09-22 (homepage revamp: shows/flyers, Video module, admin-configurable sections)
 **Current phase:** The **cinematic visual layer** — Phase 10 done properly.
 Until the visual-layer session `apps/web` was functionally complete and
 visually flat: no hero, no shader, no persona switcher, no 3D, and a play
@@ -3398,3 +3398,176 @@ Prev/Next fallback controls all rendering correctly within the viewport.
 **Not verified:** the wheel's actual drag gesture and rotation on a real
 touch/desktop input device — CDP measured layout and computed styles, not
 a physical pointer/touch interaction.
+
+---
+
+## Homepage revamp: shows & flyers, the Video module, admin-configurable sections (2026-09-22)
+
+The artist asked for a homepage revamp and supplied sketches: musical
+identities, a discography split by kind of work, "Resident DJ" entries with
+real date ranges, a genre list, recently played venues, a grid of gig flyers,
+photos, videos, and a closing "Ready to experience premium audio? / Book now /
+Listen now". His stated reason is the commercial one: **most people evaluating
+him for a booking never open a second page.**
+
+He also asked specifically for a Netflix-style way to browse shows — happened,
+upcoming, happening now, early bird — fully manageable from the admin.
+
+Decisions taken with the user before building (all four confirmed): trim the
+cinematic layer to the hero, rebuild `/events` rather than add a competing
+`/shows`, build the unused `Video` model out properly, and derive show states
+from dates with a small real schema addition rather than a free-text badge.
+Recorded as [ADR 0024](../01-decisions/0024-homepage-revamp-shows-first.md).
+
+### What shipped
+
+**Homepage** (`apps/web/src/app/(marketing)/page.tsx`, rewritten) — eleven
+sections in the sketch's order: hero (genre chips + Book now / Listen now) →
+musical identities → **shows & flyers** → discography (filtered by
+Original/Remix/Live set/Collaboration) → residencies → recently played venues
+→ photo gallery → **videos** → services → proof → closing CTA. Every section
+hides itself when it has no content, and each is individually switchable from
+admin Settings.
+
+`DeckAct` (3D CDJ) and `BrowseAct` (rotary wheel) are **no longer imported by
+the homepage**. Both files remain on disk, working and untouched.
+
+**Shows** — `ShowSpotlight` (the most urgent show, large, with ticket CTA and
+countdown) plus a `PosterRail` per phase. `/events` was rebuilt from a text
+list into the same poster browse, with server-resolved `searchParams` filters
+(city, kind) so every filtered view is a crawlable URL that works without
+JavaScript.
+
+**`Event` ticketing phases** — `onSaleFrom`, `earlyBirdUntil`,
+`earlyBirdPriceMax` (migration
+`20260922000000_homepage_revamp_show_phases_and_home_sections`). One pure,
+unit-tested function, `resolveShowPhase()` in `@dj/utils` (11 tests), turns
+those plus `eventStatus` into exactly one phase, and the homepage rail, the
+browse page, the event detail page and the admin all read it — so they cannot
+contradict each other.
+
+**The `Video` module, built from scratch** — the Prisma model and the `video`
+RBAC resource had existed since Phase 1 with no module, admin screen or
+rendering, exactly the state `Gallery` was found in. Full slice: contracts,
+API module (7 files), cache tags, `TAG_MAP`, web queries, admin screen with a
+bespoke provider-switching form, homepage rail and a videos section on
+`/gallery`. Embeds are composed server-side from a provider plus a bare id — a
+pasted URL is rejected — and no third-party iframe mounts until a viewer
+presses play, so no tracking cookie is set and no consent prompt is owed.
+
+**Homepage is admin-configurable** — `SiteSettings` gained five nullable copy
+fields and nine `homeShow*` booleans, surfaced as a "Homepage" fieldset in the
+admin settings form. Deliberately not a drag-and-drop page builder; see
+ADR 0024.
+
+### Three real bugs found by running it, not by inspection
+
+1. **`ADMIN_SEED_PASSWORD` was silently truncated.** The value in
+   `apps/api/.env.local` contains a `#`, and dotenv treats an unquoted `#` as
+   the start of a comment — so the app received the first 8 characters while
+   the database held all 15. **The entire e2e suite could not log in**, which
+   is very likely what an earlier session read as "the lockout test locked the
+   real admin account" (gap #15). Fixed by quoting the value. If e2e ever
+   fails at login again, check the quoting before assuming a lockout.
+
+2. **`Video` has no `SeoMeta` relation** — the new module's repository
+   included one, and every `GET /videos` 500'd on a Prisma validation error.
+   The contract, mapper and query were corrected to match the schema, rather
+   than the schema changed to match an assumption.
+
+3. **An event backfilled with a past date advertised itself as upcoming.**
+   `isPast` is documented as "maintained by the hourly cron" and *that cron
+   did not exist* — so the column held whatever the row was created with. The
+   cron now exists (`events-past-flag.cron.ts`, advisory-locked like the media
+   sweeper) **and** the write path derives `isPast` from the dates, because
+   backfilling shows already played is exactly what fills the "Recently
+   played" row. Verified in both directions live, including that a re-dated
+   (postponed) show returns to upcoming and that an unrelated edit does not
+   disturb the flag.
+
+Also fixed in passing: `/events` and `/gallery` had **no `h1` at all** —
+`SectionHeader` only ever emitted an `h2`. It now takes an `as` prop
+(default `h2`); both pages pass `as="h1"`. Found with a real browser, not by
+reading.
+
+### What was verified, and how
+
+**Live against the real Neon database and a real headless Chromium:**
+
+- 212 unit tests pass (`@dj/utils` 56 incl. 11 new, `@dj/api` 66, `@dj/db` 90).
+- **39 e2e tests** against the live database: the new `videos.e2e-spec.ts`
+  (15, including the provider invariant on both create and PATCH, embed
+  recomposition, and slug reuse after a soft delete per ADR 0020), plus
+  `events`, `programs` and `group-b-settings-sitemap` (24) re-run because
+  those modules changed. **The full suite was deliberately not run** — gap #15.
+- `pnpm lint` clean (one pre-existing admin warning), `tsc` clean everywhere,
+  `pnpm check:env` OK, `openapi.json` regenerated and committed (11 new video
+  paths, 3 new event properties).
+- API: the `when=live` filter, `hasFlyer`, city filtering composing correctly
+  with the live window (the `AND`-wrapping guard), and 422s with correct JSON
+  Pointers on every new refinement.
+- Browser at 390px and 1280px on `/`, `/events`, `/gallery`: **no horizontal
+  body overflow anywhere**, `h1` present, rails focusable and labelled, and
+  the rail's Next button verified to actually scroll (319px).
+- **Full admin round trip in a real browser**: logged in, created a video
+  through the admin form, published it, and confirmed it appeared on both `/`
+  and `/gallery` — which exercises the revalidation webhook and the cache-tag
+  symmetry. Then deleted it. Toggling `homeShowVideos` off in Settings was
+  verified to hide the section on the public homepage, and restored.
+- All verification fixtures were removed; seeded content is as it was found.
+
+**Not verified:**
+
+- **The headline feature cannot be judged on real content.** There are no real
+  events, flyers or videos in the catalogue — everything above was proven with
+  `[DEMO]`-prefixed rows that have since been deleted. The sections render
+  their honest empty states until the artist adds content. Nothing was
+  invented (`brand.md`).
+- A real Cloudinary flyer/thumbnail upload through the video form. Credentials
+  are now real (the API logs "Cloudinary configured"), but no image was
+  uploaded in this session.
+- The hourly `isPast` cron firing on its schedule. Its logic is exercised by
+  the write-path derivation and was reviewed, but a full hour was not waited
+  out.
+- Screen-reader testing, still a Group F handoff item.
+
+### One budget regression, not silently absorbed
+
+`/gallery` first-load JS is **125KB against a documented ≤120KB target** for
+content routes. Cause: the page's photo grid was entirely server-rendered, and
+adding the video rail pulls `next/image`'s client runtime in. Splitting the
+lightbox into its own lazy chunk was done anyway (it is the right shape) but
+recovered nothing, because the lightbox was never the weight.
+
+`/` is 134KB (≤145KB), `/[persona]` 128KB (≤155KB), `/events` 112KB (≤120KB)
+— all green. Note `/` went **up** from 123KB, not down: removing the 3D deck
+freed little, because it was already a lazy `dynamic()` import and never in
+the first load. That expectation, stated in the plan, was wrong.
+
+The remaining options for `/gallery` are to drop SSR for the video rail
+(`ssr: false`, costing the video titles in the server HTML) or to raise the
+target for that route. Neither was chosen unilaterally — it needs a call.
+`size-limit` is still a commented-out future CI job, so nothing is failing
+today.
+
+### Known gaps left open deliberately
+
+- **`Program` and `ExperienceEntry` both model a residency and are
+  unconnected.** The homepage prefers `Program` and merges in only those
+  experience rows whose organisation no program already covers, matched on
+  name (`components/home/residencies.tsx`). Collapsing the two is a migration
+  with a content-migration story attached, and the artist has real data in
+  both. Recorded in ADR 0024, not resolved.
+- Videos have no public detail route (`/videos/[slug]`); the lightbox is the
+  only way to watch one, which is why the contract carries no `seo` field.
+- `pnpm db:generate` can fail with `EPERM ... query_engine-windows.dll.node`
+  while a dev server is running on Windows — a file lock, not a code problem.
+  Stop the API first.
+
+### What the artist needs to do next
+
+The feature is built and proven; it is **empty until he fills it**. In admin:
+add events with flyers (Media library → upload, then the flyer picker on the
+event form), set `onSaleFrom` / `earlyBirdUntil` / early-bird price where
+relevant, add videos (YouTube or Vimeo id, plus a thumbnail), and publish
+each. The homepage sections appear on their own as content lands.

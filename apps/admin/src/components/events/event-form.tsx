@@ -26,6 +26,9 @@ interface EventDetail {
   ticketUrl: string | null;
   ticketPriceMin: number | null;
   ticketPriceMax: number | null;
+  onSaleFrom: string | null;
+  earlyBirdUntil: string | null;
+  earlyBirdPriceMax: number | null;
   currency: string;
   isFree: boolean;
   isFeatured: boolean;
@@ -62,6 +65,9 @@ export function EventForm({ id }: { id?: string }): React.JSX.Element {
   const [ticketUrl, setTicketUrl] = useState('');
   const [ticketPriceMin, setTicketPriceMin] = useState('');
   const [ticketPriceMax, setTicketPriceMax] = useState('');
+  const [onSaleFrom, setOnSaleFrom] = useState('');
+  const [earlyBirdUntil, setEarlyBirdUntil] = useState('');
+  const [earlyBirdPriceMax, setEarlyBirdPriceMax] = useState('');
   const [currency, setCurrency] = useState('INR');
   const [isFree, setIsFree] = useState(false);
   const [isFeatured, setIsFeatured] = useState(false);
@@ -88,6 +94,11 @@ export function EventForm({ id }: { id?: string }): React.JSX.Element {
         setTicketUrl(event.ticketUrl ?? '');
         setTicketPriceMin(event.ticketPriceMin != null ? String(event.ticketPriceMin) : '');
         setTicketPriceMax(event.ticketPriceMax != null ? String(event.ticketPriceMax) : '');
+        setOnSaleFrom(toDateTimeInputValue(event.onSaleFrom));
+        setEarlyBirdUntil(toDateTimeInputValue(event.earlyBirdUntil));
+        setEarlyBirdPriceMax(
+          event.earlyBirdPriceMax != null ? String(event.earlyBirdPriceMax) : '',
+        );
         setCurrency(event.currency);
         setIsFree(event.isFree);
         setIsFeatured(event.isFeatured);
@@ -139,6 +150,12 @@ export function EventForm({ id }: { id?: string }): React.JSX.Element {
         ticketUrl: ticketUrl || undefined,
         ticketPriceMin: ticketPriceMin ? Number(ticketPriceMin) : undefined,
         ticketPriceMax: ticketPriceMax ? Number(ticketPriceMax) : undefined,
+        // Sent as null rather than omitted when cleared: `undefined` means
+        // "leave untouched" on a PATCH, so an omitted field could never be
+        // un-set once an early-bird window had been entered by mistake.
+        onSaleFrom: onSaleFrom || null,
+        earlyBirdUntil: earlyBirdUntil || null,
+        earlyBirdPriceMax: earlyBirdPriceMax ? Number(earlyBirdPriceMax) : null,
         currency,
         isFree,
         isFeatured,
@@ -428,6 +445,71 @@ export function EventForm({ id }: { id?: string }): React.JSX.Element {
             className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg-strong"
           />
         </div>
+        {/* Early bird and on-sale.
+
+            Stored as real dates rather than a typed-in "EARLY BIRD" label,
+            because a label never stops being true on its own - it sits on the
+            public page long after the window shuts, quoting a price nobody can
+            still buy. These drive the badge, the countdown and which row the
+            show appears in on /events, and they expire by themselves. */}
+        <fieldset className="border-border rounded-md border p-4">
+          <legend className="text-fg-strong px-2 text-sm font-medium">Early bird &amp; on sale</legend>
+          <p className="text-fg-muted mb-3 text-xs">
+            Optional. Leave blank and the show simply reads as &ldquo;Announced&rdquo; until it has a
+            ticket link.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="onSaleFrom" className="text-fg-strong text-sm font-medium">
+                Tickets on sale from
+              </label>
+              <input
+                id="onSaleFrom"
+                type="datetime-local"
+                value={onSaleFrom}
+                onChange={(event) => {
+                  setOnSaleFrom(event.target.value);
+                }}
+                className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg-strong"
+              />
+            </div>
+            <div>
+              <label htmlFor="earlyBirdUntil" className="text-fg-strong text-sm font-medium">
+                Early bird ends
+              </label>
+              <input
+                id="earlyBirdUntil"
+                type="datetime-local"
+                value={earlyBirdUntil}
+                onChange={(event) => {
+                  setEarlyBirdUntil(event.target.value);
+                }}
+                className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg-strong"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label htmlFor="earlyBirdPriceMax" className="text-fg-strong text-sm font-medium">
+              Early bird price
+            </label>
+            <input
+              id="earlyBirdPriceMax"
+              type="number"
+              min={0}
+              value={earlyBirdPriceMax}
+              onChange={(event) => {
+                setEarlyBirdPriceMax(event.target.value);
+              }}
+              className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg-strong"
+            />
+            <p className="text-fg-muted mt-1 text-xs">
+              Shown instead of the standard price while the window is open, and only then.
+            </p>
+          </div>
+        </fieldset>
+
         <MediaSelect label="Flyer" value={flyerId} onChange={setFlyerId} />
 
         <div>

@@ -54,6 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/media', label: 'Media library', permission: 'media:read' },
       { href: '/galleries', label: 'Galleries', permission: 'gallery:read' },
+      { href: '/videos', label: 'Videos', permission: 'video:read' },
     ],
   },
   {
