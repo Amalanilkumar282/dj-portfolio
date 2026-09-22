@@ -669,10 +669,24 @@ export const EventSummary = z.object({
    * Ticketing phases. Real dates rather than a free-text badge, because
    * "EARLY BIRD" typed into a string stays on the page long after the
    * window shuts. `resolveShowPhase()` in @dj/utils is the single reader.
+   *
+   * `.nullish()`, not `.nullable()`: these three fields were added after
+   * `EventSummary` already had real deployed consumers. `apps/web` and
+   * `apps/api` deploy separately (Vercel and Railway respectively — ADR
+   * 0007), so there is always a window where one has this contract and the
+   * other doesn't yet. `.nullable()` requires the key to be *present* (as
+   * `null` at minimum); an older, not-yet-redeployed API omitting the key
+   * entirely fails that and 502s every route that reads an event — which is
+   * exactly what happened on 2026-09-22's Vercel build, prerendering
+   * `/api/events.ics` against a Railway deployment still on the previous
+   * contract. `.nullish()` accepts a missing key the same as an explicit
+   * `null`, so a rolling deploy degrades to "no early-bird badge yet"
+   * instead of failing the build. `resolveShowPhase()`'s own input type was
+   * already `Date | null | undefined`-tolerant for this reason.
    */
-  onSaleFrom: z.coerce.date().nullable(),
-  earlyBirdUntil: z.coerce.date().nullable(),
-  earlyBirdPriceMax: z.number().nullable(),
+  onSaleFrom: z.coerce.date().nullish(),
+  earlyBirdUntil: z.coerce.date().nullish(),
+  earlyBirdPriceMax: z.number().nullish(),
   currency: CurrencySchema,
   ageRestriction: z.string().nullable(),
   venueName: z.string().nullable(),
